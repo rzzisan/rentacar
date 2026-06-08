@@ -91,7 +91,7 @@ export default function App() {
           path="/admin"
           element={
             <ProtectedRoute user={user} role="admin">
-              <AppLayout user={user!} onLogout={handleLogout} />
+              <AppLayout user={user!} onLogout={handleLogout} onUserUpdate={setUser} />
             </ProtectedRoute>
           }
         >
@@ -111,7 +111,7 @@ export default function App() {
           path="/employee"
           element={
             <ProtectedRoute user={user} role="employee">
-              <AppLayout user={user!} onLogout={handleLogout} />
+              <AppLayout user={user!} onLogout={handleLogout} onUserUpdate={setUser} />
             </ProtectedRoute>
           }
         >
@@ -126,7 +126,7 @@ export default function App() {
           path="/customer"
           element={
             <ProtectedRoute user={user} role="customer">
-              <AppLayout user={user!} onLogout={handleLogout} />
+              <AppLayout user={user!} onLogout={handleLogout} onUserUpdate={setUser} />
             </ProtectedRoute>
           }
         >
