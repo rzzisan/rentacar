@@ -7,6 +7,7 @@ import type { User } from '@/types';
 interface Props {
   user: User;
   onLogout: () => void;
+  onUserUpdate: (user: User) => void;
 }
 
 const pageTitles: Record<string, string> = {
@@ -31,7 +32,7 @@ const pageTitles: Record<string, string> = {
   '/customer/profile': 'প্রোফাইল',
 };
 
-export default function AppLayout({ user, onLogout }: Props) {
+export default function AppLayout({ user, onLogout, onUserUpdate }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const location = useLocation();
   const pageTitle = pageTitles[location.pathname];
@@ -43,6 +44,7 @@ export default function AppLayout({ user, onLogout }: Props) {
         pageTitle={pageTitle}
         onToggleSidebar={() => setSidebarOpen(p => !p)}
         onLogout={onLogout}
+        onUserUpdate={onUserUpdate}
       />
 
       <div className="flex flex-1 min-h-0">
