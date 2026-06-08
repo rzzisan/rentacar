@@ -69,14 +69,13 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
 
       <aside
         className={[
-          'fixed top-0 left-0 h-full z-[150] flex flex-col',
-          'bg-[#0f172a] transition-transform duration-300',
-          'w-[260px]',
-          // Mobile: slide in/out
-          'lg:relative lg:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+          'h-full z-[150] flex flex-col overflow-hidden min-w-0',
+          'bg-[#0f172a] transition-all duration-300 ease-in-out',
+          'fixed top-0 left-0 lg:relative flex-shrink-0',
+          isOpen
+            ? 'w-[260px] translate-x-0'
+            : 'w-[260px] -translate-x-full lg:translate-x-0 lg:w-0',
         ].join(' ')}
-        style={{ width: '260px' }}
       >
         {/* Brand */}
         <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-700 flex-shrink-0">
