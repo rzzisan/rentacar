@@ -1,0 +1,18 @@
+# Ignore files and directories
+.DS_Store
+*.log
+*.swp
+*.swo
+*~
+.env
+.env.local
+config/database-local.php
+uploads/*
+!uploads/.gitkeep
+cache/*
+!cache/.gitkeep
+session/*
+!session/.gitkeep
+.vscode/
+.idea/
+node_modules/

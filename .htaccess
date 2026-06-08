@@ -1,0 +1,47 @@
+# Rent-A-Car Management System - .htaccess Configuration
+
+# Enable mod_rewrite
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Set base directory
+    RewriteBase /
+    
+    # Remove .php extension
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^([a-zA-Z0-9_\-]+)/?$ $1.php [L]
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    # Prevent directory listing
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Deny access to sensitive files
+<FilesMatch "\.env|\.git|database\.php|config\.php">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect config directory
+<FilesMatch "^config/">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect includes directory
+<FilesMatch "^includes/">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect database directory
+<FilesMatch "^database/">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
