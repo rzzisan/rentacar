@@ -74,15 +74,15 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
           'fixed top-0 left-0 lg:relative flex-shrink-0',
           isOpen
             ? 'w-[260px] translate-x-0'
-            : 'w-[260px] -translate-x-full lg:translate-x-0 lg:w-0',
+            : 'w-[260px] -translate-x-full lg:translate-x-0 lg:w-16',
         ].join(' ')}
       >
         {/* Brand */}
-        <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-700 flex-shrink-0">
+        <div className={`flex items-center h-16 border-b border-slate-700 flex-shrink-0 transition-all duration-300 ${isOpen ? 'gap-3 px-5' : 'gap-3 px-5 lg:justify-center lg:px-0'}`}>
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-lg flex-shrink-0">
             🚗
           </div>
-          <div>
+          <div className={`transition-all duration-200 ${isOpen ? '' : 'lg:hidden'}`}>
             <div className="text-sm font-bold text-white leading-tight">CarRental</div>
             <div className="text-[10px] text-slate-500 uppercase tracking-wider">ম্যানেজমেন্ট</div>
           </div>
@@ -101,13 +101,14 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
                   <li key={item.href} className="mx-2.5 mb-0.5">
                     <button
                       onClick={() => toggleSub(item.href)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-white/5 hover:text-white transition-colors text-left"
+                      title={!isOpen ? item.label : undefined}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-white/5 hover:text-white transition-colors text-left ${!isOpen ? 'lg:justify-center lg:px-2.5' : ''}`}
                     >
                       <span className="w-5 text-base text-center flex-shrink-0">{item.icon}</span>
-                      <span className="flex-1 text-sm font-medium">{item.label}</span>
-                      <span className={`text-[10px] text-slate-500 transition-transform ${openSubs[item.href] ? 'rotate-90' : ''}`}>▶</span>
+                      <span className={`flex-1 text-sm font-medium ${!isOpen ? 'lg:hidden' : ''}`}>{item.label}</span>
+                      <span className={`text-[10px] text-slate-500 transition-transform ${openSubs[item.href] ? 'rotate-90' : ''} ${!isOpen ? 'lg:hidden' : ''}`}>▶</span>
                     </button>
-                    {openSubs[item.href] && (
+                    {isOpen && openSubs[item.href] && (
                       <ul className="ml-4 mt-0.5 list-none p-0">
                         {item.children.map(child => (
                           <li key={child.href} className="mx-0 mb-0.5">
@@ -137,14 +138,15 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
                   <NavLink
                     to={item.href}
                     end={item.href === '/admin' || item.href === '/employee' || item.href === '/customer'}
+                    title={!isOpen ? item.label : undefined}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors no-underline ${
                       isActive
                         ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/20'
                         : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                    }`}
+                    } ${!isOpen ? 'lg:justify-center lg:px-2.5' : ''}`}
                   >
                     <span className="w-5 text-base text-center flex-shrink-0">{item.icon}</span>
-                    <span className="text-[13.5px] font-medium">{item.label}</span>
+                    <span className={`text-[13.5px] font-medium ${!isOpen ? 'lg:hidden' : ''}`}>{item.label}</span>
                   </NavLink>
                 </li>
               );
@@ -154,11 +156,14 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
 
         {/* Footer */}
         <div className="px-2.5 py-3 border-t border-slate-700 flex-shrink-0">
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+          <div className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${!isOpen ? 'lg:justify-center lg:px-0' : ''}`}>
+            <div
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+              title={!isOpen ? username : undefined}
+            >
               {username.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className={`flex-1 min-w-0 ${!isOpen ? 'lg:hidden' : ''}`}>
               <div className="text-xs font-semibold text-slate-300 truncate">{username}</div>
               <div className="text-[10px] text-slate-500">
                 {role === 'admin' ? 'এডমিন' : role === 'employee' ? 'কর্মচারী' : 'গ্রাহক'}
