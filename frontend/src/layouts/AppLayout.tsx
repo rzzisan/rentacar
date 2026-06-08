@@ -32,7 +32,7 @@ const pageTitles: Record<string, string> = {
 };
 
 export default function AppLayout({ user, onLogout }: Props) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const location = useLocation();
   const pageTitle = pageTitles[location.pathname];
 
