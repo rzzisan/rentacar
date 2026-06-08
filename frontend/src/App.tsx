@@ -1,0 +1,153 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import AppLayout from '@/layouts/AppLayout';
+import AdminDashboard from '@/pages/admin/Dashboard';
+import AdminVehicles from '@/pages/admin/Vehicles';
+import Login from '@/pages/Login';
+import { api } from '@/api/client';
+import type { User } from '@/types';
+
+function PlaceholderPage({ title }: { title: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800">{title}</h1>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 p-12 shadow-sm text-center">
+        <div className="text-4xl mb-3">🚧</div>
+        <p className="text-slate-500 text-sm">এই পেজটি তৈরি হচ্ছে</p>
+      </div>
+    </div>
+  );
+}
+
+function ProtectedRoute({
+  user,
+  role,
+  children,
+}: {
+  user: User | null;
+  role?: string;
+  children: React.ReactNode;
+}) {
+  if (!user) return <Navigate to="/login" replace />;
+  if (role && user.role !== role) {
+    const dest = user.role === 'admin' ? '/admin'
+               : user.role === 'employee' ? '/employee'
+               : '/customer';
+    return <Navigate to={dest} replace />;
+  }
+  return <>{children}</>;
+}
+
+export default function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get<User>('/auth/me.php')
+      .then(res => {
+        setUser(res.success && res.data ? res.data : null);
+      })
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function handleLogin(u: User) {
+    setUser(u);
+  }
+
+  async function handleLogout() {
+    await api.post('/auth/logout.php', {}).catch(() => {});
+    setUser(null);
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500 text-sm">লোড হচ্ছে…</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Login */}
+        <Route
+          path="/login"
+          element={
+            user
+              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : '/customer'} replace />
+              : <Login onLogin={handleLogin} />
+          }
+        />
+
+        {/* Admin */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute user={user} role="admin">
+              <AppLayout user={user!} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="vehicles" element={<AdminVehicles />} />
+          <Route path="rentals"     element={<PlaceholderPage title="রেন্টাল ব্যবস্থাপনা" />} />
+          <Route path="customers"   element={<PlaceholderPage title="গ্রাহক ব্যবস্থাপনা" />} />
+          <Route path="payments"    element={<PlaceholderPage title="পেমেন্ট" />} />
+          <Route path="employees"   element={<PlaceholderPage title="কর্মচারী" />} />
+          <Route path="maintenance" element={<PlaceholderPage title="রক্ষণাবেক্ষণ" />} />
+          <Route path="reports"     element={<PlaceholderPage title="রিপোর্ট" />} />
+          <Route path="settings"    element={<PlaceholderPage title="সেটিংস" />} />
+        </Route>
+
+        {/* Employee */}
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoute user={user} role="employee">
+              <AppLayout user={user!} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<PlaceholderPage title="কর্মচারী ড্যাশবোর্ড" />} />
+          <Route path="vehicles"  element={<PlaceholderPage title="গাড়ি" />} />
+          <Route path="rentals"   element={<PlaceholderPage title="রেন্টাল" />} />
+          <Route path="customers" element={<PlaceholderPage title="গ্রাহক" />} />
+        </Route>
+
+        {/* Customer */}
+        <Route
+          path="/customer"
+          element={
+            <ProtectedRoute user={user} role="customer">
+              <AppLayout user={user!} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<PlaceholderPage title="গ্রাহক ড্যাশবোর্ড" />} />
+          <Route path="vehicles" element={<PlaceholderPage title="গাড়ি খুঁজুন" />} />
+          <Route path="bookings" element={<PlaceholderPage title="আমার বুকিং" />} />
+          <Route path="invoices" element={<PlaceholderPage title="পেমেন্ট" />} />
+          <Route path="profile"  element={<PlaceholderPage title="প্রোফাইল" />} />
+        </Route>
+
+        {/* Root redirect */}
+        <Route
+          path="/"
+          element={
+            user
+              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : '/customer'} replace />
+              : <Navigate to="/login" replace />
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

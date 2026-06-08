@@ -3,14 +3,17 @@
 # Enable mod_rewrite
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # Set base directory
     RewriteBase /
-    
-    # Remove .php extension
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^([a-zA-Z0-9_\-]+)/?$ $1.php [L]
+
+    # 1. API requests pass through to PHP
+    RewriteRule ^api/ - [L]
+
+    # 2. Actual files pass through (JS/CSS assets, images, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # 3. Everything else (app routes, directories) → React SPA
+    RewriteRule ^ /public/app/index.html [L]
 </IfModule>
 
 # Security Headers
