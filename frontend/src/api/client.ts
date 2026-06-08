@@ -15,11 +15,11 @@ async function request<T>(
     ...options,
   });
 
-  if (!res.ok) {
+  try {
+    return await res.json();
+  } catch {
     return { success: false, message: `HTTP ${res.status}` };
   }
-
-  return res.json();
 }
 
 export const api = {
