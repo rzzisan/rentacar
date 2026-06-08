@@ -17,6 +17,7 @@ const pageTitles: Record<string, string> = {
   '/admin/rentals': 'রেন্টাল ব্যবস্থাপনা',
   '/admin/customers': 'গ্রাহক ব্যবস্থাপনা',
   '/admin/payments': 'পেমেন্ট',
+  '/admin/drivers': 'ড্রাইভার ব্যবস্থাপনা',
   '/admin/employees': 'কর্মচারী',
   '/admin/maintenance': 'রক্ষণাবেক্ষণ',
   '/admin/reports': 'রিপোর্ট',
