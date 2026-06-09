@@ -564,7 +564,7 @@ export default function AdminRentals() {
                           <p className="font-medium">{EXPENSE_TYPES[exp.expense_type]}</p>
                           <p className="text-gray-600">{exp.description || '-'}</p>
                           {exp.receipt_image && (
-                            <a href={`/${exp.receipt_image}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700">
+                            <a href={`/public/${exp.receipt_image}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700">
                               ছবি দেখুন
                             </a>
                           )}
