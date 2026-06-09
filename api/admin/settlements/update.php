@@ -18,10 +18,11 @@ if (!$settlement_id) {
 $stmt = $conn->prepare("SELECT id, rental_id FROM settlements WHERE id = ?");
 $stmt->bind_param('i', $settlement_id);
 $stmt->execute();
-if ($stmt->get_result()->num_rows === 0) {
+$result = $stmt->get_result();
+if ($result->num_rows === 0) {
     json_response(['success' => false, 'message' => 'সেটেলমেন্ট পাওয়া যায়নি'], 404);
 }
-$settlement = $stmt->get_result()->fetch_assoc();
+$settlement = $result->fetch_assoc();
 $stmt->close();
 
 $rental_id = $settlement['rental_id'];
@@ -64,6 +65,14 @@ if (isset($data['agreed_amount'])) {
         json_response(['success' => false, 'message' => 'আপডেট ব্যর্থ: ' . $ustmt->error], 500);
     }
     $ustmt->close();
+
+    // Also update rental's agreed_amount to keep them in sync
+    $rstmt = $conn->prepare("UPDATE rentals SET agreed_amount = ? WHERE id = ?");
+    $rstmt->bind_param('di', $agreed_amount, $rental_id);
+    if (!$rstmt->execute()) {
+        json_response(['success' => false, 'message' => 'রেন্টাল আপডেট ব্যর্থ: ' . $rstmt->error], 500);
+    }
+    $rstmt->close();
 }
 
 // Handle payment update

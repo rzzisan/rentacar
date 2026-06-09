@@ -29,11 +29,17 @@ const AdminSettlements: React.FC = () => {
       if (searchQuery) params.append('search', searchQuery);
       if (params.toString()) url += '?' + params.toString();
 
+      console.log('📡 Loading settlements from:', url, 'Filter:', filterStatus, 'Search:', searchQuery);
       const response = await api.get<Settlement[]>(url);
+      console.log('📊 Received settlements count:', response.data?.length);
+      if (response.data && response.data.length > 0) {
+        console.log('First settlement:', response.data[0].id, 'agreed_amount:', response.data[0].agreed_amount);
+      }
       if (response.success && response.data) {
         setSettlements(response.data);
       }
     } catch (error) {
+      console.error('Load error:', error);
       showToast('error', 'সেটেলমেন্ট লোড করতে ব্যর্থ');
     } finally {
       setLoading(false);
@@ -108,21 +114,52 @@ const AdminSettlements: React.FC = () => {
     }
   };
 
-  const handleUpdateAgreedAmount = async () => {
+  const handleUpdateAgreedAmount = async (amount?: number) => {
     if (!selectedSettlement) return;
     try {
-      await api.post(`/admin/settlements/update.php?id=${selectedSettlement.id}`, {
-        agreed_amount: parseFloat(editingAgreedAmount),
+      const updateAmount = amount !== undefined ? amount : parseFloat(editingAgreedAmount);
+      console.log('🔄 Updating agreed_amount to:', updateAmount);
+
+      // Step 1: Update settlement
+      const updateResponse = await api.post(`/admin/settlements/update.php?id=${selectedSettlement.id}`, {
+        agreed_amount: updateAmount,
       });
-      showToast('success', 'চুক্তির পরিমান আপডেট হয়েছে');
-      // Reload detail and list
-      const response = await api.get<Settlement>(`/admin/settlements/show.php?id=${selectedSettlement.id}`);
-      if (response.success && response.data) {
-        setSelectedSettlement(response.data);
+      console.log('✓ Update response:', updateResponse);
+
+      // Step 2: Immediately reload detail (to get fresh data with recalculations)
+      console.log('📥 Reloading settlement detail...');
+      const detailResponse = await api.get<Settlement>(`/admin/settlements/show.php?id=${selectedSettlement.id}`);
+      console.log('📊 Detail response - agreed:', detailResponse.data?.agreed_amount);
+
+      if (detailResponse.success && detailResponse.data) {
+        console.log('✓ Updating modal with new data: agreed=' + detailResponse.data.agreed_amount);
+        setSelectedSettlement(detailResponse.data);
+        setEditingAgreedAmount(detailResponse.data.agreed_amount.toString());
+        // Update payment form to reflect current state
+        setPaymentForm({
+          payment_status: detailResponse.data.payment_status,
+          payment_method: detailResponse.data.payment_method || '',
+          payment_notes: detailResponse.data.payment_notes || '',
+        });
       }
-      // Also reload settlements list
-      await loadSettlements();
+
+      // Step 3: Reload settlements list
+      console.log('📋 Reloading settlements list...');
+      let listUrl = '/admin/settlements/index.php';
+      const params = new URLSearchParams();
+      if (filterStatus) params.append('status', filterStatus);
+      if (searchQuery) params.append('search', searchQuery);
+      if (params.toString()) listUrl += '?' + params.toString();
+
+      const listResponse = await api.get<Settlement[]>(listUrl);
+      console.log('✓ List reloaded with', listResponse.data?.length, 'items');
+      if (listResponse.success && listResponse.data) {
+        setSettlements(listResponse.data);
+      }
+
+      showToast('success', 'চুক্তির পরিমান আপডেট হয়েছে');
     } catch (error) {
+      console.error('❌ Error:', error);
       showToast('error', 'আপডেট ব্যর্থ');
     }
   };
@@ -130,15 +167,41 @@ const AdminSettlements: React.FC = () => {
   const handleUpdatePaymentStatus = async () => {
     if (!selectedSettlement) return;
     try {
+      console.log('💳 Updating payment status:', paymentForm.payment_status);
+
+      // Step 1: Update payment
       await api.post(`/admin/settlements/update.php?id=${selectedSettlement.id}`, paymentForm);
-      showToast('success', 'পেমেন্ট স্ট্যাটাস আপডেট হয়েছে');
+      console.log('✓ Payment updated');
+
+      // Step 2: Reload detail
       const response = await api.get<Settlement>(`/admin/settlements/show.php?id=${selectedSettlement.id}`);
+      console.log('✓ Detail reloaded, status:', response.data?.payment_status);
+
       if (response.success && response.data) {
         setSelectedSettlement(response.data);
+        // Update form to reflect latest state
+        setPaymentForm({
+          payment_status: response.data.payment_status,
+          payment_method: response.data.payment_method || '',
+          payment_notes: response.data.payment_notes || '',
+        });
       }
-      // Also reload settlements list
-      await loadSettlements();
+
+      // Step 3: Reload list
+      let listUrl = '/admin/settlements/index.php';
+      const params = new URLSearchParams();
+      if (filterStatus) params.append('status', filterStatus);
+      if (searchQuery) params.append('search', searchQuery);
+      if (params.toString()) listUrl += '?' + params.toString();
+
+      const listResponse = await api.get<Settlement[]>(listUrl);
+      if (listResponse.success && listResponse.data) {
+        setSettlements(listResponse.data);
+      }
+
+      showToast('success', 'পেমেন্ট স্ট্যাটাস আপডেট হয়েছে');
     } catch (error) {
+      console.error('❌ Payment update error:', error);
       showToast('error', 'আপডেট ব্যর্থ');
     }
   };
@@ -423,8 +486,7 @@ const AdminSettlements: React.FC = () => {
                             selectedSettlement.agreed_amount.toString()
                           );
                           if (newAmount && parseFloat(newAmount) > 0) {
-                            setEditingAgreedAmount(newAmount);
-                            handleUpdateAgreedAmount();
+                            handleUpdateAgreedAmount(parseFloat(newAmount));
                           }
                         }}
                         className="text-indigo-600 hover:underline"
