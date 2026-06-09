@@ -151,24 +151,22 @@ if ($method === 'POST') {
     $rental_status   = 'pending';
     $payment_status  = 'pending';
     $employee_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
-    $end_date_null = null;
 
     $rstmt = $conn->prepare(
         "INSERT INTO rentals
-         (customer_id, vehicle_id, employee_id, driver_id, start_date, end_date,
+         (customer_id, vehicle_id, employee_id, driver_id, start_date,
           pickup_location, dropoff_location, trip_type, agreed_amount, rental_status,
           payment_status, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
     $rstmt->bind_param(
-        'iiiiisssdsss',
+        'iiiissssdsss',
         $customer_id,
         $vehicle_id,
         $employee_id,
         $driver_id,
         $start_datetime,
-        $end_date_null,
         $pickup_location,
         $dropoff_location,
         $trip_type,
