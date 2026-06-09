@@ -64,6 +64,8 @@ if ($method === 'GET') {
         $row['commission_percent']      = (float)$row['commission_percent'];
         $row['driver_commission']       = (float)$row['driver_commission'];
         $row['amount_to_collect']       = (float)$row['amount_to_collect'];
+        $row['paid_amount']             = (float)$row['paid_amount'];
+        $row['remaining_amount']        = (float)$row['remaining_amount'];
     }
 
     json_response(['success' => true, 'data' => $rows]);

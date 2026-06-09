@@ -64,6 +64,8 @@ $settlement['net_amount'] = (float)$settlement['net_amount'];
 $settlement['commission_percent'] = (float)$settlement['commission_percent'];
 $settlement['driver_commission'] = (float)$settlement['driver_commission'];
 $settlement['amount_to_collect'] = (float)$settlement['amount_to_collect'];
+$settlement['paid_amount'] = (float)$settlement['paid_amount'];
+$settlement['remaining_amount'] = (float)$settlement['remaining_amount'];
 
 foreach ($expenses as &$exp) {
     $exp['id'] = (int)$exp['id'];
