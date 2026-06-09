@@ -90,16 +90,21 @@ const AdminSettlements: React.FC = () => {
 
   const handleCreateSettlement = async (rental: any) => {
     try {
+      console.log('Creating settlement for rental:', rental.id);
       const response = await api.post('/admin/settlements/index.php', {
         rental_id: rental.id,
       });
+      console.log('Settlement response:', response);
       if (response.success) {
         showToast('success', 'সেটেলমেন্ট সফলভাবে তৈরি হয়েছে');
         setShowCreateModal(false);
-        loadSettlements();
+        await loadSettlements();
+      } else {
+        showToast('error', response.message || 'সেটেলমেন্ট তৈরি করতে ব্যর্থ');
       }
-    } catch (error) {
-      showToast('error', 'সেটেলমেন্ট তৈরি করতে ব্যর্থ');
+    } catch (error: any) {
+      console.error('Settlement creation error:', error);
+      showToast('error', error.message || 'সেটেলমেন্ট তৈরি করতে ব্যর্থ');
     }
   };
 

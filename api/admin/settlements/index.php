@@ -35,7 +35,7 @@ if ($method === 'GET') {
             v.model as vehicle_model,
             v.registration_number as vehicle_registration_number,
             d.name as driver_name,
-            d.commission_percent as driver_commission_percent,
+            d.commission_rate as driver_commission_rate,
             r.start_date as rental_start_date
             FROM settlements s
             LEFT JOIN rentals r ON s.rental_id = r.id
@@ -80,7 +80,7 @@ if ($method === 'POST') {
 
     // Verify rental exists and is completed
     $rstmt = $conn->prepare(
-        "SELECT r.*, d.commission_percent FROM rentals r
+        "SELECT r.*, d.commission_rate FROM rentals r
          LEFT JOIN drivers d ON r.driver_id = d.id
          WHERE r.id = ? AND r.rental_status = 'completed'"
     );
@@ -115,7 +115,7 @@ if ($method === 'POST') {
     // Calculate amounts
     $agreed_amount = (float)$rental['agreed_amount'];
     $net_amount = $agreed_amount - $total_expenses;
-    $commission_percent = $rental['commission_percent'] ? (float)$rental['commission_percent'] : 0;
+    $commission_percent = $rental['commission_rate'] ? (float)$rental['commission_rate'] : 0;
     $driver_commission = ($net_amount > 0) ? ($net_amount * $commission_percent / 100) : 0;
     $amount_to_collect = $net_amount - $driver_commission;
 
