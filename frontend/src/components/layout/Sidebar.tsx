@@ -15,6 +15,7 @@ const adminNav: NavItem[] = [
   { label: 'রেন্টাল ব্যবস্থাপনা', icon: '📋', href: '/admin/rentals' },
   { label: 'গ্রাহক ব্যবস্থাপনা', icon: '👥', href: '/admin/customers' },
   { label: 'পেমেন্ট', icon: '💳', href: '/admin/payments' },
+  { label: 'ড্রাইভার', icon: '🧑‍✈️', href: '/admin/drivers' },
   { label: 'কর্মচারী', icon: '👤', href: '/admin/employees' },
   { label: 'রক্ষণাবেক্ষণ', icon: '🔧', href: '/admin/maintenance' },
   { label: 'রিপোর্ট', icon: '📊', href: '/admin/reports' },
