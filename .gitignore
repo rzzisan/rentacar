@@ -16,3 +16,6 @@ session/*
 .vscode/
 .idea/
 node_modules/
+
+# Vite build output
+public/app/
