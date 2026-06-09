@@ -549,6 +549,16 @@ export default function AdminRentals() {
                       </button>
                     </>
                   )}
+                  {selectedRental.rental_status === 'completed' && (
+                    <a
+                      href={`/admin/settlements`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm flex items-center gap-1"
+                    >
+                      পেমেন্ট সেটেলমেন্ট দেখুন →
+                    </a>
+                  )}
                 </div>
               </div>
 
