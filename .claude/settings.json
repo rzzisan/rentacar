@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -d display_errors=on -r ' *)",
+      "Bash(php -d error_reporting=E_ALL -r ' *)"
+    ]
+  }
+}

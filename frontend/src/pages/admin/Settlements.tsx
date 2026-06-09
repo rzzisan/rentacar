@@ -25,6 +25,7 @@ const AdminSettlements: React.FC = () => {
   });
   const [paymentHistory, setPaymentHistory] = useState<SettlementPayment[]>([]);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [detailError, setDetailError] = useState<string>('');
 
   // Load settlements
   const loadSettlements = async () => {
@@ -92,6 +93,7 @@ const AdminSettlements: React.FC = () => {
   const handleShowDetail = async (settlement: Settlement) => {
     try {
       setShowDetailModal(true);
+      setDetailError('');
       const response = await api.get<Settlement>(`/admin/settlements/show.php?id=${settlement.id}`);
       if (response.success && response.data) {
         setSelectedSettlement(response.data);
@@ -101,10 +103,13 @@ const AdminSettlements: React.FC = () => {
           payment_method: response.data.payment_method || '',
           payment_notes: response.data.payment_notes || '',
         });
+      } else {
+        setDetailError(response.message || 'ডেটা লোড হয়নি');
       }
-    } catch (error) {
-      showToast('error', 'বিস্তারিত লোড করতে ব্যর্থ');
-      setShowDetailModal(false);
+    } catch (error: any) {
+      const errorMsg = error.message || 'বিস্তারিত লোড করতে ব্যর্থ';
+      setDetailError(errorMsg);
+      console.error('Detail loading error:', error);
     }
   };
 
@@ -502,13 +507,29 @@ const AdminSettlements: React.FC = () => {
       {/* Detail Modal */}
       {showDetailModal && (
         <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center p-4 z-50 pt-20 sm:pt-4 overflow-y-auto">
-          {selectedSettlement ? (
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[calc(100vh-120px)] overflow-y-auto">
+          {detailError ? (
+            <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center">
+              <div className="text-red-600 text-lg mb-4">⚠️ ত্রুটি</div>
+              <p className="text-gray-700 mb-6">{detailError}</p>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedSettlement(null);
+                  setDetailError('');
+                }}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
+          ) : selectedSettlement ? (
+            <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[calc(100vh-120px)] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
               <h2 className="text-xl font-bold">সেটেলমেন্ট বিস্তারিত</h2>
               <button
                 onClick={() => {
                   setShowDetailModal(false);
+                  setSelectedSettlement(null);
                   loadSettlements();
                 }}
                 className="text-gray-400 hover:text-gray-600"
@@ -800,7 +821,7 @@ const AdminSettlements: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
+            </div>
           ) : (
             <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center">
               <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-indigo-600 rounded-full mb-4"></div>
