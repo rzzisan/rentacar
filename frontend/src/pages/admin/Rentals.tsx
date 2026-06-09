@@ -181,16 +181,13 @@ export default function AdminRentals() {
 
     setAddingExpense(true);
     const formData = new FormData(e.currentTarget);
+    formData.append('rental_id', selectedRental.id.toString());
 
     try {
       const response = await fetch(`/api/admin/rentals/expenses.php?rental_id=${selectedRental.id}`, {
         method: 'POST',
         credentials: 'include',
-        body: new URLSearchParams({
-          expense_type: formData.get('expense_type') as string,
-          amount: formData.get('amount') as string,
-          description: formData.get('description') as string,
-        }),
+        body: formData,
       });
 
       const data = (await response.json()) as any;
