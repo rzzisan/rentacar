@@ -26,7 +26,7 @@ $stmt = $conn->prepare(
     "SELECT sp.id,
             sp.amount,
             sp.payment_method,
-            sp.payment_notes,
+            sp.notes as payment_notes,
             sp.payment_date,
             sp.recorded_by,
             u.username as recorded_by_name,

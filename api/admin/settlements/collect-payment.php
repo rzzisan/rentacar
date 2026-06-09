@@ -81,7 +81,7 @@ try {
     // Log payment
     $log_stmt = $conn->prepare(
         "INSERT INTO settlement_payments
-         (settlement_id, amount, payment_method, payment_notes, recorded_by, paid_by_driver_id)
+         (settlement_id, amount, payment_method, notes, recorded_by, paid_by_driver_id)
          VALUES (?, ?, ?, ?, ?, ?)"
     );
     $log_stmt->bind_param('idssii', $settlement_id, $payment_amount, $payment_method, $payment_notes, $user_id, $driver_id);
