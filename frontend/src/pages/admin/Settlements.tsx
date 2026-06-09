@@ -91,6 +91,7 @@ const AdminSettlements: React.FC = () => {
 
   const handleShowDetail = async (settlement: Settlement) => {
     try {
+      setShowDetailModal(true);
       const response = await api.get<Settlement>(`/admin/settlements/show.php?id=${settlement.id}`);
       if (response.success && response.data) {
         setSelectedSettlement(response.data);
@@ -100,10 +101,10 @@ const AdminSettlements: React.FC = () => {
           payment_method: response.data.payment_method || '',
           payment_notes: response.data.payment_notes || '',
         });
-        setShowDetailModal(true);
       }
     } catch (error) {
       showToast('error', 'বিস্তারিত লোড করতে ব্যর্থ');
+      setShowDetailModal(false);
     }
   };
 
@@ -499,8 +500,9 @@ const AdminSettlements: React.FC = () => {
       )}
 
       {/* Detail Modal */}
-      {showDetailModal && selectedSettlement && (
+      {showDetailModal && (
         <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center p-4 z-50 pt-20 sm:pt-4 overflow-y-auto">
+          {selectedSettlement ? (
           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[calc(100vh-120px)] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
               <h2 className="text-xl font-bold">সেটেলমেন্ট বিস্তারিত</h2>
@@ -799,6 +801,12 @@ const AdminSettlements: React.FC = () => {
               </div>
             </div>
           </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center">
+              <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-indigo-600 rounded-full mb-4"></div>
+              <p className="text-gray-600">বিস্তারিত লোড করছি...</p>
+            </div>
+          )}
         </div>
       )}
     </div>
