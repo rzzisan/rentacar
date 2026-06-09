@@ -5,6 +5,7 @@ import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminVehicles from '@/pages/admin/Vehicles';
 import AdminDrivers from '@/pages/admin/Drivers';
 import AdminRentals from '@/pages/admin/Rentals';
+import AdminSettlements from '@/pages/admin/Settlements';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
 import type { User } from '@/types';
@@ -98,10 +99,10 @@ export default function App() {
           }
         >
           <Route index element={<AdminDashboard />} />
-          <Route path="vehicles" element={<AdminVehicles />} />
+          <Route path="vehicles"    element={<AdminVehicles />} />
           <Route path="rentals"     element={<AdminRentals />} />
+          <Route path="settlements" element={<AdminSettlements />} />
           <Route path="customers"   element={<PlaceholderPage title="গ্রাহক ব্যবস্থাপনা" />} />
-          <Route path="payments"    element={<PlaceholderPage title="পেমেন্ট" />} />
           <Route path="drivers"     element={<AdminDrivers />} />
           <Route path="employees"   element={<PlaceholderPage title="কর্মচারী" />} />
           <Route path="maintenance" element={<PlaceholderPage title="রক্ষণাবেক্ষণ" />} />

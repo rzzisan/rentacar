@@ -70,6 +70,39 @@ export interface Driver {
   name: string;
   mobile: string;
   status: 'active' | 'inactive';
+  commission_percent?: number;
+}
+
+export interface Settlement {
+  id: number;
+  rental_id: number;
+  driver_id?: number;
+  driver_name?: string;
+  driver_mobile?: string;
+  customer_first_name?: string;
+  customer_last_name?: string;
+  customer_phone?: string;
+  vehicle_brand?: string;
+  vehicle_model?: string;
+  vehicle_registration_number?: string;
+  agreed_amount: number;
+  total_expenses: number;
+  net_amount: number;
+  commission_percent: number;
+  driver_commission: number;
+  amount_to_collect: number;
+  payment_status: 'pending' | 'paid' | 'partial' | 'refunded';
+  payment_method?: string;
+  payment_notes?: string;
+  paid_date?: string;
+  pickup_location?: string;
+  dropoff_location?: string;
+  trip_type?: 'one_way' | 'round_trip';
+  rental_notes?: string;
+  rental_start_date?: string;
+  expenses?: TripExpense[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ApiResponse<T = unknown> {
