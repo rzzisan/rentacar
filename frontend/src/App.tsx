@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout';
 import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminVehicles from '@/pages/admin/Vehicles';
 import AdminDrivers from '@/pages/admin/Drivers';
+import AdminRentals from '@/pages/admin/Rentals';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
 import type { User } from '@/types';
@@ -98,7 +99,7 @@ export default function App() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="vehicles" element={<AdminVehicles />} />
-          <Route path="rentals"     element={<PlaceholderPage title="রেন্টাল ব্যবস্থাপনা" />} />
+          <Route path="rentals"     element={<AdminRentals />} />
           <Route path="customers"   element={<PlaceholderPage title="গ্রাহক ব্যবস্থাপনা" />} />
           <Route path="payments"    element={<PlaceholderPage title="পেমেন্ট" />} />
           <Route path="drivers"     element={<AdminDrivers />} />
