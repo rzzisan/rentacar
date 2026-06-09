@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'employee' | 'customer';
+export type Role = 'admin' | 'employee' | 'customer' | 'driver';
 
 export interface User {
   id: number;
@@ -71,6 +71,7 @@ export interface Driver {
   mobile: string;
   status: 'active' | 'inactive';
   commission_percent?: number;
+  email?: string;
 }
 
 export interface Settlement {
@@ -103,6 +104,7 @@ export interface Settlement {
   rental_notes?: string;
   rental_start_date?: string;
   expenses?: TripExpense[];
+  payments?: SettlementPayment[];
   created_at?: string;
   updated_at?: string;
 }
@@ -116,6 +118,8 @@ export interface SettlementPayment {
   payment_date: string;
   recorded_by?: number;
   recorded_by_name?: string;
+  paid_by_driver_id?: number;
+  paid_by_driver_name?: string;
 }
 
 export interface ApiResponse<T = unknown> {

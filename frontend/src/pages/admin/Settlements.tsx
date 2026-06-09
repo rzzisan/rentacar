@@ -13,11 +13,6 @@ const AdminSettlements: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAgreedAmount, setEditingAgreedAmount] = useState<string>('');
-  const [paymentForm, setPaymentForm] = useState({
-    payment_status: 'pending',
-    payment_method: '',
-    payment_notes: '',
-  });
   const [collectionForm, setCollectionForm] = useState({
     amount: '',
     payment_method: '',
@@ -98,11 +93,6 @@ const AdminSettlements: React.FC = () => {
       if (response.success && response.data) {
         setSelectedSettlement(response.data);
         setEditingAgreedAmount(response.data.agreed_amount.toString());
-        setPaymentForm({
-          payment_status: response.data.payment_status,
-          payment_method: response.data.payment_method || '',
-          payment_notes: response.data.payment_notes || '',
-        });
       } else {
         setDetailError(response.message || 'ডেটা লোড হয়নি');
       }
@@ -154,12 +144,6 @@ const AdminSettlements: React.FC = () => {
         console.log('✓ Updating modal with new data: agreed=' + detailResponse.data.agreed_amount);
         setSelectedSettlement(detailResponse.data);
         setEditingAgreedAmount(detailResponse.data.agreed_amount.toString());
-        // Update payment form to reflect current state
-        setPaymentForm({
-          payment_status: detailResponse.data.payment_status,
-          payment_method: detailResponse.data.payment_method || '',
-          payment_notes: detailResponse.data.payment_notes || '',
-        });
       }
 
       // Step 3: Reload settlements list
@@ -179,48 +163,6 @@ const AdminSettlements: React.FC = () => {
       showToast('success', 'চুক্তির পরিমান আপডেট হয়েছে');
     } catch (error) {
       console.error('❌ Error:', error);
-      showToast('error', 'আপডেট ব্যর্থ');
-    }
-  };
-
-  const handleUpdatePaymentStatus = async () => {
-    if (!selectedSettlement) return;
-    try {
-      console.log('💳 Updating payment status:', paymentForm.payment_status);
-
-      // Step 1: Update payment
-      await api.post(`/admin/settlements/update.php?id=${selectedSettlement.id}`, paymentForm);
-      console.log('✓ Payment updated');
-
-      // Step 2: Reload detail
-      const response = await api.get<Settlement>(`/admin/settlements/show.php?id=${selectedSettlement.id}`);
-      console.log('✓ Detail reloaded, status:', response.data?.payment_status);
-
-      if (response.success && response.data) {
-        setSelectedSettlement(response.data);
-        // Update form to reflect latest state
-        setPaymentForm({
-          payment_status: response.data.payment_status,
-          payment_method: response.data.payment_method || '',
-          payment_notes: response.data.payment_notes || '',
-        });
-      }
-
-      // Step 3: Reload list
-      let listUrl = '/admin/settlements/index.php';
-      const params = new URLSearchParams();
-      if (filterStatus) params.append('status', filterStatus);
-      if (searchQuery) params.append('search', searchQuery);
-      if (params.toString()) listUrl += '?' + params.toString();
-
-      const listResponse = await api.get<Settlement[]>(listUrl);
-      if (listResponse.success && listResponse.data) {
-        setSettlements(listResponse.data);
-      }
-
-      showToast('success', 'পেমেন্ট স্ট্যাটাস আপডেট হয়েছে');
-    } catch (error) {
-      console.error('❌ Payment update error:', error);
       showToast('error', 'আপডেট ব্যর্থ');
     }
   };
@@ -648,62 +590,10 @@ const AdminSettlements: React.FC = () => {
                 </div>
               )}
 
-              {/* Payment Status */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-bold mb-4">পেমেন্ট তথ্য</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">পেমেন্ট স্ট্যাটাস</label>
-                    <select
-                      value={paymentForm.payment_status}
-                      onChange={(e) =>
-                        setPaymentForm({ ...paymentForm, payment_status: e.target.value })
-                      }
-                      className="w-full border rounded-lg px-3 py-2 text-sm"
-                    >
-                      <option value="pending">অপেক্ষমান</option>
-                      <option value="partial">আংশিক</option>
-                      <option value="paid">পরিশোধিত</option>
-                      <option value="refunded">ফেরত</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">পেমেন্ট পদ্ধতি</label>
-                    <input
-                      type="text"
-                      placeholder="নগদ, চেক, ট্রান্সফার, ইত্যাদি"
-                      value={paymentForm.payment_method}
-                      onChange={(e) =>
-                        setPaymentForm({ ...paymentForm, payment_method: e.target.value })
-                      }
-                      className="w-full border rounded-lg px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">পেমেন্ট নোট</label>
-                    <textarea
-                      placeholder="যেকোনো অতিরিক্ত তথ্য..."
-                      value={paymentForm.payment_notes}
-                      onChange={(e) =>
-                        setPaymentForm({ ...paymentForm, payment_notes: e.target.value })
-                      }
-                      className="w-full border rounded-lg px-3 py-2 text-sm"
-                      rows={3}
-                    />
-                  </div>
-                  <button
-                    onClick={handleUpdatePaymentStatus}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition"
-                  >
-                    পেমেন্ট আপডেট করুন
-                  </button>
-                </div>
-              </div>
-
               {/* Payment Collection */}
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold">💰 বকেয়া টাকা সংগ্রহ</h3>
+                  <h3 className="font-bold">💰 পেমেন্ট জমা নিন</h3>
                   <button
                     onClick={() => setShowPaymentHistory(!showPaymentHistory)}
                     className="text-xs bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700"
@@ -747,9 +637,14 @@ const AdminSettlements: React.FC = () => {
                               <div className="text-xs text-gray-500 mt-1">{payment.payment_notes}</div>
                             )}
                           </div>
-                          {payment.recorded_by_name && (
-                            <div className="text-xs text-gray-500">{payment.recorded_by_name}</div>
-                          )}
+                          <div className="text-right">
+                            {payment.paid_by_driver_name && (
+                              <div className="text-xs text-gray-600">{payment.paid_by_driver_name}</div>
+                            )}
+                            {payment.recorded_by_name && (
+                              <div className="text-xs text-gray-500">{payment.recorded_by_name}</div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -759,6 +654,15 @@ const AdminSettlements: React.FC = () => {
                 {/* Payment Collection Form */}
                 {selectedSettlement.remaining_amount > 0 && (
                   <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">জমাদানকারী</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={selectedSettlement.driver_name || 'ড্রাইভার নির্দিষ্ট নেই'}
+                        className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50"
+                      />
+                    </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">পেমেন্ট পরিমান (সর্বোচ্চ: ৳{selectedSettlement.remaining_amount.toFixed(2)})</label>
                       <input
@@ -784,11 +688,9 @@ const AdminSettlements: React.FC = () => {
                         className="w-full border rounded-lg px-3 py-2 text-sm"
                       >
                         <option value="">নির্বাচন করুন</option>
+                        <option value="ক্যাশ">ক্যাশ</option>
+                        <option value="বিকাশ">বিকাশ</option>
                         <option value="নগদ">নগদ</option>
-                        <option value="চেক">চেক</option>
-                        <option value="ব্যাংক ট্রান্সফার">ব্যাংক ট্রান্সফার</option>
-                        <option value="কার্ড">কার্ড</option>
-                        <option value="মোবাইল ওয়ালেট">মোবাইল ওয়ালেট</option>
                         <option value="অন্যান্য">অন্যান্য</option>
                       </select>
                     </div>

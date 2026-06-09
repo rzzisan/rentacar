@@ -29,9 +29,12 @@ $stmt = $conn->prepare(
             sp.payment_notes,
             sp.payment_date,
             sp.recorded_by,
-            u.username as recorded_by_name
+            u.username as recorded_by_name,
+            sp.paid_by_driver_id,
+            d.name as paid_by_driver_name
      FROM settlement_payments sp
      LEFT JOIN users u ON sp.recorded_by = u.id
+     LEFT JOIN drivers d ON sp.paid_by_driver_id = d.id
      WHERE sp.settlement_id = ?
      ORDER BY sp.payment_date DESC"
 );

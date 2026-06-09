@@ -7,7 +7,7 @@ function json_response(array $data, int $status = 200): void {
 }
 
 function require_auth(): void {
-    if (!isset($_SESSION['user_id'])) {
+    if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id'])) {
         json_response(['success' => false, 'message' => 'অনুমোদন নেই — আগে লগইন করুন'], 401);
     }
 }

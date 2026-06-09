@@ -37,10 +37,15 @@ const customerNav: NavItem[] = [
   { label: 'প্রোফাইল', icon: '👤', href: '/customer/profile' },
 ];
 
+const driverNav: NavItem[] = [
+  { label: 'আমার লেজার', icon: '📊', href: '/driver' },
+];
+
 const navByRole: Record<Role, NavItem[]> = {
   admin: adminNav,
   employee: employeeNav,
   customer: customerNav,
+  driver: driverNav,
 };
 
 interface Props {

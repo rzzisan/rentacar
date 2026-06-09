@@ -6,6 +6,7 @@ import AdminVehicles from '@/pages/admin/Vehicles';
 import AdminDrivers from '@/pages/admin/Drivers';
 import AdminRentals from '@/pages/admin/Rentals';
 import AdminSettlements from '@/pages/admin/Settlements';
+import DriverDashboard from '@/pages/driver/Dashboard';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
 import type { User } from '@/types';
@@ -37,6 +38,7 @@ function ProtectedRoute({
   if (role && user.role !== role) {
     const dest = user.role === 'admin' ? '/admin'
                : user.role === 'employee' ? '/employee'
+               : user.role === 'driver' ? '/driver'
                : '/customer';
     return <Navigate to={dest} replace />;
   }
@@ -84,7 +86,7 @@ export default function App() {
           path="/login"
           element={
             user
-              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : '/customer'} replace />
+              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
               : <Login onLogin={handleLogin} />
           }
         />
@@ -141,12 +143,24 @@ export default function App() {
           <Route path="profile"  element={<PlaceholderPage title="প্রোফাইল" />} />
         </Route>
 
+        {/* Driver */}
+        <Route
+          path="/driver"
+          element={
+            <ProtectedRoute user={user} role="driver">
+              <AppLayout user={user!} onLogout={handleLogout} onUserUpdate={setUser} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DriverDashboard />} />
+        </Route>
+
         {/* Root redirect */}
         <Route
           path="/"
           element={
             user
-              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : '/customer'} replace />
+              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
               : <Navigate to="/login" replace />
           }
         />

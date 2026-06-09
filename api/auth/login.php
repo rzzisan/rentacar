@@ -31,4 +31,36 @@ if ($result['success']) {
     ]);
 }
 
+// Fallback: try drivers table
+$dstmt = $conn->prepare("SELECT id, name, email, password, status FROM drivers WHERE email = ?");
+$dstmt->bind_param('s', $email);
+$dstmt->execute();
+$driver_result = $dstmt->get_result();
+
+if ($driver_result->num_rows === 1) {
+    $driver = $driver_result->fetch_assoc();
+
+    if ($driver['status'] === 'active' && password_verify($pass, $driver['password'])) {
+        session_regenerate_id(true);
+        $_SESSION['driver_id'] = (int)$driver['id'];
+        $_SESSION['role']      = 'driver';
+        $_SESSION['username']  = $driver['name'];
+        $_SESSION['email']     = $driver['email'];
+
+        json_response([
+            'success' => true,
+            'message' => 'লগইন সফল হয়েছে',
+            'data'    => [
+                'id'       => (int)$driver['id'],
+                'username' => $driver['name'],
+                'email'    => $driver['email'],
+                'role'     => 'driver',
+            ],
+        ]);
+    } else {
+        json_response(['success' => false, 'message' => 'অবৈধ পাসওয়ার্ড বা নিষ্ক্রিয় অ্যাকাউন্ট'], 401);
+    }
+}
+
+$dstmt->close();
 json_response(['success' => false, 'message' => $result['message']], 401);

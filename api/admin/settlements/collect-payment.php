@@ -22,9 +22,9 @@ if (!$payment_amount || $payment_amount <= 0) {
     json_response(['success' => false, 'message' => 'পেমেন্ট পরিমান ০ থেকে বেশি হতে হবে'], 400);
 }
 
-// Get settlement details
+// Get settlement details with driver_id
 $stmt = $conn->prepare(
-    "SELECT s.id, s.amount_to_collect, s.paid_amount, s.remaining_amount, s.payment_status
+    "SELECT s.id, s.driver_id, s.amount_to_collect, s.paid_amount, s.remaining_amount, s.payment_status
      FROM settlements s
      WHERE s.id = ?"
 );
@@ -51,7 +51,7 @@ if ($payment_amount > $remaining) {
 // Calculate new amounts
 $new_paid_amount = (float)$settlement['paid_amount'] + $payment_amount;
 $new_remaining_amount = (float)$settlement['amount_to_collect'] - $new_paid_amount;
-$new_payment_status = $new_remaining_amount <= 0 ? 'paid' : $settlement['payment_status'];
+$new_payment_status = $new_remaining_amount <= 0 ? 'paid' : 'partial';
 
 // Start transaction
 $conn->begin_transaction();
@@ -75,13 +75,16 @@ try {
     // Get current user
     $user_id = $_SESSION['user_id'] ?? null;
 
+    // Get driver_id from settlement
+    $driver_id = $settlement['driver_id'] ? (int)$settlement['driver_id'] : null;
+
     // Log payment
     $log_stmt = $conn->prepare(
         "INSERT INTO settlement_payments
-         (settlement_id, amount, payment_method, payment_notes, recorded_by)
-         VALUES (?, ?, ?, ?, ?)"
+         (settlement_id, amount, payment_method, payment_notes, recorded_by, paid_by_driver_id)
+         VALUES (?, ?, ?, ?, ?, ?)"
     );
-    $log_stmt->bind_param('idssi', $settlement_id, $payment_amount, $payment_method, $payment_notes, $user_id);
+    $log_stmt->bind_param('idssii', $settlement_id, $payment_amount, $payment_method, $payment_notes, $user_id, $driver_id);
     if (!$log_stmt->execute()) {
         throw new Exception('পেমেন্ট লগ করতে ব্যর্থ: ' . $log_stmt->error);
     }
