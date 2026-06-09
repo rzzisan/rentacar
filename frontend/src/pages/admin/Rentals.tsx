@@ -365,8 +365,8 @@ export default function AdminRentals() {
 
       {/* Add Modal */}
       {addOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-lg w-full my-4 sm:my-0">
             <div className="p-4 sm:p-6 border-b flex items-center justify-between">
               <h2 className="text-xl font-bold">নতুন রেন্টাল</h2>
               <button onClick={() => setAddOpen(false)} className="text-gray-400 hover:text-gray-600">
@@ -460,8 +460,8 @@ export default function AdminRentals() {
 
       {/* Detail Modal */}
       {detailOpen && selectedRental && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full my-4 sm:my-0">
             <div className="p-4 sm:p-6 border-b flex items-center justify-between">
               <h2 className="text-xl font-bold">রেন্টাল বিস্তারিত</h2>
               <button onClick={() => setDetailOpen(false)} className="text-gray-400 hover:text-gray-600">
