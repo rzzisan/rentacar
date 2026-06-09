@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
-import type { Settlement, TripExpense } from '../../types';
+import type { Settlement, TripExpense, SettlementPayment } from '../../types';
 
 const AdminSettlements: React.FC = () => {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
@@ -18,6 +18,13 @@ const AdminSettlements: React.FC = () => {
     payment_method: '',
     payment_notes: '',
   });
+  const [collectionForm, setCollectionForm] = useState({
+    amount: '',
+    payment_method: '',
+    payment_notes: '',
+  });
+  const [paymentHistory, setPaymentHistory] = useState<SettlementPayment[]>([]);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
 
   // Load settlements
   const loadSettlements = async () => {
@@ -70,6 +77,12 @@ const AdminSettlements: React.FC = () => {
   useEffect(() => {
     loadCompletedRentals();
   }, [settlements]);
+
+  useEffect(() => {
+    if (selectedSettlement && showDetailModal) {
+      loadPaymentHistory();
+    }
+  }, [selectedSettlement, showDetailModal]);
 
   const showToast = (type: string, message: string) => {
     setToast({ type, message });
@@ -203,6 +216,73 @@ const AdminSettlements: React.FC = () => {
     } catch (error) {
       console.error('❌ Payment update error:', error);
       showToast('error', 'আপডেট ব্যর্থ');
+    }
+  };
+
+  const handleCollectPayment = async () => {
+    if (!selectedSettlement) return;
+
+    const amount = parseFloat(collectionForm.amount);
+    if (!amount || amount <= 0) {
+      showToast('error', 'পেমেন্ট পরিমান ০ থেকে বেশি হতে হবে');
+      return;
+    }
+
+    try {
+      console.log('💰 Collecting payment:', amount);
+      const response = await api.post(
+        `/admin/settlements/collect-payment.php?id=${selectedSettlement.id}`,
+        {
+          amount: amount,
+          payment_method: collectionForm.payment_method || null,
+          payment_notes: collectionForm.payment_notes || null,
+        }
+      );
+      console.log('✓ Payment collected:', response.data);
+
+      if (response.success) {
+        const paymentData = response.data as any;
+        showToast('success', `✓ ৳${amount.toFixed(2)} সফলভাবে সংগ্রহ করা হয়েছেছে${paymentData?.auto_paid ? ' (সম্পূর্ণ পরিশোধিত!)' : ''}`);
+
+        // Reset form
+        setCollectionForm({
+          amount: '',
+          payment_method: '',
+          payment_notes: '',
+        });
+
+        // Reload detail
+        const detailResponse = await api.get<Settlement>(`/admin/settlements/show.php?id=${selectedSettlement.id}`);
+        if (detailResponse.success && detailResponse.data) {
+          setSelectedSettlement(detailResponse.data);
+        }
+
+        // Reload list
+        await loadSettlements();
+
+        // Reload payment history
+        await loadPaymentHistory();
+      }
+    } catch (error: any) {
+      console.error('Payment collection error:', error);
+      showToast('error', error.message || 'পেমেন্ট সংগ্রহ ব্যর্থ');
+    }
+  };
+
+  const loadPaymentHistory = async () => {
+    if (!selectedSettlement) return;
+    try {
+      const response = await api.get<{
+        total_collected: number;
+        payment_count: number;
+        payments: SettlementPayment[];
+      }>(`/admin/settlements/payment-history.php?id=${selectedSettlement.id}`);
+
+      if (response.success && response.data) {
+        setPaymentHistory(response.data.payments);
+      }
+    } catch (error) {
+      console.error('Failed to load payment history:', error);
     }
   };
 
@@ -595,6 +675,127 @@ const AdminSettlements: React.FC = () => {
                     পেমেন্ট আপডেট করুন
                   </button>
                 </div>
+              </div>
+
+              {/* Payment Collection */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold">💰 বকেয়া টাকা সংগ্রহ</h3>
+                  <button
+                    onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+                    className="text-xs bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700"
+                  >
+                    {showPaymentHistory ? 'লুকান' : 'ইতিহাস দেখুন'}
+                  </button>
+                </div>
+
+                {/* Payment Status Summary */}
+                <div className="grid grid-cols-3 gap-3 mb-4 text-sm">
+                  <div className="bg-white p-3 rounded">
+                    <div className="text-gray-600">মোট বকেয়া</div>
+                    <div className="font-bold text-lg">৳{selectedSettlement.amount_to_collect.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-white p-3 rounded">
+                    <div className="text-gray-600">সংগৃহীত</div>
+                    <div className="font-bold text-lg text-green-600">৳{selectedSettlement.paid_amount.toFixed(2)}</div>
+                  </div>
+                  <div className={`p-3 rounded ${selectedSettlement.remaining_amount <= 0 ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                    <div className="text-gray-600">বাকি</div>
+                    <div className={`font-bold text-lg ${selectedSettlement.remaining_amount <= 0 ? 'text-green-700' : 'text-yellow-700'}`}>
+                      ৳{selectedSettlement.remaining_amount.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment History */}
+                {showPaymentHistory && paymentHistory.length > 0 && (
+                  <div className="mb-4 bg-white p-3 rounded border">
+                    <h4 className="font-semibold text-sm mb-3">সংগৃহীত পেমেন্ট</h4>
+                    <div className="space-y-2 text-sm max-h-48 overflow-y-auto">
+                      {paymentHistory.map((payment) => (
+                        <div key={payment.id} className="flex justify-between items-start py-2 border-b last:border-0">
+                          <div>
+                            <div className="font-medium">৳{payment.amount.toFixed(2)}</div>
+                            <div className="text-xs text-gray-600">
+                              {payment.payment_method && `${payment.payment_method} • `}
+                              {new Date(payment.payment_date).toLocaleDateString('bn-BD')}
+                            </div>
+                            {payment.payment_notes && (
+                              <div className="text-xs text-gray-500 mt-1">{payment.payment_notes}</div>
+                            )}
+                          </div>
+                          {payment.recorded_by_name && (
+                            <div className="text-xs text-gray-500">{payment.recorded_by_name}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Collection Form */}
+                {selectedSettlement.remaining_amount > 0 && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">পেমেন্ট পরিমান (সর্বোচ্চ: ৳{selectedSettlement.remaining_amount.toFixed(2)})</label>
+                      <input
+                        type="number"
+                        placeholder="০"
+                        min="0"
+                        max={selectedSettlement.remaining_amount}
+                        step="0.01"
+                        value={collectionForm.amount}
+                        onChange={(e) =>
+                          setCollectionForm({ ...collectionForm, amount: e.target.value })
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">পেমেন্ট পদ্ধতি</label>
+                      <select
+                        value={collectionForm.payment_method}
+                        onChange={(e) =>
+                          setCollectionForm({ ...collectionForm, payment_method: e.target.value })
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                      >
+                        <option value="">নির্বাচন করুন</option>
+                        <option value="নগদ">নগদ</option>
+                        <option value="চেক">চেক</option>
+                        <option value="ব্যাংক ট্রান্সফার">ব্যাংক ট্রান্সফার</option>
+                        <option value="কার্ড">কার্ড</option>
+                        <option value="মোবাইল ওয়ালেট">মোবাইল ওয়ালেট</option>
+                        <option value="অন্যান্য">অন্যান্য</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">নোট (ঐচ্ছিক)</label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: চেক নম্বর, রেফারেন্স ID ইত্যাদি"
+                        value={collectionForm.payment_notes}
+                        onChange={(e) =>
+                          setCollectionForm({ ...collectionForm, payment_notes: e.target.value })
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <button
+                      onClick={handleCollectPayment}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg transition font-medium"
+                    >
+                      পেমেন্ট সংগ্রহ করুন
+                    </button>
+                  </div>
+                )}
+
+                {selectedSettlement.remaining_amount <= 0 && (
+                  <div className="bg-green-100 border border-green-300 rounded p-3 text-center">
+                    <div className="font-bold text-green-700">✓ সম্পূর্ণ পরিশোধিত</div>
+                    <div className="text-sm text-green-600">এই সেটেলমেন্টের সকল টাকা সংগ্রহ করা হয়েছে</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

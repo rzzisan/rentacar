@@ -91,6 +91,8 @@ export interface Settlement {
   commission_percent: number;
   driver_commission: number;
   amount_to_collect: number;
+  paid_amount: number;
+  remaining_amount: number;
   payment_status: 'pending' | 'paid' | 'partial' | 'refunded';
   payment_method?: string;
   payment_notes?: string;
@@ -103,6 +105,17 @@ export interface Settlement {
   expenses?: TripExpense[];
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SettlementPayment {
+  id: number;
+  settlement_id: number;
+  amount: number;
+  payment_method?: string;
+  payment_notes?: string;
+  payment_date: string;
+  recorded_by?: number;
+  recorded_by_name?: string;
 }
 
 export interface ApiResponse<T = unknown> {

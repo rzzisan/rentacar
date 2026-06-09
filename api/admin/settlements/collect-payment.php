@@ -1,0 +1,111 @@
+<?php
+require_once '../../../config/config.php';
+require_once '../../../config/Database.php';
+require_once '../../_helpers.php';
+
+require_role('admin');
+only_method('POST');
+
+$conn = (new Database())->connect();
+$data = input();
+$settlement_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+if (!$settlement_id) {
+    json_response(['success' => false, 'message' => 'সেটেলমেন্ট আইডি প্রয়োজন'], 400);
+}
+
+$payment_amount = isset($data['amount']) ? (float)$data['amount'] : 0;
+$payment_method = $data['payment_method'] ?? null;
+$payment_notes = $data['payment_notes'] ?? null;
+
+if (!$payment_amount || $payment_amount <= 0) {
+    json_response(['success' => false, 'message' => 'পেমেন্ট পরিমান ০ থেকে বেশি হতে হবে'], 400);
+}
+
+// Get settlement details
+$stmt = $conn->prepare(
+    "SELECT s.id, s.amount_to_collect, s.paid_amount, s.remaining_amount, s.payment_status
+     FROM settlements s
+     WHERE s.id = ?"
+);
+$stmt->bind_param('i', $settlement_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    json_response(['success' => false, 'message' => 'সেটেলমেন্ট পাওয়া যায়নি'], 404);
+}
+
+$settlement = $result->fetch_assoc();
+$stmt->close();
+
+// Validate payment amount
+$remaining = (float)$settlement['remaining_amount'];
+if ($payment_amount > $remaining) {
+    json_response([
+        'success' => false,
+        'message' => "পেমেন্ট পরিমান বকেয়া টাকার চেয়ে বেশি হতে পারে না (বকেয়া: ৳" . number_format($remaining, 2) . ")"
+    ], 400);
+}
+
+// Calculate new amounts
+$new_paid_amount = (float)$settlement['paid_amount'] + $payment_amount;
+$new_remaining_amount = (float)$settlement['amount_to_collect'] - $new_paid_amount;
+$new_payment_status = $new_remaining_amount <= 0 ? 'paid' : $settlement['payment_status'];
+
+// Start transaction
+$conn->begin_transaction();
+
+try {
+    // Update settlement
+    $update_stmt = $conn->prepare(
+        "UPDATE settlements
+         SET paid_amount = ?,
+             remaining_amount = ?,
+             payment_status = ?,
+             updated_at = NOW()
+         WHERE id = ?"
+    );
+    $update_stmt->bind_param('ddsi', $new_paid_amount, $new_remaining_amount, $new_payment_status, $settlement_id);
+    if (!$update_stmt->execute()) {
+        throw new Exception('সেটেলমেন্ট আপডেট ব্যর্থ: ' . $update_stmt->error);
+    }
+    $update_stmt->close();
+
+    // Get current user
+    $user_id = $_SESSION['user_id'] ?? null;
+
+    // Log payment
+    $log_stmt = $conn->prepare(
+        "INSERT INTO settlement_payments
+         (settlement_id, amount, payment_method, payment_notes, recorded_by)
+         VALUES (?, ?, ?, ?, ?)"
+    );
+    $log_stmt->bind_param('idssi', $settlement_id, $payment_amount, $payment_method, $payment_notes, $user_id);
+    if (!$log_stmt->execute()) {
+        throw new Exception('পেমেন্ট লগ করতে ব্যর্থ: ' . $log_stmt->error);
+    }
+    $payment_log_id = $conn->insert_id;
+    $log_stmt->close();
+
+    // Commit transaction
+    $conn->commit();
+
+    json_response([
+        'success' => true,
+        'message' => 'পেমেন্ট সফলভাবে সংগ্রহ করা হয়েছে',
+        'data' => [
+            'settlement_id' => $settlement_id,
+            'payment_id' => $payment_log_id,
+            'paid_amount' => $new_paid_amount,
+            'remaining_amount' => $new_remaining_amount,
+            'payment_status' => $new_payment_status,
+            'auto_paid' => $new_remaining_amount <= 0
+        ]
+    ], 201);
+
+} catch (Exception $e) {
+    $conn->rollback();
+    json_response(['success' => false, 'message' => $e->getMessage()], 500);
+}
+?>
