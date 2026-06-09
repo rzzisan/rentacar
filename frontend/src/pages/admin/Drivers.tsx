@@ -69,11 +69,18 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 function Avatar({ src, name, size = 'md' }: { src: string | null; name: string; size?: 'sm' | 'md' | 'lg' }) {
   const cls = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-16 h-16 text-xl' : 'w-10 h-10 text-sm';
   if (src) {
+    let imgSrc = src.startsWith('/') ? src : `/${src}`;
+    if (!imgSrc.startsWith('/public/')) {
+      imgSrc = `/public/${imgSrc.replace(/^\/+/, '')}`;
+    }
     return (
       <img
-        src={`/${src}`}
+        src={imgSrc}
         alt={name}
         className={`${cls} rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm`}
+        onError={e => {
+          (e.target as HTMLImageElement).style.display = 'none';
+        }}
       />
     );
   }
@@ -147,7 +154,15 @@ function DriverForm({
     'w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all';
   const labelCls = 'block text-xs font-semibold text-slate-600 mb-1.5';
 
-  const picSrc = preview ?? (currentPicture ? `/${currentPicture}` : null);
+  const getPictureSrc = (path: string | null | undefined) => {
+    if (!path) return null;
+    let src = path.startsWith('/') ? path : `/${path}`;
+    if (!src.startsWith('/public/')) {
+      src = `/public/${src.replace(/^\/+/, '')}`;
+    }
+    return src;
+  };
+  const picSrc = preview ?? getPictureSrc(currentPicture);
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-5">
