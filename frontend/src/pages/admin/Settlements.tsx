@@ -115,11 +115,13 @@ const AdminSettlements: React.FC = () => {
         agreed_amount: parseFloat(editingAgreedAmount),
       });
       showToast('success', 'চুক্তির পরিমান আপডেট হয়েছে');
-      // Reload detail
+      // Reload detail and list
       const response = await api.get<Settlement>(`/admin/settlements/show.php?id=${selectedSettlement.id}`);
       if (response.success && response.data) {
         setSelectedSettlement(response.data);
       }
+      // Also reload settlements list
+      await loadSettlements();
     } catch (error) {
       showToast('error', 'আপডেট ব্যর্থ');
     }
@@ -134,6 +136,8 @@ const AdminSettlements: React.FC = () => {
       if (response.success && response.data) {
         setSelectedSettlement(response.data);
       }
+      // Also reload settlements list
+      await loadSettlements();
     } catch (error) {
       showToast('error', 'আপডেট ব্যর্থ');
     }
@@ -358,7 +362,10 @@ const AdminSettlements: React.FC = () => {
             <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
               <h2 className="text-xl font-bold">সেটেলমেন্ট বিস্তারিত</h2>
               <button
-                onClick={() => setShowDetailModal(false)}
+                onClick={() => {
+                  setShowDetailModal(false);
+                  loadSettlements();
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 ✕
