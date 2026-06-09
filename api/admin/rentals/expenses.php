@@ -93,7 +93,7 @@ if ($method === 'POST') {
          VALUES (?, ?, ?, ?, ?)"
     );
 
-    $istmt->bind_param('isds', $rental_id, $expense_type, $description, $amount, $receipt_image);
+    $istmt->bind_param('issds', $rental_id, $expense_type, $description, $amount, $receipt_image);
 
     if (!$istmt->execute()) {
         json_response(['success' => false, 'message' => 'খরচ যোগ করতে ব্যর্থ: ' . $istmt->error], 500);
