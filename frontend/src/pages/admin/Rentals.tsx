@@ -618,6 +618,12 @@ export default function AdminRentals() {
                       placeholder="বিবরণ (ঐচ্ছিক)"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
                     />
+                    <input
+                      type="file"
+                      name="receipt_image"
+                      accept="image/jpeg,image/png,image/gif"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
+                    />
                     <div className="flex gap-2 justify-end">
                       <button
                         type="submit"
