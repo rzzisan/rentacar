@@ -9,6 +9,8 @@
 config/database-local.php
 uploads/*
 !uploads/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
 cache/*
 !cache/.gitkeep
 session/*
