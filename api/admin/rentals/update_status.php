@@ -49,10 +49,17 @@ if (!in_array($new_status, $allowed_transitions[$current_status] ?? [])) {
     ], 400);
 }
 
-// Update status (and end_date if completed)
-if ($new_status === 'completed') {
+// Update status; record actual trip start/end times
+if ($new_status === 'active') {
+    // ট্রিপ শুরু — প্রকৃত শুরুর সময় রেকর্ড (আগে সেট থাকলে অপরিবর্তিত)
     $ustmt = $conn->prepare(
-        "UPDATE rentals SET rental_status = ?, end_date = NOW() WHERE id = ?"
+        "UPDATE rentals SET rental_status = ?, actual_start_time = COALESCE(actual_start_time, NOW()) WHERE id = ?"
+    );
+    $ustmt->bind_param('si', $new_status, $rental_id);
+} elseif ($new_status === 'completed') {
+    // ট্রিপ সম্পন্ন — প্রকৃত শেষের সময় রেকর্ড
+    $ustmt = $conn->prepare(
+        "UPDATE rentals SET rental_status = ?, end_date = NOW(), actual_end_time = NOW() WHERE id = ?"
     );
     $ustmt->bind_param('si', $new_status, $rental_id);
 } else {

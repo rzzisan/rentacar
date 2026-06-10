@@ -17,6 +17,42 @@ const tripRoute = (r: { trip_type?: string; pickup_location?: string; dropoff_lo
     : `${pickup} → ${dropoff}`;
 };
 
+const formatDuration = (ms: number): string => {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  const parts: string[] = [];
+  if (d) parts.push(`${d} দিন`);
+  if (h) parts.push(`${h} ঘণ্টা`);
+  if (m) parts.push(`${m} মিনিট`);
+  if (!d && !h) parts.push(`${sec} সেকেন্ড`);
+  return parts.join(' ');
+};
+
+// pending: নির্ধারিত শুরুর কাউন্টডাউন, active: কতক্ষণ ধরে চলছে, completed: মোট সময়
+const tripTimeInfo = (rental: Rental, now: number): { text: string; className: string } => {
+  if (rental.rental_status === 'pending') {
+    const diff = new Date(rental.start_date).getTime() - now;
+    return diff > 0
+      ? { text: `শুরু হতে বাকি ${formatDuration(diff)}`, className: 'text-amber-600' }
+      : { text: 'নির্ধারিত সময় পেরিয়ে গেছে', className: 'text-red-600' };
+  }
+  if (rental.rental_status === 'active') {
+    const from = rental.actual_start_time || rental.start_date;
+    return { text: `চলছে ${formatDuration(now - new Date(from).getTime())} ধরে`, className: 'text-green-600' };
+  }
+  if (rental.rental_status === 'completed') {
+    if (rental.actual_start_time && rental.actual_end_time) {
+      const dur = new Date(rental.actual_end_time).getTime() - new Date(rental.actual_start_time).getTime();
+      return { text: `মোট চলেছে ${formatDuration(dur)}`, className: 'text-gray-600' };
+    }
+    return { text: '—', className: 'text-gray-400' };
+  }
+  return { text: '—', className: 'text-gray-400' };
+};
+
 const EXPENSE_TYPES: Record<string, string> = {
   toll: 'টোল',
   fuel: 'জালানি',
@@ -48,6 +84,13 @@ export default function AdminRentals() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [toast, setToast] = useState('');
+  const [now, setNow] = useState(Date.now());
+
+  // লাইভ কাউন্টডাউন/চলমান সময়ের জন্য প্রতি সেকেন্ডে টিক
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [addOpen, setAddOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
@@ -295,6 +338,7 @@ export default function AdminRentals() {
                 <th className="px-4 py-2 text-right">চুক্তি টাকা</th>
                 <th className="px-4 py-2 text-left">স্ট্যাটাস</th>
                 <th className="px-4 py-2 text-left">তারিখ</th>
+                <th className="px-4 py-2 text-left">সময়</th>
                 <th className="px-4 py-2 text-center">অ্যাকশন</th>
               </tr>
             </thead>
@@ -319,6 +363,9 @@ export default function AdminRentals() {
                   </td>
                   <td className="px-4 py-2 text-sm text-gray-600">
                     {new Date(rental.start_date).toLocaleDateString('bn-BD')}
+                  </td>
+                  <td className={`px-4 py-2 text-xs font-medium whitespace-nowrap ${tripTimeInfo(rental, now).className}`}>
+                    {tripTimeInfo(rental, now).text}
                   </td>
                   <td className="px-4 py-2 text-center">
                     <button
@@ -358,6 +405,9 @@ export default function AdminRentals() {
                 <p>ধরন: {TRIP_TYPE_LABELS[rental.trip_type]}</p>
                 <p>ঠিকানা: {tripRoute(rental)}</p>
                 <p>চুক্তি: ৳ {rental.agreed_amount.toFixed(0)}</p>
+                <p className={`font-medium ${tripTimeInfo(rental, now).className}`}>
+                  {tripTimeInfo(rental, now).text}
+                </p>
               </div>
               <button
                 onClick={() => handleOpenDetail(rental)}
@@ -528,8 +578,30 @@ export default function AdminRentals() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600">শুরু তারিখ</p>
+                    <p className="text-gray-600">নির্ধারিত শুরু (আনুমানিক)</p>
                     <p className="font-medium">{new Date(selectedRental.start_date).toLocaleString('bn-BD')}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">প্রকৃত শুরু</p>
+                    <p className="font-medium">
+                      {selectedRental.actual_start_time
+                        ? new Date(selectedRental.actual_start_time).toLocaleString('bn-BD')
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">প্রকৃত শেষ</p>
+                    <p className="font-medium">
+                      {selectedRental.actual_end_time
+                        ? new Date(selectedRental.actual_end_time).toLocaleString('bn-BD')
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">সময়</p>
+                    <p className={`font-medium ${tripTimeInfo(selectedRental, now).className}`}>
+                      {tripTimeInfo(selectedRental, now).text}
+                    </p>
                   </div>
                 </div>
 

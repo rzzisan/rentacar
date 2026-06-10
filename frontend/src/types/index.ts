@@ -31,6 +31,8 @@ export interface Rental {
   driver_id?: number;
   start_date: string;
   end_date?: string;
+  actual_start_time?: string;
+  actual_end_time?: string;
   pickup_location?: string;
   dropoff_location?: string;
   trip_type: 'one_way' | 'round_trip';
