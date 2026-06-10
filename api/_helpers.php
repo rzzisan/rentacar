@@ -19,6 +19,14 @@ function require_role(string $role): void {
     }
 }
 
+function require_driver(): int {
+    require_auth();
+    if (($_SESSION['role'] ?? '') !== 'driver' || !isset($_SESSION['driver_id'])) {
+        json_response(['success' => false, 'message' => 'এই কাজের অনুমতি নেই'], 403);
+    }
+    return (int)$_SESSION['driver_id'];
+}
+
 function input(): array {
     $raw = file_get_contents('php://input');
     return json_decode($raw, true) ?? [];

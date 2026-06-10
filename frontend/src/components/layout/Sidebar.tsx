@@ -40,6 +40,7 @@ const customerNav: NavItem[] = [
 
 const driverNav: NavItem[] = [
   { label: 'আমার লেজার', icon: '📊', href: '/driver' },
+  { label: 'আমার ট্রিপ', icon: '🚕', href: '/driver/rentals' },
 ];
 
 const navByRole: Record<Role, NavItem[]> = {
@@ -100,7 +101,7 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
           <ul className="list-none p-0 m-0">
             {navItems.map(item => {
               const isActive = location.pathname === item.href ||
-                (item.href !== '/admin' && item.href !== '/employee' && item.href !== '/customer' &&
+                (item.href !== '/admin' && item.href !== '/employee' && item.href !== '/customer' && item.href !== '/driver' &&
                   location.pathname.startsWith(item.href));
 
               if (item.children) {
@@ -144,7 +145,7 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
                 <li key={item.href} className="mx-2.5 mb-0.5">
                   <NavLink
                     to={item.href}
-                    end={item.href === '/admin' || item.href === '/employee' || item.href === '/customer'}
+                    end={item.href === '/admin' || item.href === '/employee' || item.href === '/customer' || item.href === '/driver'}
                     title={!isOpen ? item.label : undefined}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors no-underline ${
                       isActive
@@ -173,7 +174,7 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
             <div className={`flex-1 min-w-0 ${!isOpen ? 'lg:hidden' : ''}`}>
               <div className="text-xs font-semibold text-slate-300 truncate">{username}</div>
               <div className="text-[10px] text-slate-500">
-                {role === 'admin' ? 'এডমিন' : role === 'employee' ? 'কর্মচারী' : 'গ্রাহক'}
+                {role === 'admin' ? 'এডমিন' : role === 'employee' ? 'কর্মচারী' : role === 'driver' ? 'চালক' : 'গ্রাহক'}
               </div>
             </div>
           </div>

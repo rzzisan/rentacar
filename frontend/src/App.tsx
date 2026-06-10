@@ -8,6 +8,7 @@ import AdminRentals from '@/pages/admin/Rentals';
 import AdminSettlements from '@/pages/admin/Settlements';
 import DriverCollections from '@/pages/admin/DriverCollections';
 import DriverDashboard from '@/pages/driver/Dashboard';
+import DriverRentals from '@/pages/driver/Rentals';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
 import type { User } from '@/types';
@@ -155,6 +156,7 @@ export default function App() {
           }
         >
           <Route index element={<DriverDashboard />} />
+          <Route path="rentals" element={<DriverRentals />} />
         </Route>
 
         {/* Root redirect */}
