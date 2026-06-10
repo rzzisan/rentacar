@@ -107,6 +107,23 @@ if ($method === 'POST') {
     }
     $vstmt->close();
 
+    // ড্রাইভার না দেওয়া হলে গাড়ির সাথে অ্যাসাইনকৃত ড্রাইভার স্বয়ংক্রিয়ভাবে নেওয়া হয়
+    if (!$driver_id) {
+        $astmt = $conn->prepare(
+            "SELECT dv.driver_id FROM driver_vehicles dv
+             JOIN drivers d ON d.id = dv.driver_id AND d.status = 'active'
+             WHERE dv.vehicle_id = ?
+             ORDER BY dv.assigned_at DESC LIMIT 1"
+        );
+        $astmt->bind_param('i', $vehicle_id);
+        $astmt->execute();
+        $arow = $astmt->get_result()->fetch_assoc();
+        $astmt->close();
+        if ($arow) {
+            $driver_id = (int)$arow['driver_id'];
+        }
+    }
+
     // Validate driver if provided
     if ($driver_id) {
         $dstmt = $conn->prepare("SELECT id FROM drivers WHERE id = ?");

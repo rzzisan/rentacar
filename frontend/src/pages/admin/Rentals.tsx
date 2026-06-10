@@ -96,6 +96,8 @@ export default function AdminRentals() {
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [saving, setSaving] = useState(false);
   const [addingExpense, setAddingExpense] = useState(false);
+  const [addDriverId, setAddDriverId] = useState('');
+  const [editAssign, setEditAssign] = useState({ vehicle_id: '', driver_id: '' });
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -151,10 +153,15 @@ export default function AdminRentals() {
 
   useEffect(() => {
     if (addOpen) {
+      setAddDriverId('');
       loadVehicles();
       loadDrivers();
     }
   }, [addOpen, loadVehicles, loadDrivers]);
+
+  // গাড়ি অনুযায়ী অ্যাসাইনকৃত ড্রাইভার খুঁজে বের করা
+  const driverForVehicle = (vehicleId: number): Driver | undefined =>
+    drivers.find((d) => d.vehicles?.some((v) => v.id === vehicleId));
 
   const handleAddRental = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -194,11 +201,44 @@ export default function AdminRentals() {
     try {
       const response = await api.get<Rental>(`/admin/rentals/show.php?id=${rental.id}`);
       if (response.success) {
-        setSelectedRental(response.data || null);
+        const r = response.data || null;
+        setSelectedRental(r);
         setDetailOpen(true);
+        // pending হলে গাড়ি/ড্রাইভার পরিবর্তনের জন্য তালিকা লোড
+        if (r && r.rental_status === 'pending') {
+          setEditAssign({
+            vehicle_id: String(r.vehicle_id || ''),
+            driver_id: r.driver_id ? String(r.driver_id) : '',
+          });
+          loadVehicles();
+          loadDrivers();
+        }
       }
     } catch (error) {
       showToast('বিবরণ লোড ব্যর্থ');
+    }
+  };
+
+  const handleUpdateAssignment = async () => {
+    if (!selectedRental || !editAssign.vehicle_id) return;
+    setSaving(true);
+    try {
+      const response = await api.post(`/admin/rentals/update.php?id=${selectedRental.id}`, {
+        vehicle_id: Number(editAssign.vehicle_id),
+        driver_id: editAssign.driver_id ? Number(editAssign.driver_id) : null,
+      });
+      if (response.success) {
+        showToast('গাড়ি ও ড্রাইভার আপডেট হয়েছে');
+        const detail = await api.get<Rental>(`/admin/rentals/show.php?id=${selectedRental.id}`);
+        if (detail.success) setSelectedRental(detail.data || null);
+        loadRentals();
+      } else {
+        showToast(response.message || 'আপডেট ব্যর্থ');
+      }
+    } catch (error) {
+      showToast('ত্রুটি: ' + (error instanceof Error ? error.message : 'Unknown'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -447,7 +487,15 @@ export default function AdminRentals() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">গাড়ি নির্বাচন *</label>
-                <select name="vehicle_id" required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                <select
+                  name="vehicle_id"
+                  required
+                  onChange={(e) => {
+                    const owner = driverForVehicle(Number(e.target.value));
+                    if (owner) setAddDriverId(String(owner.id));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                >
                   <option value="">বেছে নিন...</option>
                   {vehicles.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -458,7 +506,12 @@ export default function AdminRentals() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">চালক নির্বাচন</label>
-                <select name="driver_id" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                <select
+                  name="driver_id"
+                  value={addDriverId}
+                  onChange={(e) => setAddDriverId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                >
                   <option value="">নির্বাচন করুন (ঐচ্ছিক)</option>
                   {drivers.map((d: Driver) => (
                     <option key={d.id} value={d.id}>
@@ -466,6 +519,9 @@ export default function AdminRentals() {
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  গাড়ি বাছাই করলে অ্যাসাইনকৃত ড্রাইভার স্বয়ংক্রিয়ভাবে নির্বাচিত হবে — চাইলে বদলাতে পারবেন
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">শুরু ঠিকানা *</label>
@@ -604,6 +660,63 @@ export default function AdminRentals() {
                     </p>
                   </div>
                 </div>
+
+                {/* গাড়ি ও ড্রাইভার পরিবর্তন — শুধু ট্রিপ শুরুর আগে */}
+                {selectedRental.rental_status === 'pending' && (
+                  <div className="mt-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <h4 className="font-bold text-sm mb-3">গাড়ি ও ড্রাইভার পরিবর্তন</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">গাড়ি</label>
+                        <select
+                          value={editAssign.vehicle_id}
+                          onChange={(e) => {
+                            const vid = e.target.value;
+                            const owner = driverForVehicle(Number(vid));
+                            setEditAssign({
+                              vehicle_id: vid,
+                              driver_id: owner ? String(owner.id) : editAssign.driver_id,
+                            });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        >
+                          {!vehicles.some((v) => v.id === selectedRental.vehicle_id) && (
+                            <option value={selectedRental.vehicle_id}>
+                              {selectedRental.vehicle_brand} {selectedRental.vehicle_model} (বর্তমান)
+                            </option>
+                          )}
+                          {vehicles.map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {v.brand} {v.model} ({v.registration_number})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">চালক</label>
+                        <select
+                          value={editAssign.driver_id}
+                          onChange={(e) => setEditAssign({ ...editAssign, driver_id: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        >
+                          <option value="">চালক নেই</option>
+                          {drivers.map((d: Driver) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleUpdateAssignment}
+                      disabled={saving || !editAssign.vehicle_id}
+                      className="mt-3 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 disabled:bg-gray-400 text-sm"
+                    >
+                      {saving ? 'সংরক্ষণ হচ্ছে...' : 'পরিবর্তন সংরক্ষণ করুন'}
+                    </button>
+                  </div>
+                )}
 
                 {/* Status Actions */}
                 <div className="mt-4 flex flex-wrap gap-2">

@@ -74,6 +74,7 @@ export interface Driver {
   status: 'active' | 'inactive';
   commission_percent?: number;
   email?: string;
+  vehicles?: { id: number; brand: string; model: string; registration_number: string }[];
 }
 
 export interface Settlement {
