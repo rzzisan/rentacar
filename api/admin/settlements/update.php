@@ -52,15 +52,22 @@ if (isset($data['agreed_amount'])) {
     // Recalculate
     $net_amount = $agreed_amount - $total_expenses;
     $driver_commission = ($net_amount > 0) ? ($net_amount * $commission_percent / 100) : 0;
-    $amount_to_collect = $net_amount - $driver_commission;
+    $amount_to_collect = round($net_amount - $driver_commission, 2);
 
-    // Update settlement
+    // amount_to_collect changed, so remaining_amount and payment_status must follow
     $ustmt = $conn->prepare(
         "UPDATE settlements
-         SET agreed_amount = ?, net_amount = ?, driver_commission = ?, amount_to_collect = ?
+         SET agreed_amount = ?, net_amount = ?, driver_commission = ?, amount_to_collect = ?,
+             remaining_amount = GREATEST(? - paid_amount, 0),
+             payment_status = CASE
+                 WHEN payment_status = 'refunded' THEN payment_status
+                 WHEN ? - paid_amount <= 0.009 THEN 'paid'
+                 WHEN paid_amount > 0 THEN 'partial'
+                 ELSE 'pending'
+             END
          WHERE id = ?"
     );
-    $ustmt->bind_param('ddddi', $agreed_amount, $net_amount, $driver_commission, $amount_to_collect, $settlement_id);
+    $ustmt->bind_param('ddddddi', $agreed_amount, $net_amount, $driver_commission, $amount_to_collect, $amount_to_collect, $amount_to_collect, $settlement_id);
     if (!$ustmt->execute()) {
         json_response(['success' => false, 'message' => 'আপডেট ব্যর্থ: ' . $ustmt->error], 500);
     }
@@ -87,12 +94,15 @@ if (isset($data['payment_status'])) {
     $payment_notes = $data['payment_notes'] ?? null;
     $paid_date = ($payment_status === 'paid' || $payment_status === 'partial') ? date('Y-m-d H:i:s') : null;
 
+    // Keep monetary columns consistent with the manually set status
     $pstmt = $conn->prepare(
         "UPDATE settlements
-         SET payment_status = ?, payment_method = ?, payment_notes = ?, paid_date = ?
+         SET payment_status = ?, payment_method = ?, payment_notes = ?, paid_date = ?,
+             paid_amount = IF(? = 'paid', amount_to_collect, paid_amount),
+             remaining_amount = IF(? = 'paid', 0, GREATEST(amount_to_collect - paid_amount, 0))
          WHERE id = ?"
     );
-    $pstmt->bind_param('ssssi', $payment_status, $payment_method, $payment_notes, $paid_date, $settlement_id);
+    $pstmt->bind_param('ssssssi', $payment_status, $payment_method, $payment_notes, $paid_date, $payment_status, $payment_status, $settlement_id);
     if (!$pstmt->execute()) {
         json_response(['success' => false, 'message' => 'পেমেন্ট আপডেট ব্যর্থ: ' . $pstmt->error], 500);
     }

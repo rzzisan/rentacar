@@ -121,16 +121,17 @@ if ($method === 'POST') {
     $driver_commission = ($net_amount > 0) ? ($net_amount * $commission_percent / 100) : 0;
     $amount_to_collect = $net_amount - $driver_commission;
 
-    // Insert settlement
+    // Insert settlement (remaining_amount starts at the full collectible amount)
     $istmt = $conn->prepare(
         "INSERT INTO settlements
          (rental_id, driver_id, agreed_amount, total_expenses, net_amount,
-          commission_percent, driver_commission, amount_to_collect, payment_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')"
+          commission_percent, driver_commission, amount_to_collect,
+          paid_amount, remaining_amount, payment_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'pending')"
     );
 
     $istmt->bind_param(
-        'iiddddds',
+        'iiddddddd',
         $rental_id,
         $rental['driver_id'],
         $agreed_amount,
@@ -138,6 +139,7 @@ if ($method === 'POST') {
         $net_amount,
         $commission_percent,
         $driver_commission,
+        $amount_to_collect,
         $amount_to_collect
     );
 

@@ -122,6 +122,80 @@ export interface SettlementPayment {
   paid_by_driver_name?: string;
 }
 
+export interface DriverDues {
+  id: number;
+  name: string;
+  mobile: string;
+  status: 'active' | 'inactive';
+  commission_rate: number;
+  settlement_count: number;
+  due_settlement_count: number;
+  total_to_collect: number;
+  total_paid: number;
+  total_due: number;
+  last_payment_date?: string;
+}
+
+export interface DueSettlement {
+  id: number;
+  rental_id: number;
+  agreed_amount: number;
+  total_expenses: number;
+  net_amount: number;
+  driver_commission: number;
+  amount_to_collect: number;
+  paid_amount: number;
+  remaining_amount: number;
+  payment_status: 'pending' | 'paid' | 'partial' | 'refunded';
+  created_at?: string;
+  rental_start_date?: string;
+  pickup_location?: string;
+  dropoff_location?: string;
+  customer_first_name?: string;
+  customer_last_name?: string;
+  vehicle_brand?: string;
+  vehicle_model?: string;
+  vehicle_registration_number?: string;
+}
+
+export interface DriverCollection {
+  id: number;
+  settlement_id: number;
+  amount: number;
+  payment_method?: string;
+  payment_notes?: string;
+  payment_date: string;
+  recorded_by_name?: string;
+  rental_start_date?: string;
+  customer_first_name?: string;
+  customer_last_name?: string;
+  vehicle_brand?: string;
+  vehicle_model?: string;
+}
+
+export interface DriverDuesDetail {
+  driver: {
+    id: number;
+    name: string;
+    mobile: string;
+    status: 'active' | 'inactive';
+    commission_rate: number;
+  };
+  total_due: number;
+  due_settlements: DueSettlement[];
+  total_collected: number;
+  collections: DriverCollection[];
+}
+
+export interface CollectionAllocation {
+  settlement_id: number;
+  payment_id: number;
+  allocated: number;
+  new_paid_amount: number;
+  new_remaining_amount: number;
+  payment_status: string;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;

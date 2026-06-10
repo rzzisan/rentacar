@@ -6,6 +6,7 @@ import AdminVehicles from '@/pages/admin/Vehicles';
 import AdminDrivers from '@/pages/admin/Drivers';
 import AdminRentals from '@/pages/admin/Rentals';
 import AdminSettlements from '@/pages/admin/Settlements';
+import DriverCollections from '@/pages/admin/DriverCollections';
 import DriverDashboard from '@/pages/driver/Dashboard';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
@@ -104,6 +105,7 @@ export default function App() {
           <Route path="vehicles"    element={<AdminVehicles />} />
           <Route path="rentals"     element={<AdminRentals />} />
           <Route path="settlements" element={<AdminSettlements />} />
+          <Route path="driver-collections" element={<DriverCollections />} />
           <Route path="customers"   element={<PlaceholderPage title="গ্রাহক ব্যবস্থাপনা" />} />
           <Route path="drivers"     element={<AdminDrivers />} />
           <Route path="employees"   element={<PlaceholderPage title="কর্মচারী" />} />

@@ -14,7 +14,7 @@ if (!$settlement_id) {
     json_response(['success' => false, 'message' => 'সেটেলমেন্ট আইডি প্রয়োজন'], 400);
 }
 
-$payment_amount = isset($data['amount']) ? (float)$data['amount'] : 0;
+$payment_amount = isset($data['amount']) ? round((float)$data['amount'], 2) : 0;
 $payment_method = $data['payment_method'] ?? null;
 $payment_notes = $data['payment_notes'] ?? null;
 
@@ -40,8 +40,8 @@ $settlement = $result->fetch_assoc();
 $stmt->close();
 
 // Validate payment amount
-$remaining = (float)$settlement['remaining_amount'];
-if ($payment_amount > $remaining) {
+$remaining = round((float)$settlement['remaining_amount'], 2);
+if ($payment_amount > $remaining + 0.009) {
     json_response([
         'success' => false,
         'message' => "পেমেন্ট পরিমান বকেয়া টাকার চেয়ে বেশি হতে পারে না (বকেয়া: ৳" . number_format($remaining, 2) . ")"
@@ -49,9 +49,10 @@ if ($payment_amount > $remaining) {
 }
 
 // Calculate new amounts
-$new_paid_amount = (float)$settlement['paid_amount'] + $payment_amount;
-$new_remaining_amount = (float)$settlement['amount_to_collect'] - $new_paid_amount;
-$new_payment_status = $new_remaining_amount <= 0 ? 'paid' : 'partial';
+$new_paid_amount = round((float)$settlement['paid_amount'] + $payment_amount, 2);
+$new_remaining_amount = round((float)$settlement['amount_to_collect'] - $new_paid_amount, 2);
+if ($new_remaining_amount < 0) $new_remaining_amount = 0.0;
+$new_payment_status = $new_remaining_amount <= 0.009 ? 'paid' : 'partial';
 
 // Start transaction
 $conn->begin_transaction();
@@ -63,10 +64,11 @@ try {
          SET paid_amount = ?,
              remaining_amount = ?,
              payment_status = ?,
+             paid_date = IF(? = 'paid', NOW(), paid_date),
              updated_at = NOW()
          WHERE id = ?"
     );
-    $update_stmt->bind_param('ddsi', $new_paid_amount, $new_remaining_amount, $new_payment_status, $settlement_id);
+    $update_stmt->bind_param('ddssi', $new_paid_amount, $new_remaining_amount, $new_payment_status, $new_payment_status, $settlement_id);
     if (!$update_stmt->execute()) {
         throw new Exception('সেটেলমেন্ট আপডেট ব্যর্থ: ' . $update_stmt->error);
     }

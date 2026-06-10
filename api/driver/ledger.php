@@ -63,7 +63,7 @@ foreach ($settlements as &$settlement) {
 
     // Get payment history for this settlement
     $pstmt = $conn->prepare(
-        "SELECT id, amount, payment_method, payment_notes, payment_date
+        "SELECT id, amount, payment_method, notes as payment_notes, payment_date
          FROM settlement_payments
          WHERE settlement_id = ?
          ORDER BY payment_date DESC"
@@ -83,10 +83,12 @@ foreach ($settlements as &$settlement) {
 
 // Calculate totals
 $total_earned = 0;
+$total_paid = 0;
 $total_pending = 0;
 
 foreach ($settlements as $settlement) {
     $total_earned += (float)$settlement['driver_commission'];
+    $total_paid += (float)$settlement['paid_amount'];
     $total_pending += (float)$settlement['remaining_amount'];
 }
 
@@ -96,9 +98,9 @@ json_response([
         'settlements' => $settlements,
         'summary' => [
             'total_trips' => count($settlements),
-            'total_earned' => (float)$total_earned,
-            'total_paid' => (float)($total_earned - $total_pending),
-            'total_pending' => (float)$total_pending,
+            'total_earned' => round($total_earned, 2),
+            'total_paid' => round($total_paid, 2),
+            'total_pending' => round($total_pending, 2),
         ],
     ],
 ]);
