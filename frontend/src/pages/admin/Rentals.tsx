@@ -7,6 +7,16 @@ const TRIP_TYPE_LABELS: Record<string, string> = {
   round_trip: 'রাউন্ড ট্রিপ',
 };
 
+// এক-দিকে: শুরু→শেষ, রাউন্ড ট্রিপ: শুরু→শেষ→শুরু
+const tripRoute = (r: { trip_type?: string; pickup_location?: string; dropoff_location?: string }) => {
+  if (!r.pickup_location && !r.dropoff_location) return '—';
+  const pickup = r.pickup_location || '?';
+  const dropoff = r.dropoff_location || '?';
+  return r.trip_type === 'round_trip'
+    ? `${pickup} → ${dropoff} → ${pickup}`
+    : `${pickup} → ${dropoff}`;
+};
+
 const EXPENSE_TYPES: Record<string, string> = {
   toll: 'টোল',
   fuel: 'জালানি',
@@ -281,6 +291,7 @@ export default function AdminRentals() {
                 <th className="px-4 py-2 text-left">গাড়ি</th>
                 <th className="px-4 py-2 text-left">চালক</th>
                 <th className="px-4 py-2 text-left">ধরন</th>
+                <th className="px-4 py-2 text-left">ঠিকানা</th>
                 <th className="px-4 py-2 text-right">চুক্তি টাকা</th>
                 <th className="px-4 py-2 text-left">স্ট্যাটাস</th>
                 <th className="px-4 py-2 text-left">তারিখ</th>
@@ -299,6 +310,7 @@ export default function AdminRentals() {
                   </td>
                   <td className="px-4 py-2">{rental.driver_name || '-'}</td>
                   <td className="px-4 py-2">{TRIP_TYPE_LABELS[rental.trip_type]}</td>
+                  <td className="px-4 py-2 text-gray-600 max-w-[220px]">{tripRoute(rental)}</td>
                   <td className="px-4 py-2 text-right">৳ {rental.agreed_amount.toFixed(0)}</td>
                   <td className="px-4 py-2">
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[rental.rental_status]}`}>
@@ -344,6 +356,7 @@ export default function AdminRentals() {
                 <p>গাড়ি: {rental.vehicle_brand} {rental.vehicle_model}</p>
                 <p>চালক: {rental.driver_name || '-'}</p>
                 <p>ধরন: {TRIP_TYPE_LABELS[rental.trip_type]}</p>
+                <p>ঠিকানা: {tripRoute(rental)}</p>
                 <p>চুক্তি: ৳ {rental.agreed_amount.toFixed(0)}</p>
               </div>
               <button

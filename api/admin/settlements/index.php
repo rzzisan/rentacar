@@ -36,7 +36,10 @@ if ($method === 'GET') {
             v.registration_number as vehicle_registration_number,
             d.name as driver_name,
             d.commission_rate as driver_commission_rate,
-            r.start_date as rental_start_date
+            r.start_date as rental_start_date,
+            r.pickup_location,
+            r.dropoff_location,
+            r.trip_type
             FROM settlements s
             LEFT JOIN rentals r ON s.rental_id = r.id
             LEFT JOIN customers c ON r.customer_id = c.id

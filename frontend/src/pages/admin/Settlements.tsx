@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import type { Settlement, TripExpense, SettlementPayment } from '../../types';
 
+// এক-দিকে: শুরু→শেষ, রাউন্ড ট্রিপ: শুরু→শেষ→শুরু
+const tripRoute = (s: { trip_type?: string; pickup_location?: string; dropoff_location?: string }) => {
+  if (!s.pickup_location && !s.dropoff_location) return '—';
+  const pickup = s.pickup_location || '?';
+  const dropoff = s.dropoff_location || '?';
+  return s.trip_type === 'round_trip'
+    ? `${pickup} → ${dropoff} → ${pickup}`
+    : `${pickup} → ${dropoff}`;
+};
+
 const AdminSettlements: React.FC = () => {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [completedRentals, setCompletedRentals] = useState<any[]>([]);
@@ -317,6 +327,7 @@ const AdminSettlements: React.FC = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="border p-3 text-left">যাত্রি</th>
+                <th className="border p-3 text-left">চালক ও ঠিকানা</th>
                 <th className="border p-3 text-right">চুক্তির টাকা</th>
                 <th className="border p-3 text-right">খরচ</th>
                 <th className="border p-3 text-right">নেট</th>
@@ -337,6 +348,10 @@ const AdminSettlements: React.FC = () => {
                     <div className="text-xs text-gray-500">
                       {s.vehicle_brand} {s.vehicle_model}
                     </div>
+                  </td>
+                  <td className="border p-3 max-w-[220px]">
+                    <div className="font-medium">{s.driver_name || '—'}</div>
+                    <div className="text-xs text-gray-500">{tripRoute(s)}</div>
                   </td>
                   <td className="border p-3 text-right">৳{s.agreed_amount.toFixed(2)}</td>
                   <td className="border p-3 text-right">৳{s.total_expenses.toFixed(2)}</td>
@@ -373,6 +388,10 @@ const AdminSettlements: React.FC = () => {
                 <div className="text-xs text-gray-500">{s.customer_phone}</div>
               </div>
               <div>{getStatusBadge(s.payment_status)}</div>
+            </div>
+            <div className="text-xs text-gray-600 mb-2">
+              <div>চালক: {s.driver_name || '—'}</div>
+              <div>ঠিকানা: {tripRoute(s)}</div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm mb-3 py-2 border-y">
               <div>
