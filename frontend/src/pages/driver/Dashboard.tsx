@@ -38,6 +38,7 @@ const tripRoute = (r: { trip_type?: string; pickup_location?: string; dropoff_lo
 const DriverDashboard: React.FC = () => {
   const [ledger, setLedger] = useState<DriverLedger | null>(null);
   const [activeTrips, setActiveTrips] = useState<Rental[]>([]);
+  const [upcomingTrips, setUpcomingTrips] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -46,25 +47,34 @@ const DriverDashboard: React.FC = () => {
     loadLedger();
   }, []);
 
-  // চলমান ট্রিপের লাইভ টাইমারের জন্য প্রতি মিনিটে টিক
+  // চলমান/আপকামিং ট্রিপের লাইভ টাইমার ও কাউন্টডাউনের জন্য প্রতি মিনিটে টিক
   useEffect(() => {
-    if (activeTrips.length === 0) return;
+    if (activeTrips.length === 0 && upcomingTrips.length === 0) return;
     const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
-  }, [activeTrips.length]);
+  }, [activeTrips.length, upcomingTrips.length]);
 
   const loadLedger = async () => {
     setLoading(true);
     try {
-      const [ledgerRes, activeRes] = await Promise.all([
+      const [ledgerRes, activeRes, pendingRes] = await Promise.all([
         api.get<DriverLedger>('/driver/ledger.php'),
         api.get<Rental[]>('/driver/rentals/index.php?status=active'),
+        api.get<Rental[]>('/driver/rentals/index.php?status=pending'),
       ]);
       if (ledgerRes.success && ledgerRes.data) {
         setLedger(ledgerRes.data);
       }
       if (activeRes.success && activeRes.data) {
         setActiveTrips(activeRes.data);
+      }
+      if (pendingRes.success && pendingRes.data) {
+        // আগে যেটা শুরু হবে সেটা উপরে
+        setUpcomingTrips(
+          [...pendingRes.data].sort(
+            (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+          )
+        );
       }
     } catch (error) {
       console.error('Failed to load ledger:', error);
@@ -137,6 +147,50 @@ const DriverDashboard: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* আপকামিং ট্রিপ — চলমান ট্রিপের নিচে দেখায় */}
+      {upcomingTrips.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {upcomingTrips.map((trip) => {
+            const diff = new Date(trip.start_date).getTime() - now;
+            return (
+              <div
+                key={trip.id}
+                className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4 shadow-sm"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                  <span className="font-bold text-amber-800">আপকামিং ট্রিপ</span>
+                  <span className={`ml-auto text-xs font-medium ${diff > 0 ? 'text-amber-700' : 'text-red-600'}`}>
+                    {diff > 0
+                      ? `শুরু হতে বাকি ${formatDuration(diff)}`
+                      : 'নির্ধারিত সময় পেরিয়ে গেছে'}
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900">
+                      {trip.customer_first_name} {trip.customer_last_name}
+                      {trip.customer_phone && <span className="text-gray-600 font-normal"> • {trip.customer_phone}</span>}
+                    </div>
+                    <div className="text-gray-700 mt-1">{tripRoute(trip)}</div>
+                    <div className="text-gray-600 mt-1">
+                      {trip.vehicle_brand} {trip.vehicle_model} • চুক্তি ৳{trip.agreed_amount.toFixed(0)} •{' '}
+                      {new Date(trip.start_date).toLocaleString('bn-BD')}
+                    </div>
+                  </div>
+                  <Link
+                    to={`/driver/rentals?open=${trip.id}`}
+                    className="shrink-0 text-center bg-amber-500 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-amber-600 transition"
+                  >
+                    বিস্তারিত দেখুন
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
