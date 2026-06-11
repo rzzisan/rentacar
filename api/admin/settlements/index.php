@@ -83,80 +83,22 @@ if ($method === 'POST') {
         json_response(['success' => false, 'message' => 'রেন্টাল আইডি প্রয়োজন'], 400);
     }
 
-    // Verify rental exists and is completed
-    $rstmt = $conn->prepare(
-        "SELECT r.*, d.commission_rate FROM rentals r
-         LEFT JOIN drivers d ON r.driver_id = d.id
-         WHERE r.id = ? AND r.rental_status = 'completed'"
-    );
-    $rstmt->bind_param('i', $rental_id);
-    $rstmt->execute();
-    $rental_result = $rstmt->get_result();
+    // হিসাব ও insert — shared helper (ট্রিপ completed হলে এখন স্বয়ংক্রিয়ভাবেই তৈরি হয়;
+    // এটি পুরনো সম্পন্ন ট্রিপের জন্য fallback)
+    $settlement = create_settlement_for_rental($conn, $rental_id);
 
-    if ($rental_result->num_rows === 0) {
+    if ($settlement === null) {
         json_response(['success' => false, 'message' => 'সম্পন্ন রেন্টাল পাওয়া যায়নি'], 404);
     }
 
-    $rental = $rental_result->fetch_assoc();
-    $rstmt->close();
-
-    // Check if settlement already exists
-    $cstmt = $conn->prepare("SELECT id FROM settlements WHERE rental_id = ?");
-    $cstmt->bind_param('i', $rental_id);
-    $cstmt->execute();
-    if ($cstmt->get_result()->num_rows > 0) {
+    if (!$settlement['created']) {
         json_response(['success' => false, 'message' => 'এই রেন্টালের জন্য সেটেলমেন্ট ইতিমধ্যে তৈরি হয়েছে'], 400);
     }
-    $cstmt->close();
-
-    // Get total expenses
-    $estmt = $conn->prepare("SELECT SUM(amount) as total FROM trip_expenses WHERE rental_id = ?");
-    $estmt->bind_param('i', $rental_id);
-    $estmt->execute();
-    $expense_row = $estmt->get_result()->fetch_assoc();
-    $total_expenses = $expense_row['total'] ? (float)$expense_row['total'] : 0;
-    $estmt->close();
-
-    // Calculate amounts
-    $agreed_amount = (float)$rental['agreed_amount'];
-    $net_amount = $agreed_amount - $total_expenses;
-    $commission_percent = $rental['commission_rate'] ? (float)$rental['commission_rate'] : 0;
-    $driver_commission = ($net_amount > 0) ? ($net_amount * $commission_percent / 100) : 0;
-    $amount_to_collect = $net_amount - $driver_commission;
-
-    // Insert settlement (remaining_amount starts at the full collectible amount)
-    $istmt = $conn->prepare(
-        "INSERT INTO settlements
-         (rental_id, driver_id, agreed_amount, total_expenses, net_amount,
-          commission_percent, driver_commission, amount_to_collect,
-          paid_amount, remaining_amount, payment_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'pending')"
-    );
-
-    $istmt->bind_param(
-        'iiddddddd',
-        $rental_id,
-        $rental['driver_id'],
-        $agreed_amount,
-        $total_expenses,
-        $net_amount,
-        $commission_percent,
-        $driver_commission,
-        $amount_to_collect,
-        $amount_to_collect
-    );
-
-    if (!$istmt->execute()) {
-        json_response(['success' => false, 'message' => 'সেটেলমেন্ট তৈরি করতে ব্যর্থ: ' . $istmt->error], 500);
-    }
-
-    $settlement_id = $conn->insert_id;
-    $istmt->close();
 
     json_response([
         'success' => true,
         'message' => 'সেটেলমেন্ট সফলভাবে তৈরি হয়েছে',
-        'data' => ['settlement_id' => $settlement_id]
+        'data' => ['settlement_id' => $settlement['id']]
     ], 201);
 }
 

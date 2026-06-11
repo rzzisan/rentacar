@@ -74,5 +74,17 @@ if (!$ustmt->execute()) {
 }
 $ustmt->close();
 
+// ট্রিপ সম্পন্ন হলে সেটেলমেন্ট স্বয়ংক্রিয়ভাবে তৈরি হয়
+if ($new_status === 'completed') {
+    $settlement = create_settlement_for_rental($conn, $rental_id);
+    json_response([
+        'success' => true,
+        'message' => $settlement
+            ? 'ট্রিপ সম্পন্ন হয়েছে এবং সেটেলমেন্ট তৈরি হয়েছে'
+            : 'ট্রিপ সম্পন্ন হয়েছে, কিন্তু সেটেলমেন্ট তৈরি করা যায়নি',
+        'data' => ['settlement_id' => $settlement['id'] ?? null]
+    ]);
+}
+
 json_response(['success' => true, 'message' => 'স্ট্যাটাস সফলভাবে আপডেট হয়েছে']);
 ?>
