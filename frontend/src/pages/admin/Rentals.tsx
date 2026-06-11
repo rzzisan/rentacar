@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { Rental, Vehicle, Driver, TripExpense } from '../../types';
 
@@ -197,9 +198,9 @@ export default function AdminRentals() {
     }
   };
 
-  const handleOpenDetail = async (rental: Rental) => {
+  const handleOpenDetail = useCallback(async (rentalId: number) => {
     try {
-      const response = await api.get<Rental>(`/admin/rentals/show.php?id=${rental.id}`);
+      const response = await api.get<Rental>(`/admin/rentals/show.php?id=${rentalId}`);
       if (response.success) {
         const r = response.data || null;
         setSelectedRental(r);
@@ -217,7 +218,17 @@ export default function AdminRentals() {
     } catch (error) {
       showToast('বিবরণ লোড ব্যর্থ');
     }
-  };
+  }, [loadVehicles, loadDrivers]);
+
+  // ড্যাশবোর্ডের ট্রিপ কার্ড থেকে ?open=<id> এলে সরাসরি ডিটেইল মডাল খুলবে
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const openId = Number(searchParams.get('open'));
+    if (openId) {
+      setSearchParams({}, { replace: true });
+      handleOpenDetail(openId);
+    }
+  }, [searchParams, setSearchParams, handleOpenDetail]);
 
   const handleUpdateAssignment = async () => {
     if (!selectedRental || !editAssign.vehicle_id) return;
@@ -409,7 +420,7 @@ export default function AdminRentals() {
                   </td>
                   <td className="px-4 py-2 text-center">
                     <button
-                      onClick={() => handleOpenDetail(rental)}
+                      onClick={() => handleOpenDetail(rental.id)}
                       className="text-indigo-600 hover:text-indigo-700 font-medium"
                     >
                       দেখুন
@@ -450,7 +461,7 @@ export default function AdminRentals() {
                 </p>
               </div>
               <button
-                onClick={() => handleOpenDetail(rental)}
+                onClick={() => handleOpenDetail(rental.id)}
                 className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700"
               >
                 বিস্তারিত
