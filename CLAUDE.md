@@ -93,7 +93,8 @@ customer: dashboard, vehicles, bookings, invoices, profile
 
 ```
 api/
-├── _helpers.php                   — json_response(), require_auth(), require_role(), require_driver(), input()
+├── _helpers.php                   — json_response(), require_auth(), require_role(), require_driver(), input(),
+│                                    create_settlement_for_rental() — idempotent settlement তৈরি (হিসাবের লজিক এক জায়গায়)
 ├── auth/
 │   ├── login.php   POST           — session তৈরি করে
 │   ├── logout.php  POST           — session destroy করে JSON রিটার্ন
@@ -101,13 +102,13 @@ api/
 │   └── update_profile.php POST    — নিজের প্রোফাইল আপডেট
 ├── admin/
 │   ├── stats.php   GET            — dashboard stats (admin only)
-│   ├── rentals/                   — index (GET/POST), show, update, update_status, expenses (POST), expenses_destroy
-│   ├── settlements/               — index, show, update, collect-payment, payment-history
+│   ├── rentals/                   — index (GET/POST), show, update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST), expenses_destroy
+│   ├── settlements/               — index (GET; POST এখন পুরনো ট্রিপের fallback), show, update, collect-payment, payment-history
 │   └── drivers/                   — index (GET/POST), update, destroy, dues (বকেয়া overview), collect (FIFO bulk)
 ├── driver/                        — সব endpoint require_driver() দিয়ে গার্ড করা
 │   ├── ledger.php  GET            — নিজের settlements + summary (trips/earned/paid/pending)
 │   ├── vehicles.php GET           — নিজেকে অ্যাসাইন করা গাড়ির তালিকা
-│   └── rentals/                   — index (GET list / POST create), show, update_status (cancel নিষিদ্ধ), expenses (POST, রসিদ আপলোড)
+│   └── rentals/                   — index (GET list / POST create), show, update_status (cancel নিষিদ্ধ; completed হলে settlement অটো-তৈরি), expenses (POST, রসিদ আপলোড)
 └── vehicles/
     ├── index.php   GET/POST        — list (filter: status, vehicle_type, search) / create
     ├── show.php    GET ?id=        — single vehicle
