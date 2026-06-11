@@ -69,9 +69,9 @@ frontend/src/
 └── pages/
     ├── Login.tsx                  — login form, POST /api/auth/login.php
     ├── admin/
-    │   ├── Dashboard.tsx          — stats cards (real data from API)
+    │   ├── Dashboard.tsx          — চলমান+আপকামিং ট্রিপ হাইলাইট কার্ড (লাইভ টাইমার/কাউন্টডাউন), ৬ stats কার্ড (বকেয়া, আজকের ট্রিপ সহ), quick links
     │   ├── Vehicles.tsx           — CRUD: list, add modal, edit modal, delete confirm
-    │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট: তালিকা, তৈরি, স্ট্যাটাস, খরচ, লাইভ টাইমার
+    │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট: তালিকা, তৈরি, স্ট্যাটাস, খরচ, লাইভ টাইমার; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে
     │   ├── Settlements.tsx        — ট্রিপ সেটেলমেন্ট: কমিশন হিসাব, পেমেন্ট সংগ্রহ ও ইতিহাস
     │   ├── Drivers.tsx            — ড্রাইভার CRUD + গাড়ি অ্যাসাইনমেন্ট (driver_vehicles)
     │   └── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (FIFO bulk collection)
@@ -101,7 +101,7 @@ api/
 │   ├── me.php      GET            — current user info
 │   └── update_profile.php POST    — নিজের প্রোফাইল আপডেট
 ├── admin/
-│   ├── stats.php   GET            — dashboard stats (admin only)
+│   ├── stats.php   GET            — dashboard stats (admin only): counts, monthly_revenue (agreed_amount-ভিত্তিক), total_dues, today_trips + active_trips/upcoming_trips তালিকা
 │   ├── rentals/                   — index (GET/POST), show, update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST), expenses_destroy
 │   ├── settlements/               — index (GET; POST এখন পুরনো ট্রিপের fallback), show, update, collect-payment, payment-history
 │   └── drivers/                   — index (GET/POST), update, destroy, dues (বকেয়া overview), collect (FIFO bulk)
