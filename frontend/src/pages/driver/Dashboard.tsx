@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../api/client';
-import type { Settlement } from '../../types';
+import type { Rental, Settlement } from '../../types';
 
 interface DriverLedger {
   settlements: Settlement[];
@@ -12,21 +13,58 @@ interface DriverLedger {
   };
 }
 
+const formatDuration = (ms: number): string => {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const parts: string[] = [];
+  if (d) parts.push(`${d} দিন`);
+  if (h) parts.push(`${h} ঘণ্টা`);
+  parts.push(`${m} মিনিট`);
+  return parts.join(' ');
+};
+
+// এক-দিকে: শুরু→শেষ, রাউন্ড ট্রিপ: শুরু→শেষ→শুরু
+const tripRoute = (r: { trip_type?: string; pickup_location?: string; dropoff_location?: string }) => {
+  if (!r.pickup_location && !r.dropoff_location) return '—';
+  const pickup = r.pickup_location || '?';
+  const dropoff = r.dropoff_location || '?';
+  return r.trip_type === 'round_trip'
+    ? `${pickup} → ${dropoff} → ${pickup}`
+    : `${pickup} → ${dropoff}`;
+};
+
 const DriverDashboard: React.FC = () => {
   const [ledger, setLedger] = useState<DriverLedger | null>(null);
+  const [activeTrips, setActiveTrips] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     loadLedger();
   }, []);
 
+  // চলমান ট্রিপের লাইভ টাইমারের জন্য প্রতি মিনিটে টিক
+  useEffect(() => {
+    if (activeTrips.length === 0) return;
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, [activeTrips.length]);
+
   const loadLedger = async () => {
     setLoading(true);
     try {
-      const response = await api.get<DriverLedger>('/driver/ledger.php');
-      if (response.success && response.data) {
-        setLedger(response.data);
+      const [ledgerRes, activeRes] = await Promise.all([
+        api.get<DriverLedger>('/driver/ledger.php'),
+        api.get<Rental[]>('/driver/rentals/index.php?status=active'),
+      ]);
+      if (ledgerRes.success && ledgerRes.data) {
+        setLedger(ledgerRes.data);
+      }
+      if (activeRes.success && activeRes.data) {
+        setActiveTrips(activeRes.data);
       }
     } catch (error) {
       console.error('Failed to load ledger:', error);
@@ -60,6 +98,47 @@ const DriverDashboard: React.FC = () => {
         <h1 className="text-2xl font-bold mb-2">আমার লেজার</h1>
         <p className="text-gray-600">ট্রিপ, কমিশন এবং পেমেন্ট হিসাব</p>
       </div>
+
+      {/* চলমান ট্রিপ — হাইলাইট করা, যাতে সহজে খরচ যুক্ত করা যায় */}
+      {activeTrips.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {activeTrips.map((trip) => (
+            <div
+              key={trip.id}
+              className="bg-green-50 border-2 border-green-500 rounded-lg p-4 shadow-md ring-2 ring-green-200"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-600"></span>
+                </span>
+                <span className="font-bold text-green-800">চলমান ট্রিপ</span>
+                <span className="ml-auto text-xs font-medium text-green-700">
+                  চলছে {formatDuration(now - new Date(trip.actual_start_time || trip.start_date).getTime())} ধরে
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="text-sm">
+                  <div className="font-medium text-gray-900">
+                    {trip.customer_first_name} {trip.customer_last_name}
+                    {trip.customer_phone && <span className="text-gray-600 font-normal"> • {trip.customer_phone}</span>}
+                  </div>
+                  <div className="text-gray-700 mt-1">{tripRoute(trip)}</div>
+                  <div className="text-gray-600 mt-1">
+                    {trip.vehicle_brand} {trip.vehicle_model} • চুক্তি ৳{trip.agreed_amount.toFixed(0)}
+                  </div>
+                </div>
+                <Link
+                  to={`/driver/rentals?open=${trip.id}`}
+                  className="shrink-0 text-center bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-green-700 transition"
+                >
+                  + খরচ যুক্ত করুন
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
