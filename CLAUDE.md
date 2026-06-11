@@ -1,7 +1,7 @@
 # car.zisan.me — Rent-A-Car Management System
 
 ## প্রজেক্ট পরিচিতি
-বাংলাদেশ-ভিত্তিক কার রেন্টাল ম্যানেজমেন্ট সিস্টেম। UI সম্পূর্ণ বাংলায়। তিনটি role: `admin`, `employee`, `customer`।
+বাংলাদেশ-ভিত্তিক কার রেন্টাল ম্যানেজমেন্ট সিস্টেম। UI সম্পূর্ণ বাংলায়। চারটি role: `admin`, `employee`, `customer`, `driver`।
 
 ---
 
@@ -68,14 +68,21 @@ frontend/src/
 │       └── Sidebar.tsx            — dark sidebar, role-based nav
 └── pages/
     ├── Login.tsx                  — login form, POST /api/auth/login.php
-    └── admin/
-        ├── Dashboard.tsx          — stats cards (real data from API)
-        └── Vehicles.tsx           — CRUD: list, add modal, edit modal, delete confirm
+    ├── admin/
+    │   ├── Dashboard.tsx          — stats cards (real data from API)
+    │   ├── Vehicles.tsx           — CRUD: list, add modal, edit modal, delete confirm
+    │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট: তালিকা, তৈরি, স্ট্যাটাস, খরচ, লাইভ টাইমার
+    │   ├── Settlements.tsx        — ট্রিপ সেটেলমেন্ট: কমিশন হিসাব, পেমেন্ট সংগ্রহ ও ইতিহাস
+    │   ├── Drivers.tsx            — ড্রাইভার CRUD + গাড়ি অ্যাসাইনমেন্ট (driver_vehicles)
+    │   └── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (FIFO bulk collection)
+    └── driver/
+        ├── Dashboard.tsx          — লেজার (কমিশন/পেমেন্ট) + চলমান ট্রিপ হাইলাইট কার্ড (লাইভ টাইমার, ?open=<id> দিয়ে খরচ ফর্মে শর্টকাট)
+        └── Rentals.tsx            — নিজের ট্রিপ: তৈরি/শুরু/সম্পন্ন (বাতিল নয়), খরচ + রসিদ আপলোড; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে
 ```
 
 ### তৈরি হয়নি এখনো (placeholder দেখায়)
 ```
-admin:    rentals, customers, payments, employees, maintenance, reports, settings
+admin:    customers, payments, employees, maintenance, reports, settings
 employee: dashboard, vehicles, rentals, customers
 customer: dashboard, vehicles, bookings, invoices, profile
 ```
@@ -86,13 +93,21 @@ customer: dashboard, vehicles, bookings, invoices, profile
 
 ```
 api/
-├── _helpers.php                   — json_response(), require_auth(), require_role(), input()
+├── _helpers.php                   — json_response(), require_auth(), require_role(), require_driver(), input()
 ├── auth/
 │   ├── login.php   POST           — session তৈরি করে
 │   ├── logout.php  POST           — session destroy করে JSON রিটার্ন
-│   └── me.php      GET            — current user info
+│   ├── me.php      GET            — current user info
+│   └── update_profile.php POST    — নিজের প্রোফাইল আপডেট
 ├── admin/
-│   └── stats.php   GET            — dashboard stats (admin only)
+│   ├── stats.php   GET            — dashboard stats (admin only)
+│   ├── rentals/                   — index (GET/POST), show, update, update_status, expenses (POST), expenses_destroy
+│   ├── settlements/               — index, show, update, collect-payment, payment-history
+│   └── drivers/                   — index (GET/POST), update, destroy, dues (বকেয়া overview), collect (FIFO bulk)
+├── driver/                        — সব endpoint require_driver() দিয়ে গার্ড করা
+│   ├── ledger.php  GET            — নিজের settlements + summary (trips/earned/paid/pending)
+│   ├── vehicles.php GET           — নিজেকে অ্যাসাইন করা গাড়ির তালিকা
+│   └── rentals/                   — index (GET list / POST create), show, update_status (cancel নিষিদ্ধ), expenses (POST, রসিদ আপলোড)
 └── vehicles/
     ├── index.php   GET/POST        — list (filter: status, vehicle_type, search) / create
     ├── show.php    GET ?id=        — single vehicle
@@ -117,7 +132,7 @@ includes/                          — ভবিষ্যতের API-তে �
 1. `App.tsx` mount → `GET /api/auth/me.php`
 2. 401 response → redirect to `/login`
 3. Login form → `POST /api/auth/login.php` → PHP session set
-4. Role অনুযায়ী redirect: admin→`/admin`, employee→`/employee`, customer→`/customer`
+4. Role অনুযায়ী redirect: admin→`/admin`, employee→`/employee`, customer→`/customer`, driver→`/driver`
 5. Logout → `POST /api/auth/logout.php` → session destroy → redirect to `/login`
 6. `ProtectedRoute` component role-check করে, ভুল role হলে নিজের dashboard-এ redirect
 
@@ -139,11 +154,21 @@ includes/                          — ভবিষ্যতের API-তে �
 ### rentals
 | column | type |
 |---|---|
-| id, customer_id, vehicle_id, employee_id | FK |
+| id, customer_id, vehicle_id, employee_id, driver_id | FK |
 | start_date, end_date, pickup_location, dropoff_location | — |
+| trip_type | enum: one_way, round_trip |
+| agreed_amount | decimal — চুক্তির টাকা |
+| actual_start_time, actual_end_time | datetime — প্রকৃত শুরু/শেষ (লাইভ টাইমারে ব্যবহৃত) |
 | rental_status | enum: pending, active, completed, cancelled |
 | total_days, daily_rate, subtotal, discount, tax, total_amount | decimal |
 | payment_status | enum: pending, paid, partial |
+
+### ট্রিপ/সেটেলমেন্ট সংক্রান্ত টেবিল
+- **drivers**: id, user_id, name, phone, commission_percent ইত্যাদি
+- **driver_vehicles**: driver_id + vehicle_id — কোন ড্রাইভারকে কোন গাড়ি অ্যাসাইন করা
+- **trip_expenses**: rental_id, expense_type (toll/fuel/parking/repair/driver_allowance/other), amount, description, receipt_image
+- **settlements**: rental_id, driver_id, agreed_amount, total_expenses, driver_commission, paid_amount, remaining_amount, payment_status
+- **settlement_payments**: settlement_id, amount, payment_method, payment_date, payment_notes
 
 ### অন্যান্য টেবিল
 - **users**: id, username, email, password (bcrypt), role, status
@@ -169,6 +194,7 @@ TAX_RATE = 15% | Timezone: Asia/Dhaka
 2. Prepared statements বাধ্যতামূলক (string interpolation নিষিদ্ধ)
 3. Response: `json_response(['success' => true, 'data' => ..., 'message' => '...'])`
 4. `only_method('GET')` / `only_method('POST')` দিয়ে method guard
+5. **Numeric cast বাধ্যতামূলক:** MySQL DECIMAL string হিসেবে আসে — response-এর আগে `(float)`/`(int)` cast করতে হবে, নাহলে frontend-এ `.toFixed()` ভেঙে যায়
 
 ### Build ও Deploy
 ```bash
