@@ -77,7 +77,7 @@ frontend/src/
     │   └── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (FIFO bulk collection)
     └── driver/
         ├── Dashboard.tsx          — লেজার (কমিশন/পেমেন্ট) + চলমান ট্রিপ হাইলাইট কার্ড (লাইভ টাইমার, ?open=<id> দিয়ে খরচ ফর্মে শর্টকাট)
-        └── Rentals.tsx            — নিজের ট্রিপ: তৈরি/শুরু/সম্পন্ন (বাতিল নয়), খরচ + রসিদ আপলোড; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে
+        └── Rentals.tsx            — নিজের ট্রিপ: তৈরি/শুরু/সম্পন্ন (বাতিল নয়), খরচ + রসিদ আপলোড; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে; খরচে অটো GPS লোকেশন (read-only, GPS ছাড়া submit নয়)
 ```
 
 ### তৈরি হয়নি এখনো (placeholder দেখায়)
@@ -102,13 +102,13 @@ api/
 │   └── update_profile.php POST    — নিজের প্রোফাইল আপডেট
 ├── admin/
 │   ├── stats.php   GET            — dashboard stats (admin only): counts, monthly_revenue (agreed_amount-ভিত্তিক), total_dues, today_trips + active_trips/upcoming_trips তালিকা
-│   ├── rentals/                   — index (GET/POST), show, update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST), expenses_destroy
+│   ├── rentals/                   — index (GET/POST), show (expenses এ location_name/lat/lng সহ), update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST: location_name/lat/lng সহ), expenses_destroy
 │   ├── settlements/               — index (GET; POST এখন পুরনো ট্রিপের fallback), show, update, collect-payment, payment-history
 │   └── drivers/                   — index (GET/POST), update, destroy, dues (বকেয়া overview), collect (FIFO bulk)
 ├── driver/                        — সব endpoint require_driver() দিয়ে গার্ড করা
 │   ├── ledger.php  GET            — নিজের settlements + summary (trips/earned/paid/pending)
 │   ├── vehicles.php GET           — নিজেকে অ্যাসাইন করা গাড়ির তালিকা
-│   └── rentals/                   — index (GET list / POST create), show, update_status (cancel নিষিদ্ধ; completed হলে settlement অটো-তৈরি), expenses (POST, রসিদ আপলোড)
+│   └── rentals/                   — index (GET list / POST create), show (expenses এ location_name/lat/lng সহ), update_status (cancel নিষিদ্ধ; completed হলে settlement অটো-তৈরি), expenses (POST: location_name/lat/lng বাধ্যতামূলক, রসিদ আপলোড)
 └── vehicles/
     ├── index.php   GET/POST        — list (filter: status, vehicle_type, search) / create
     ├── show.php    GET ?id=        — single vehicle
@@ -167,7 +167,7 @@ includes/                          — ভবিষ্যতের API-তে �
 ### ট্রিপ/সেটেলমেন্ট সংক্রান্ত টেবিল
 - **drivers**: id, user_id, name, phone, commission_percent ইত্যাদি
 - **driver_vehicles**: driver_id + vehicle_id — কোন ড্রাইভারকে কোন গাড়ি অ্যাসাইন করা
-- **trip_expenses**: rental_id, expense_type (toll/fuel/parking/repair/driver_allowance/other), amount, description, receipt_image
+- **trip_expenses**: rental_id, expense_type (toll/fuel/parking/repair/driver_allowance/other), amount, description, receipt_image, location_name, latitude (DECIMAL 10,7), longitude (DECIMAL 10,7), created_at
 - **settlements**: rental_id, driver_id, agreed_amount, total_expenses, driver_commission, paid_amount, remaining_amount, payment_status
 - **settlement_payments**: settlement_id, amount, payment_method, payment_date, payment_notes
 
