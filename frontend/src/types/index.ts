@@ -1,4 +1,15 @@
-export type Role = 'admin' | 'employee' | 'customer' | 'driver';
+export type Role = 'admin' | 'manager' | 'employee' | 'customer' | 'driver';
+
+export interface Manager {
+  id: number;
+  name: string;
+  mobile: string;
+  email: string;
+  profile_picture?: string;
+  status: 'active' | 'inactive';
+  vehicles: { id: number; brand: string; model: string; registration_number: string; vehicle_status: string }[];
+  created_at?: string;
+}
 
 export interface User {
   id: number;

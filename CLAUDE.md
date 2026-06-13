@@ -74,7 +74,15 @@ frontend/src/
     │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট: তালিকা, তৈরি, স্ট্যাটাস, খরচ, লাইভ টাইমার; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে
     │   ├── Settlements.tsx        — ট্রিপ সেটেলমেন্ট: কমিশন হিসাব, পেমেন্ট সংগ্রহ ও ইতিহাস
     │   ├── Drivers.tsx            — ড্রাইভার CRUD + গাড়ি অ্যাসাইনমেন্ট (driver_vehicles)
-    │   └── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (FIFO bulk collection)
+    │   ├── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (FIFO bulk collection)
+    │   └── Managers.tsx           — ম্যানেজার CRUD + গাড়ি অ্যাসাইনমেন্ট (একটি গাড়ি ↔ একজন ম্যানেজার)
+    ├── manager/
+    │   ├── Dashboard.tsx          — ম্যানেজার ড্যাশবোর্ড: assigned গাড়ির stats, active/upcoming trips
+    │   ├── Vehicles.tsx           — assigned গাড়ির তালিকা (read-only view)
+    │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট (assigned গাড়ির জন্য, admin Rentals-এর মতো)
+    │   ├── Settlements.tsx        — সেটেলমেন্ট ম্যানেজমেন্ট (assigned গাড়ির জন্য)
+    │   ├── Drivers.tsx            — ড্রাইভার ম্যানেজমেন্ট (assigned গাড়ির ড্রাইভার)
+    │   └── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (assigned গাড়ির ড্রাইভার)
     └── driver/
         ├── Dashboard.tsx          — লেজার (কমিশন/পেমেন্ট) + চলমান ট্রিপ হাইলাইট কার্ড (লাইভ টাইমার, ?open=<id> দিয়ে খরচ ফর্মে শর্টকাট)
         └── Rentals.tsx            — নিজের ট্রিপ: তৈরি/শুরু/সম্পন্ন (বাতিল নয়), খরচ + রসিদ আপলোড; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে; খরচে অটো GPS লোকেশন (read-only, GPS ছাড়া submit নয়)
@@ -86,6 +94,14 @@ admin:    customers, payments, employees, maintenance, reports, settings
 employee: dashboard, vehicles, rentals, customers
 customer: dashboard, vehicles, bookings, invoices, profile
 ```
+
+### Manager role বিশেষ নোট
+- `managers` টেবিল আলাদা (drivers টেবিলের মতো), `users` টেবিলে নয়
+- Login fallback: `api/auth/login.php` → managers টেবিল চেক করে
+- `require_manager()` in `_helpers.php` — manager_id রিটার্ন করে
+- `get_manager_vehicle_ids()` — manager-এর assigned vehicle IDs অ্যারে রিটার্ন
+- `manager_vehicle_in_clause()` — SQL IN() clause string তৈরি করে
+- Manager শুধু তার assigned vehicles-এর ডেটা দেখতে/পরিবর্তন করতে পারবে
 
 ---
 
@@ -104,7 +120,14 @@ api/
 │   ├── stats.php   GET            — dashboard stats (admin only): counts, monthly_revenue (agreed_amount-ভিত্তিক), total_dues, today_trips + active_trips/upcoming_trips তালিকা
 │   ├── rentals/                   — index (GET/POST), show (expenses এ location_name/lat/lng সহ), update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST: location_name/lat/lng সহ), expenses_destroy
 │   ├── settlements/               — index (GET; POST এখন পুরনো ট্রিপের fallback), show, update, collect-payment, payment-history
-│   └── drivers/                   — index (GET/POST), update, destroy, dues (বকেয়া overview), collect (FIFO bulk)
+│   ├── drivers/                   — index (GET/POST), update, destroy, dues (বকেয়া overview), collect (FIFO bulk)
+│   └── managers/                  — index (GET/POST), update, destroy — ম্যানেজার CRUD + vehicle assignment
+├── manager/                       — সব endpoint require_manager() দিয়ে গার্ড; শুধু assigned গাড়ির ডেটা দেখায়
+│   ├── stats.php   GET            — admin stats-এর মতো কিন্তু manager-এর assigned vehicles filter করা
+│   ├── vehicles.php GET           — assigned গাড়ির তালিকা
+│   ├── rentals/                   — index (GET/POST), show, update, update_status, expenses, expenses_destroy
+│   ├── settlements/               — index, show, update, collect-payment, payment-history
+│   └── drivers/                   — index (GET), dues (বকেয়া), collect (FIFO bulk)
 ├── driver/                        — সব endpoint require_driver() দিয়ে গার্ড করা
 │   ├── ledger.php  GET            — নিজের settlements + summary (trips/earned/paid/pending)
 │   ├── vehicles.php GET           — নিজেকে অ্যাসাইন করা গাড়ির তালিকা
@@ -133,7 +156,7 @@ includes/                          — ভবিষ্যতের API-তে �
 1. `App.tsx` mount → `GET /api/auth/me.php`
 2. 401 response → redirect to `/login`
 3. Login form → `POST /api/auth/login.php` → PHP session set
-4. Role অনুযায়ী redirect: admin→`/admin`, employee→`/employee`, customer→`/customer`, driver→`/driver`
+4. Role অনুযায়ী redirect: admin→`/admin`, manager→`/manager`, employee→`/employee`, customer→`/customer`, driver→`/driver`
 5. Logout → `POST /api/auth/logout.php` → session destroy → redirect to `/login`
 6. `ProtectedRoute` component role-check করে, ভুল role হলে নিজের dashboard-এ redirect
 
@@ -167,6 +190,8 @@ includes/                          — ভবিষ্যতের API-তে �
 ### ট্রিপ/সেটেলমেন্ট সংক্রান্ত টেবিল
 - **drivers**: id, user_id, name, phone, commission_percent ইত্যাদি
 - **driver_vehicles**: driver_id + vehicle_id — কোন ড্রাইভারকে কোন গাড়ি অ্যাসাইন করা
+- **managers**: id, name, mobile, email, password (bcrypt), profile_picture, status — ম্যানেজার অ্যাকাউন্ট (drivers টেবিলের মতো structure)
+- **manager_vehicles**: manager_id + vehicle_id, UNIQUE(vehicle_id) — একটি গাড়ি সর্বোচ্চ একজন ম্যানেজারকে অ্যাসাইন
 - **trip_expenses**: rental_id, expense_type (toll/fuel/parking/repair/driver_allowance/other), amount, description, receipt_image, location_name, latitude (DECIMAL 10,7), longitude (DECIMAL 10,7), created_at
 - **settlements**: rental_id, driver_id, agreed_amount, total_expenses, driver_commission, paid_amount, remaining_amount, payment_status
 - **settlement_payments**: settlement_id, amount, payment_method, payment_date, payment_notes

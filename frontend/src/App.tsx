@@ -4,11 +4,18 @@ import AppLayout from '@/layouts/AppLayout';
 import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminVehicles from '@/pages/admin/Vehicles';
 import AdminDrivers from '@/pages/admin/Drivers';
+import AdminManagers from '@/pages/admin/Managers';
 import AdminRentals from '@/pages/admin/Rentals';
 import AdminSettlements from '@/pages/admin/Settlements';
 import DriverCollections from '@/pages/admin/DriverCollections';
 import DriverDashboard from '@/pages/driver/Dashboard';
 import DriverRentals from '@/pages/driver/Rentals';
+import ManagerDashboard from '@/pages/manager/Dashboard';
+import ManagerVehicles from '@/pages/manager/Vehicles';
+import ManagerRentals from '@/pages/manager/Rentals';
+import ManagerSettlements from '@/pages/manager/Settlements';
+import ManagerDrivers from '@/pages/manager/Drivers';
+import ManagerDriverCollections from '@/pages/manager/DriverCollections';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
 import type { User } from '@/types';
@@ -39,6 +46,7 @@ function ProtectedRoute({
   if (!user) return <Navigate to="/login" replace />;
   if (role && user.role !== role) {
     const dest = user.role === 'admin' ? '/admin'
+               : user.role === 'manager' ? '/manager'
                : user.role === 'employee' ? '/employee'
                : user.role === 'driver' ? '/driver'
                : '/customer';
@@ -88,7 +96,7 @@ export default function App() {
           path="/login"
           element={
             user
-              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
+              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'manager' ? '/manager' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
               : <Login onLogin={handleLogin} />
           }
         />
@@ -109,10 +117,28 @@ export default function App() {
           <Route path="driver-collections" element={<DriverCollections />} />
           <Route path="customers"   element={<PlaceholderPage title="গ্রাহক ব্যবস্থাপনা" />} />
           <Route path="drivers"     element={<AdminDrivers />} />
+          <Route path="managers"    element={<AdminManagers />} />
           <Route path="employees"   element={<PlaceholderPage title="কর্মচারী" />} />
           <Route path="maintenance" element={<PlaceholderPage title="রক্ষণাবেক্ষণ" />} />
           <Route path="reports"     element={<PlaceholderPage title="রিপোর্ট" />} />
           <Route path="settings"    element={<PlaceholderPage title="সেটিংস" />} />
+        </Route>
+
+        {/* Manager */}
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute user={user} role="manager">
+              <AppLayout user={user!} onLogout={handleLogout} onUserUpdate={setUser} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<ManagerDashboard />} />
+          <Route path="vehicles"          element={<ManagerVehicles />} />
+          <Route path="rentals"           element={<ManagerRentals />} />
+          <Route path="settlements"       element={<ManagerSettlements />} />
+          <Route path="driver-collections" element={<ManagerDriverCollections />} />
+          <Route path="drivers"           element={<ManagerDrivers />} />
         </Route>
 
         {/* Employee */}
@@ -164,7 +190,7 @@ export default function App() {
           path="/"
           element={
             user
-              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
+              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'manager' ? '/manager' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
               : <Navigate to="/login" replace />
           }
         />

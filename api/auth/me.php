@@ -43,4 +43,29 @@ if (isset($_SESSION['driver_id'])) {
     $stmt->close();
 }
 
+// Handle manager session
+if (isset($_SESSION['manager_id'])) {
+    $conn = (new Database())->connect();
+    $stmt = $conn->prepare("SELECT id, name, email, status FROM managers WHERE id = ?");
+    $stmt->bind_param('i', $_SESSION['manager_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 1) {
+        $manager = $result->fetch_assoc();
+        $stmt->close();
+
+        json_response([
+            'success' => true,
+            'data' => [
+                'id'       => (int) $manager['id'],
+                'username' => $manager['name'],
+                'email'    => $manager['email'],
+                'role'     => 'manager',
+            ],
+        ]);
+    }
+    $stmt->close();
+}
+
 json_response(['success' => false, 'message' => 'লগইন করুন'], 401);

@@ -17,6 +17,7 @@ const adminNav: NavItem[] = [
   { label: 'ড্রাইভার বকেয়া জমা', icon: '💰', href: '/admin/driver-collections' },
   { label: 'গ্রাহক ব্যবস্থাপনা', icon: '👥', href: '/admin/customers' },
   { label: 'ড্রাইভার', icon: '🧑‍✈️', href: '/admin/drivers' },
+  { label: 'ম্যানেজার', icon: '👔', href: '/admin/managers' },
   { label: 'কর্মচারী', icon: '👤', href: '/admin/employees' },
   { label: 'রক্ষণাবেক্ষণ', icon: '🔧', href: '/admin/maintenance' },
   { label: 'রিপোর্ট', icon: '📊', href: '/admin/reports' },
@@ -43,8 +44,18 @@ const driverNav: NavItem[] = [
   { label: 'আমার ট্রিপ', icon: '🚕', href: '/driver/rentals' },
 ];
 
+const managerNav: NavItem[] = [
+  { label: 'ড্যাশবোর্ড', icon: '🏠', href: '/manager' },
+  { label: 'আমার গাড়ি', icon: '🚗', href: '/manager/vehicles' },
+  { label: 'রেন্টাল ব্যবস্থাপনা', icon: '📋', href: '/manager/rentals' },
+  { label: 'পেমেন্ট সেটেলমেন্ট', icon: '💳', href: '/manager/settlements' },
+  { label: 'ড্রাইভার বকেয়া জমা', icon: '💰', href: '/manager/driver-collections' },
+  { label: 'ড্রাইভার', icon: '🧑‍✈️', href: '/manager/drivers' },
+];
+
 const navByRole: Record<Role, NavItem[]> = {
   admin: adminNav,
+  manager: managerNav,
   employee: employeeNav,
   customer: customerNav,
   driver: driverNav,
@@ -100,9 +111,9 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
         <nav className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-slate-700">
           <ul className="list-none p-0 m-0">
             {navItems.map(item => {
+              const rootPaths = ['/admin', '/manager', '/employee', '/customer', '/driver'];
               const isActive = location.pathname === item.href ||
-                (item.href !== '/admin' && item.href !== '/employee' && item.href !== '/customer' && item.href !== '/driver' &&
-                  location.pathname.startsWith(item.href));
+                (!rootPaths.includes(item.href) && location.pathname.startsWith(item.href));
 
               if (item.children) {
                 return (
@@ -145,7 +156,7 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
                 <li key={item.href} className="mx-2.5 mb-0.5">
                   <NavLink
                     to={item.href}
-                    end={item.href === '/admin' || item.href === '/employee' || item.href === '/customer' || item.href === '/driver'}
+                    end={rootPaths.includes(item.href)}
                     title={!isOpen ? item.label : undefined}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors no-underline ${
                       isActive
@@ -174,7 +185,7 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
             <div className={`flex-1 min-w-0 ${!isOpen ? 'lg:hidden' : ''}`}>
               <div className="text-xs font-semibold text-slate-300 truncate">{username}</div>
               <div className="text-[10px] text-slate-500">
-                {role === 'admin' ? 'এডমিন' : role === 'employee' ? 'কর্মচারী' : role === 'driver' ? 'চালক' : 'গ্রাহক'}
+                {role === 'admin' ? 'এডমিন' : role === 'manager' ? 'ম্যানেজার' : role === 'employee' ? 'কর্মচারী' : role === 'driver' ? 'চালক' : 'গ্রাহক'}
               </div>
             </div>
           </div>

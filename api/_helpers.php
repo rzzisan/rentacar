@@ -27,6 +27,40 @@ function require_driver(): int {
     return (int)$_SESSION['driver_id'];
 }
 
+function require_manager(): int {
+    require_auth();
+    if (($_SESSION['role'] ?? '') !== 'manager' || !isset($_SESSION['manager_id'])) {
+        json_response(['success' => false, 'message' => 'এই কাজের অনুমতি নেই'], 403);
+    }
+    return (int)$_SESSION['manager_id'];
+}
+
+function require_admin_or_manager(): array {
+    require_auth();
+    $role = $_SESSION['role'] ?? '';
+    if ($role === 'admin') {
+        return ['role' => 'admin', 'id' => null];
+    }
+    if ($role === 'manager' && isset($_SESSION['manager_id'])) {
+        return ['role' => 'manager', 'id' => (int)$_SESSION['manager_id']];
+    }
+    json_response(['success' => false, 'message' => 'এই কাজের অনুমতি নেই'], 403);
+}
+
+function get_manager_vehicle_ids(mysqli $conn, int $manager_id): array {
+    $stmt = $conn->prepare("SELECT vehicle_id FROM manager_vehicles WHERE manager_id = ?");
+    $stmt->bind_param('i', $manager_id);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return array_map('intval', array_column($rows, 'vehicle_id'));
+}
+
+function manager_vehicle_in_clause(array $vids): string {
+    if (!$vids) return '(0)';
+    return '(' . implode(',', array_fill(0, count($vids), '?')) . ')';
+}
+
 function input(): array {
     $raw = file_get_contents('php://input');
     return json_decode($raw, true) ?? [];
