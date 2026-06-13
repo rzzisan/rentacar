@@ -180,17 +180,55 @@ export default function DriverRentals() {
     }
   };
 
+  const fetchCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      showToast('এই ব্রাউজারে GPS সাপোর্ট নেই');
+      return;
+    }
+    setGettingLocation(true);
+    setExpenseLocation('');
+    setExpenseLatLng(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setExpenseLatLng({ lat: latitude, lng: longitude });
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=bn,en`,
+            { headers: { 'User-Agent': 'car.zisan.me/1.0' } }
+          );
+          const geo = await res.json();
+          setExpenseLocation(geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        } catch {
+          setExpenseLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        }
+        setGettingLocation(false);
+      },
+      () => {
+        showToast('GPS লোকেশন পাওয়া যায়নি');
+        setGettingLocation(false);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }, []);
+
   const handleOpenDetail = useCallback(async (rentalId: number) => {
     try {
       const response = await api.get<Rental>(`/driver/rentals/show.php?id=${rentalId}`);
       if (response.success) {
-        setSelectedRental(response.data || null);
+        const rental = response.data || null;
+        setSelectedRental(rental);
+        setExpenseLocation('');
+        setExpenseLatLng(null);
         setDetailOpen(true);
+        if (rental?.rental_status === 'active') {
+          fetchCurrentLocation();
+        }
       }
     } catch (error) {
       showToast('বিবরণ লোড ব্যর্থ');
     }
-  }, []);
+  }, [fetchCurrentLocation]);
 
   // ড্যাশবোর্ডের "খরচ যুক্ত করুন" থেকে ?open=<id> এলে সরাসরি ডিটেইল মডাল খুলবে
   const [searchParams, setSearchParams] = useSearchParams();
@@ -228,47 +266,20 @@ export default function DriverRentals() {
     }
   };
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      showToast('এই ব্রাউজারে লোকেশন সাপোর্ট নেই');
-      return;
-    }
-    setGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setExpenseLatLng({ lat: latitude, lng: longitude });
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=bn,en`,
-            { headers: { 'User-Agent': 'car.zisan.me/1.0' } }
-          );
-          const geo = await res.json();
-          setExpenseLocation(geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-        } catch {
-          setExpenseLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-        }
-        setGettingLocation(false);
-      },
-      () => {
-        showToast('লোকেশন পাওয়া যায়নি — ম্যানুয়ালি লিখুন');
-        setGettingLocation(false);
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  };
-
   const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedRental) return;
 
+    if (!expenseLatLng) {
+      showToast('GPS লোকেশন পাওয়া যায়নি — "পুনরায়" চাপুন');
+      return;
+    }
+
     setAddingExpense(true);
     const formData = new FormData(e.currentTarget);
-    if (expenseLocation) formData.append('location_name', expenseLocation);
-    if (expenseLatLng) {
-      formData.append('latitude', String(expenseLatLng.lat));
-      formData.append('longitude', String(expenseLatLng.lng));
-    }
+    formData.append('location_name', expenseLocation);
+    formData.append('latitude', String(expenseLatLng.lat));
+    formData.append('longitude', String(expenseLatLng.lng));
 
     try {
       const response = await fetch(`/api/driver/rentals/expenses.php?rental_id=${selectedRental.id}`, {
@@ -283,6 +294,7 @@ export default function DriverRentals() {
         (e.target as HTMLFormElement).reset();
         setExpenseLocation('');
         setExpenseLatLng(null);
+        fetchCurrentLocation();
         const updated = await api.get<Rental>(`/driver/rentals/show.php?id=${selectedRental.id}`);
         if (updated.success) {
           setSelectedRental(updated.data || null);
@@ -537,7 +549,7 @@ export default function DriverRentals() {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[calc(100vh-120px)] overflow-y-auto">
             <div className="p-4 sm:p-6 border-b flex items-center justify-between">
               <h2 className="text-xl font-bold">ট্রিপ বিস্তারিত</h2>
-              <button onClick={() => setDetailOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setDetailOpen(false); setExpenseLocation(''); setExpenseLatLng(null); }} className="text-gray-400 hover:text-gray-600">
                 ✕
               </button>
             </div>
@@ -712,27 +724,31 @@ export default function DriverRentals() {
                       placeholder="বিবরণ (ঐচ্ছিক)"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
                     />
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={expenseLocation}
-                        onChange={(e) => setExpenseLocation(e.target.value)}
-                        placeholder="লোকেশন (ঐচ্ছিক)"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleGetLocation}
-                        disabled={gettingLocation}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm whitespace-nowrap"
-                        title="বর্তমান অবস্থান নিন"
-                      >
-                        {gettingLocation ? '...' : 'GPS'}
-                      </button>
+                    <div className="space-y-1">
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          value={gettingLocation ? 'GPS লোকেশন নেওয়া হচ্ছে...' : (expenseLocation || 'লোকেশন পাওয়া যায়নি')}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-sm text-gray-700 cursor-default"
+                        />
+                        <button
+                          type="button"
+                          onClick={fetchCurrentLocation}
+                          disabled={gettingLocation}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm whitespace-nowrap"
+                          title="আবার চেষ্টা করুন"
+                        >
+                          {gettingLocation ? '...' : 'পুনরায়'}
+                        </button>
+                      </div>
+                      {expenseLatLng && (
+                        <p className="text-xs text-green-700">GPS: {expenseLatLng.lat.toFixed(5)}, {expenseLatLng.lng.toFixed(5)}</p>
+                      )}
+                      {!gettingLocation && !expenseLatLng && (
+                        <p className="text-xs text-red-600">লোকেশন ছাড়া খরচ যোগ হবে না — "পুনরায়" চাপুন</p>
+                      )}
                     </div>
-                    {expenseLatLng && (
-                      <p className="text-xs text-green-700">{expenseLatLng.lat.toFixed(5)}, {expenseLatLng.lng.toFixed(5)}</p>
-                    )}
                     <input
                       type="file"
                       name="receipt_image"
@@ -755,7 +771,7 @@ export default function DriverRentals() {
 
             <div className="p-4 sm:p-6 border-t flex justify-end">
               <button
-                onClick={() => setDetailOpen(false)}
+                onClick={() => { setDetailOpen(false); setExpenseLocation(''); setExpenseLatLng(null); }}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
               >
                 বন্ধ করুন
