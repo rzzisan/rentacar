@@ -56,7 +56,8 @@ $rental['total_amount']    = $rental['total_amount'] ? (float)$rental['total_amo
 
 // Get expenses
 $estmt = $conn->prepare(
-    "SELECT id, rental_id, expense_type, description, amount, receipt_image, created_at
+    "SELECT id, rental_id, expense_type, description, amount, receipt_image,
+            location_name, latitude, longitude, created_at
      FROM trip_expenses
      WHERE rental_id = ?
      ORDER BY created_at DESC"
@@ -67,9 +68,11 @@ $expenses = $estmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $estmt->close();
 
 foreach ($expenses as &$exp) {
-    $exp['id']     = (int)$exp['id'];
+    $exp['id']        = (int)$exp['id'];
     $exp['rental_id'] = (int)$exp['rental_id'];
-    $exp['amount'] = (float)$exp['amount'];
+    $exp['amount']    = (float)$exp['amount'];
+    $exp['latitude']  = $exp['latitude']  !== null ? (float)$exp['latitude']  : null;
+    $exp['longitude'] = $exp['longitude'] !== null ? (float)$exp['longitude'] : null;
 }
 
 $rental['expenses'] = $expenses;
