@@ -97,6 +97,9 @@ export default function AdminRentals() {
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [saving, setSaving] = useState(false);
   const [addingExpense, setAddingExpense] = useState(false);
+  const [expenseLocation, setExpenseLocation] = useState('');
+  const [expenseLatLng, setExpenseLatLng] = useState<{ lat: number; lng: number } | null>(null);
+  const [gettingLocation, setGettingLocation] = useState(false);
   const [addDriverId, setAddDriverId] = useState('');
   const [editAssign, setEditAssign] = useState({ vehicle_id: '', driver_id: '' });
 
@@ -279,6 +282,36 @@ export default function AdminRentals() {
     }
   };
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('এই ব্রাউজারে লোকেশন সাপোর্ট নেই');
+      return;
+    }
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setExpenseLatLng({ lat: latitude, lng: longitude });
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=bn,en`,
+            { headers: { 'User-Agent': 'car.zisan.me/1.0' } }
+          );
+          const geo = await res.json();
+          setExpenseLocation(geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        } catch {
+          setExpenseLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        }
+        setGettingLocation(false);
+      },
+      () => {
+        showToast('লোকেশন পাওয়া যায়নি — ম্যানুয়ালি লিখুন');
+        setGettingLocation(false);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
   const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedRental) return;
@@ -286,6 +319,11 @@ export default function AdminRentals() {
     setAddingExpense(true);
     const formData = new FormData(e.currentTarget);
     formData.append('rental_id', selectedRental.id.toString());
+    if (expenseLocation) formData.append('location_name', expenseLocation);
+    if (expenseLatLng) {
+      formData.append('latitude', String(expenseLatLng.lat));
+      formData.append('longitude', String(expenseLatLng.lng));
+    }
 
     try {
       const response = await fetch(`/api/admin/rentals/expenses.php?rental_id=${selectedRental.id}`, {
@@ -298,6 +336,8 @@ export default function AdminRentals() {
       if (data.success) {
         showToast('খরচ সফলভাবে যোগ করা হয়েছে');
         (e.target as HTMLFormElement).reset();
+        setExpenseLocation('');
+        setExpenseLatLng(null);
         const updated = await api.get<Rental>(`/admin/rentals/show.php?id=${selectedRental.id}`);
         if (updated.success) {
           setSelectedRental(updated.data || null);
@@ -778,17 +818,27 @@ export default function AdminRentals() {
                 {(selectedRental.expenses || []).length > 0 ? (
                   <div className="space-y-2 mb-4">
                     {selectedRental.expenses!.map((exp: TripExpense) => (
-                      <div key={exp.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
-                        <div className="flex-1">
+                      <div key={exp.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg text-sm">
+                        <div className="flex-1 min-w-0 pr-3">
                           <p className="font-medium">{EXPENSE_TYPES[exp.expense_type]}</p>
-                          <p className="text-gray-600">{exp.description || '-'}</p>
+                          <p className="text-gray-500 text-xs">{new Date(exp.created_at).toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                          {exp.description && <p className="text-gray-600 mt-0.5">{exp.description}</p>}
+                          {exp.location_name && (
+                            <p className="text-gray-500 text-xs mt-0.5 truncate">
+                              {exp.latitude && exp.longitude ? (
+                                <a href={`https://www.google.com/maps?q=${exp.latitude},${exp.longitude}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700">
+                                  {exp.location_name}
+                                </a>
+                              ) : exp.location_name}
+                            </p>
+                          )}
                           {exp.receipt_image && (
-                            <a href={`/public/${exp.receipt_image}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700">
-                              ছবি দেখুন
+                            <a href={`/public/${exp.receipt_image}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-xs">
+                              রসিদ দেখুন
                             </a>
                           )}
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <p className="font-medium">৳ {exp.amount.toFixed(0)}</p>
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
@@ -837,6 +887,27 @@ export default function AdminRentals() {
                       placeholder="বিবরণ (ঐচ্ছিক)"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
                     />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={expenseLocation}
+                        onChange={(e) => setExpenseLocation(e.target.value)}
+                        placeholder="লোকেশন (ঐচ্ছিক)"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleGetLocation}
+                        disabled={gettingLocation}
+                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm whitespace-nowrap"
+                        title="বর্তমান অবস্থান নিন"
+                      >
+                        {gettingLocation ? '...' : 'GPS'}
+                      </button>
+                    </div>
+                    {expenseLatLng && (
+                      <p className="text-xs text-green-700">{expenseLatLng.lat.toFixed(5)}, {expenseLatLng.lng.toFixed(5)}</p>
+                    )}
                     <input
                       type="file"
                       name="receipt_image"

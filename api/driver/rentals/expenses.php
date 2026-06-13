@@ -27,7 +27,8 @@ $stmt->close();
 // ── GET: list expenses ───────────────────────────────────────────
 if ($method === 'GET') {
     $estmt = $conn->prepare(
-        "SELECT id, rental_id, expense_type, description, amount, receipt_image, created_at
+        "SELECT id, rental_id, expense_type, description, amount, receipt_image,
+                location_name, latitude, longitude, created_at
          FROM trip_expenses
          WHERE rental_id = ?
          ORDER BY created_at DESC"
@@ -41,6 +42,8 @@ if ($method === 'GET') {
         $exp['id']        = (int)$exp['id'];
         $exp['rental_id'] = (int)$exp['rental_id'];
         $exp['amount']    = (float)$exp['amount'];
+        $exp['latitude']  = $exp['latitude']  !== null ? (float)$exp['latitude']  : null;
+        $exp['longitude'] = $exp['longitude'] !== null ? (float)$exp['longitude'] : null;
     }
 
     json_response(['success' => true, 'data' => $expenses]);
@@ -52,9 +55,12 @@ if ($method === 'POST') {
         json_response(['success' => false, 'message' => 'শুধু চলমান ট্রিপে খরচ যোগ করা যায়'], 400);
     }
 
-    $expense_type = $_POST['expense_type'] ?? '';
-    $amount       = isset($_POST['amount']) ? (float)$_POST['amount'] : 0;
-    $description  = trim($_POST['description'] ?? '');
+    $expense_type  = $_POST['expense_type'] ?? '';
+    $amount        = isset($_POST['amount']) ? (float)$_POST['amount'] : 0;
+    $description   = trim($_POST['description'] ?? '');
+    $location_name = trim($_POST['location_name'] ?? '') ?: null;
+    $latitude      = isset($_POST['latitude'])  && $_POST['latitude']  !== '' ? (float)$_POST['latitude']  : null;
+    $longitude     = isset($_POST['longitude']) && $_POST['longitude'] !== '' ? (float)$_POST['longitude'] : null;
 
     $valid_types = ['toll', 'fuel', 'parking', 'repair', 'driver_allowance', 'other'];
     if (!in_array($expense_type, $valid_types)) {
@@ -95,11 +101,11 @@ if ($method === 'POST') {
     // Insert expense
     $istmt = $conn->prepare(
         "INSERT INTO trip_expenses
-         (rental_id, expense_type, description, amount, receipt_image)
-         VALUES (?, ?, ?, ?, ?)"
+         (rental_id, expense_type, description, amount, receipt_image, location_name, latitude, longitude)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
-    $istmt->bind_param('issds', $rental_id, $expense_type, $description, $amount, $receipt_image);
+    $istmt->bind_param('issdssdd', $rental_id, $expense_type, $description, $amount, $receipt_image, $location_name, $latitude, $longitude);
 
     if (!$istmt->execute()) {
         json_response(['success' => false, 'message' => 'খরচ যোগ করতে ব্যর্থ: ' . $istmt->error], 500);

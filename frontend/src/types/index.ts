@@ -64,6 +64,9 @@ export interface TripExpense {
   description?: string;
   amount: number;
   receipt_image?: string;
+  location_name?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at: string;
 }
 
