@@ -240,11 +240,43 @@ export default function DriverRentals() {
     }
   }, [searchParams, setSearchParams, handleOpenDetail]);
 
+  const getGPSLocation = (): Promise<{ location_name: string; latitude: number; longitude: number }> =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) { reject(new Error('GPS সাপোর্ট নেই')); return; }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=bn,en`,
+              { headers: { 'User-Agent': 'car.zisan.me/1.0' } }
+            );
+            const geo = await res.json();
+            resolve({ location_name: geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude });
+          } catch {
+            resolve({ location_name: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, latitude, longitude });
+          }
+        },
+        (err) => reject(err),
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    });
+
   const handleUpdateStatus = async (rentalId: number, newStatus: string) => {
     setSaving(true);
     try {
+      let locationData: { location_name: string; latitude: number; longitude: number } | null = null;
+      try {
+        locationData = await getGPSLocation();
+      } catch {
+        showToast('GPS লোকেশন পাওয়া যায়নি — স্ট্যাটাস পরিবর্তন করা যাবে না');
+        setSaving(false);
+        return;
+      }
+
       const response = await api.post(`/driver/rentals/update_status.php?id=${rentalId}`, {
         status: newStatus,
+        ...locationData,
       });
 
       if (response.success) {
@@ -606,6 +638,15 @@ export default function DriverRentals() {
                         ? new Date(selectedRental.actual_start_time).toLocaleString('bn-BD')
                         : '—'}
                     </p>
+                    {selectedRental.start_location_name && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {selectedRental.start_latitude && selectedRental.start_longitude ? (
+                          <a href={`https://www.google.com/maps?q=${selectedRental.start_latitude},${selectedRental.start_longitude}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700">
+                            {selectedRental.start_location_name}
+                          </a>
+                        ) : selectedRental.start_location_name}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-gray-600">প্রকৃত শেষ</p>
@@ -614,6 +655,15 @@ export default function DriverRentals() {
                         ? new Date(selectedRental.actual_end_time).toLocaleString('bn-BD')
                         : '—'}
                     </p>
+                    {selectedRental.end_location_name && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {selectedRental.end_latitude && selectedRental.end_longitude ? (
+                          <a href={`https://www.google.com/maps?q=${selectedRental.end_latitude},${selectedRental.end_longitude}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700">
+                            {selectedRental.end_location_name}
+                          </a>
+                        ) : selectedRental.end_location_name}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-gray-600">সময়</p>

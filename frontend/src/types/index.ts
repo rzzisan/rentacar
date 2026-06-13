@@ -43,7 +43,13 @@ export interface Rental {
   start_date: string;
   end_date?: string;
   actual_start_time?: string;
+  start_location_name?: string;
+  start_latitude?: number | null;
+  start_longitude?: number | null;
   actual_end_time?: string;
+  end_location_name?: string;
+  end_latitude?: number | null;
+  end_longitude?: number | null;
   pickup_location?: string;
   dropoff_location?: string;
   trip_type: 'one_way' | 'round_trip';

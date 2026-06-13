@@ -9,7 +9,10 @@ only_method('POST');
 $conn = (new Database())->connect();
 $rental_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $data = input();
-$new_status = $data['status'] ?? '';
+$new_status      = $data['status'] ?? '';
+$location_name   = trim($data['location_name'] ?? '') ?: null;
+$latitude        = isset($data['latitude'])  && $data['latitude']  !== '' ? (float)$data['latitude']  : null;
+$longitude       = isset($data['longitude']) && $data['longitude'] !== '' ? (float)$data['longitude'] : null;
 
 if (!$rental_id) {
     json_response(['success' => false, 'message' => 'রেন্টাল আইডি প্রয়োজন'], 400);
@@ -50,19 +53,23 @@ if (!in_array($new_status, $allowed_transitions[$current_status] ?? [])) {
     ], 400);
 }
 
-// Update status; record actual trip start/end times
+// Update status; record actual trip start/end times + GPS location
 if ($new_status === 'active') {
-    // ট্রিপ শুরু — প্রকৃত শুরুর সময় রেকর্ড (আগে সেট থাকলে অপরিবর্তিত)
     $ustmt = $conn->prepare(
-        "UPDATE rentals SET rental_status = ?, actual_start_time = COALESCE(actual_start_time, NOW()) WHERE id = ?"
+        "UPDATE rentals SET rental_status = ?,
+         actual_start_time = COALESCE(actual_start_time, NOW()),
+         start_location_name = ?, start_latitude = ?, start_longitude = ?
+         WHERE id = ?"
     );
+    $ustmt->bind_param('ssddi', $new_status, $location_name, $latitude, $longitude, $rental_id);
 } else {
-    // ট্রিপ সম্পন্ন — প্রকৃত শেষের সময় রেকর্ড
     $ustmt = $conn->prepare(
-        "UPDATE rentals SET rental_status = ?, end_date = NOW(), actual_end_time = NOW() WHERE id = ?"
+        "UPDATE rentals SET rental_status = ?, end_date = NOW(), actual_end_time = NOW(),
+         end_location_name = ?, end_latitude = ?, end_longitude = ?
+         WHERE id = ?"
     );
+    $ustmt->bind_param('ssddi', $new_status, $location_name, $latitude, $longitude, $rental_id);
 }
-$ustmt->bind_param('si', $new_status, $rental_id);
 
 if (!$ustmt->execute()) {
     json_response(['success' => false, 'message' => 'আপডেট ব্যর্থ: ' . $ustmt->error], 500);
