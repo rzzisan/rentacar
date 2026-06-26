@@ -12,7 +12,7 @@ $conn = (new Database())->connect();
 $stmt = $conn->prepare(
     "SELECT v.id, v.registration_number, v.brand, v.model, v.year,
             v.vehicle_type, v.color, v.fuel_type, v.seating_capacity,
-            v.daily_rent_price, v.status
+            v.daily_rent_price, v.status AS vehicle_status
      FROM driver_vehicles dv
      JOIN vehicles v ON v.id = dv.vehicle_id
      WHERE dv.driver_id = ?
