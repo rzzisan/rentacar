@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { Rental, Vehicle, Driver, TripExpense } from '../../types';
+import TripLocationMap from '../../components/TripLocationMap';
 
 const TRIP_TYPE_LABELS: Record<string, string> = {
   one_way: 'এক-দিকে',
@@ -94,6 +95,7 @@ export default function AdminRentals() {
   }, []);
   const [addOpen, setAddOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailTab, setDetailTab] = useState<'info' | 'expenses' | 'map'>('info');
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [saving, setSaving] = useState(false);
   const [addingExpense, setAddingExpense] = useState(false);
@@ -207,6 +209,7 @@ export default function AdminRentals() {
       if (response.success) {
         const r = response.data || null;
         setSelectedRental(r);
+        setDetailTab('info');
         setDetailOpen(true);
         // pending হলে গাড়ি/ড্রাইভার পরিবর্তনের জন্য তালিকা লোড
         if (r && r.rental_status === 'pending') {
@@ -639,9 +642,34 @@ export default function AdminRentals() {
               </button>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-6">
-              {/* Rental Info */}
-              <div>
+            {/* Tabs */}
+            <div className="flex border-b px-4 sm:px-6">
+              {([['info','বিবরণ'],['expenses','খরচ'],['map','📍 লোকেশন']] as const).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  onClick={() => setDetailTab(tab)}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    detailTab === tab
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Map Tab */}
+            {detailTab === 'map' && (
+              <div className="p-4 sm:p-6">
+                <TripLocationMap rentalId={selectedRental.id} apiPrefix="admin" />
+              </div>
+            )}
+
+            {/* Info + Expenses Tabs */}
+            {detailTab !== 'map' && <div className="p-4 sm:p-6 space-y-6">
+              {/* Rental Info — only on 'info' tab */}
+              {detailTab === 'info' && <div>
                 <h3 className="font-bold mb-3">ট্রিপ তথ্য</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
@@ -827,10 +855,10 @@ export default function AdminRentals() {
                     </a>
                   )}
                 </div>
-              </div>
+              </div>}
 
-              {/* Expenses Section */}
-              <div className="border-t pt-6">
+              {/* Expenses Section — only on 'expenses' tab */}
+              {detailTab === 'expenses' && <div className="border-t pt-6">
                 <h3 className="font-bold mb-3">খরচ তালিকা</h3>
 
                 {(selectedRental.expenses || []).length > 0 ? (
@@ -943,8 +971,8 @@ export default function AdminRentals() {
                     </div>
                   </form>
                 )}
-              </div>
-            </div>
+              </div>}
+            </div>}
 
             <div className="p-4 sm:p-6 border-t flex justify-end">
               <button
