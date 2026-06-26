@@ -10,6 +10,7 @@ import AdminSettlements from '@/pages/admin/Settlements';
 import DriverCollections from '@/pages/admin/DriverCollections';
 import DriverDashboard from '@/pages/driver/Dashboard';
 import DriverRentals from '@/pages/driver/Rentals';
+import DriverProfile from '@/pages/driver/Profile';
 import ManagerDashboard from '@/pages/manager/Dashboard';
 import ManagerVehicles from '@/pages/manager/Vehicles';
 import ManagerRentals from '@/pages/manager/Rentals';
@@ -183,6 +184,7 @@ export default function App() {
         >
           <Route index element={<DriverDashboard />} />
           <Route path="rentals" element={<DriverRentals />} />
+          <Route path="profile" element={<DriverProfile />} />
         </Route>
 
         {/* Root redirect */}

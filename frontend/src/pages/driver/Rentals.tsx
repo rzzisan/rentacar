@@ -91,7 +91,9 @@ export default function DriverRentals() {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const [addOpen, setAddOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo]     = useState('');
+  const [addOpen, setAddOpen]   = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [saving, setSaving] = useState(false);
@@ -111,6 +113,8 @@ export default function DriverRentals() {
       const params = new URLSearchParams();
       if (filterStatus) params.append('status', filterStatus);
       if (search) params.append('search', search);
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
 
       const response = await api.get<Rental[]>(`/driver/rentals/index.php?${params}`);
       if (response.success) {
@@ -124,7 +128,7 @@ export default function DriverRentals() {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, search]);
+  }, [filterStatus, search, dateFrom, dateTo]);
 
   const loadVehicles = useCallback(async () => {
     try {
@@ -357,25 +361,55 @@ export default function DriverRentals() {
       </div>
 
       {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="text"
-          placeholder="যাত্রি বা মোবাইল খুঁজুন..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-        />
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-        >
-          <option value="">সব স্ট্যাটাস</option>
-          <option value="pending">অপেক্ষমান</option>
-          <option value="active">চলমান</option>
-          <option value="completed">সম্পন্ন</option>
-          <option value="cancelled">বাতিল</option>
-        </select>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            placeholder="যাত্রি বা মোবাইল খুঁজুন..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          >
+            <option value="">সব স্ট্যাটাস</option>
+            <option value="pending">অপেক্ষমান</option>
+            <option value="active">চলমান</option>
+            <option value="completed">সম্পন্ন</option>
+            <option value="cancelled">বাতিল</option>
+          </select>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 items-center">
+          <div className="flex items-center gap-2 flex-1">
+            <label className="text-sm text-gray-600 whitespace-nowrap">তারিখ থেকে:</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2 flex-1">
+            <label className="text-sm text-gray-600 whitespace-nowrap">তারিখ পর্যন্ত:</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm"
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="px-3 py-2 text-sm text-red-600 hover:text-red-800 border border-red-200 rounded-lg hover:bg-red-50 whitespace-nowrap"
+            >
+              ফিল্টার মুছুন
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table (Desktop) */}

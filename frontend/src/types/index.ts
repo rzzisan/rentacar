@@ -127,6 +127,7 @@ export interface Settlement {
   rental_notes?: string;
   rental_start_date?: string;
   expenses?: TripExpense[];
+  expense_breakdown?: Record<string, number>;
   payments?: SettlementPayment[];
   created_at?: string;
   updated_at?: string;

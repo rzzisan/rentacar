@@ -27,6 +27,18 @@ if ($method === 'GET') {
         $types  .= 'sss';
     }
 
+    if (!empty($_GET['date_from'])) {
+        $where[] = 'DATE(r.start_date) >= ?';
+        $params[] = $_GET['date_from'];
+        $types   .= 's';
+    }
+
+    if (!empty($_GET['date_to'])) {
+        $where[] = 'DATE(r.start_date) <= ?';
+        $params[] = $_GET['date_to'];
+        $types   .= 's';
+    }
+
     $sql = "SELECT r.*,
             c.first_name as customer_first_name,
             c.last_name as customer_last_name,

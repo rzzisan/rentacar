@@ -42,6 +42,7 @@ const customerNav: NavItem[] = [
 const driverNav: NavItem[] = [
   { label: 'আমার লেজার', icon: '📊', href: '/driver' },
   { label: 'আমার ট্রিপ', icon: '🚕', href: '/driver/rentals' },
+  { label: 'আমার প্রোফাইল', icon: '👤', href: '/driver/profile' },
 ];
 
 const managerNav: NavItem[] = [
