@@ -206,7 +206,7 @@ fun TripsScreen(
                     FilterChip(
                         selected = statusFilter == value,
                         onClick  = { statusFilter = value },
-                        label    = { Text(label, fontSize = 13.sp) }
+                        label    = { Text(label, fontSize = 15.sp, modifier = Modifier.padding(vertical = 4.dp)) }
                     )
                 }
             }
@@ -294,34 +294,50 @@ private fun TripCard(
 
     Card(
         modifier  = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape     = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
+        shape     = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(3.dp),
         colors    = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Status chip + date row
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                Surface(shape = RoundedCornerShape(24.dp), color = color.copy(alpha = 0.12f)) {
+                    Text(
+                        statusLabel, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+                rental.startDate?.let {
+                    Text(it.take(10), fontSize = 13.sp, color = InkMuted)
+                }
+            }
+
+            // Route — largest element
+            Text(
+                "${rental.pickupLocation ?: "-"} → ${rental.dropoffLocation ?: "-"}",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Ink
+            )
+
+            // Vehicle info
+            Text(
+                "${rental.vehicleBrand ?: ""} ${rental.vehicleModel ?: ""} · ${rental.vehicleRegNumber ?: ""}".trim().trimEnd('·').trim(),
+                fontSize = 14.sp, color = InkMuted
+            )
+
+            // Amount — prominent
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 Text(
                     "${rental.customerFirstName ?: ""} ${rental.customerLastName ?: ""}".trim().ifEmpty { "-" },
-                    fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Ink
+                    fontSize = 14.sp, color = InkMuted
                 )
-                Surface(shape = RoundedCornerShape(20.dp), color = color.copy(alpha = 0.12f)) {
-                    Text(statusLabel, color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                }
-            }
-            Text(
-                "${rental.vehicleBrand ?: ""} ${rental.vehicleModel ?: ""} • ${rental.vehicleRegNumber ?: ""}",
-                fontSize = 12.sp, color = InkMuted
-            )
-            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                 Text(
-                    "${rental.pickupLocation ?: "-"} → ${rental.dropoffLocation ?: "-"}",
-                    fontSize = 12.sp, color = InkMuted, modifier = Modifier.weight(1f)
+                    fmtBDT(rental.agreedAmount),
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Primary,
+                    fontSize = 22.sp
                 )
-                Text(fmtBDT(rental.agreedAmount), fontWeight = FontWeight.Bold, color = Primary, fontSize = 14.sp)
-            }
-            rental.startDate?.let {
-                Text(it.take(10), fontSize = 11.sp, color = InkLight)
             }
         }
     }

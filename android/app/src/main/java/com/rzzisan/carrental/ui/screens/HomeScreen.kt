@@ -1,6 +1,7 @@
 package com.rzzisan.carrental.ui.screens
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -36,6 +37,7 @@ fun HomeScreen(onTripClick: (Int) -> Unit) {
     var loading      by remember { mutableStateOf(true) }
     var now          by remember { mutableStateOf(System.currentTimeMillis()) }
 
+    // Clock refresh every 60s
     LaunchedEffect(Unit) {
         while (true) { delay(60_000); now = System.currentTimeMillis() }
     }
@@ -57,31 +59,42 @@ fun HomeScreen(onTripClick: (Int) -> Unit) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(s.navHome, fontWeight = FontWeight.Bold) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(s.navHome, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        },
+        containerColor = Background
     ) { padding ->
         if (loading) {
             Box(Modifier.padding(padding).fillMaxSize()) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center), color = Primary)
+                CircularProgressIndicator(Modifier.align(Alignment.Center), color = Primary, strokeWidth = 3.dp)
             }
             return@Scaffold
         }
 
         LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(padding)
         ) {
             // ── Active trips ─────────────────────────────────────────
             if (activeTrips.isEmpty()) {
                 item {
                     Card(
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
                         modifier = Modifier.fillMaxWidth()
-                            .border(1.5.dp, StatusActive.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
                     ) {
-                        Box(Modifier.padding(20.dp).fillMaxWidth(), Alignment.Center) {
-                            Text(s.noActiveTrips, color = InkMuted, fontSize = 14.sp)
+                        Box(
+                            Modifier
+                                .border(2.dp, StatusActive.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
+                                .padding(vertical = 32.dp)
+                                .fillMaxWidth(),
+                            Alignment.Center
+                        ) {
+                            Text(s.noActiveTrips, color = InkMuted, fontSize = 15.sp)
                         }
                     }
                 }
@@ -94,7 +107,13 @@ fun HomeScreen(onTripClick: (Int) -> Unit) {
             // ── Upcoming/pending trips ───────────────────────────────
             if (pendingTrips.isNotEmpty()) {
                 item {
-                    Text(s.upcomingTripsTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ink)
+                    Text(
+                        s.upcomingTripsTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        color = Ink,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
                 items(pendingTrips) { trip ->
                     UpcomingTripCard(trip = trip, now = now, onClick = { onTripClick(trip.id) })
@@ -104,8 +123,11 @@ fun HomeScreen(onTripClick: (Int) -> Unit) {
             // ── Monthly summary ──────────────────────────────────────
             ledger?.let { data ->
                 item {
-                    Text(s.thisMonth + " / " + s.lastMonth,
-                        fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ink)
+                    Text(
+                        "${s.thisMonth} / ${s.lastMonth}",
+                        fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Ink,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -122,70 +144,113 @@ fun HomeScreen(onTripClick: (Int) -> Unit) {
     }
 }
 
-// ── Active trip card ───────────────────────────────────────────────────────
+// ── Active trip card — solid green, white text, glance-readable ──────────────
 
 @Composable
 private fun ActiveTripCard(trip: Rental, now: Long, onClick: () -> Unit) {
     val s = LocalStrings.current
     val (timeText, _) = tripTimeLabel(trip, now)
 
-    // Pulsing dot animation
     val pulse = rememberInfiniteTransition(label = "pulse")
     val scale by pulse.animateFloat(
-        initialValue = 0.85f, targetValue = 1.15f, label = "scale",
-        animationSpec = infiniteRepeatable(tween(900, easing = EaseInOut), RepeatMode.Reverse)
+        initialValue = 0.8f, targetValue = 1.2f, label = "scale",
+        animationSpec = infiniteRepeatable(tween(1000, easing = EaseInOut), RepeatMode.Reverse)
     )
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
-        elevation = CardDefaults.cardElevation(3.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = StatusActive),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        Box(Modifier.border(2.dp, StatusActive, RoundedCornerShape(16.dp))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Header row
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(
-                            modifier = Modifier.size(10.dp).scale(scale),
-                            shape = CircleShape,
-                            color = StatusActive
-                        ) {}
-                        Text(s.activeTripsTitle, fontWeight = FontWeight.Bold, color = StatusActive, fontSize = 14.sp)
-                    }
-                    Surface(color = StatusActive.copy(alpha = 0.12f), shape = RoundedCornerShape(20.dp)) {
-                        Text(timeText, color = StatusActive, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
-                    }
-                }
-
-                // Route
-                if (!trip.pickupLocation.isNullOrBlank() || !trip.dropoffLocation.isNullOrBlank()) {
+        Column(
+            Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header: pulsing dot + label + timer
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.size(12.dp).scale(scale),
+                        shape = CircleShape,
+                        color = Color.White
+                    ) {}
                     Text(
-                        "${trip.pickupLocation ?: "?"} → ${trip.dropoffLocation ?: "?"}",
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink
+                        s.activeTripsTitle,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
+                Surface(
+                    color = Color.White.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text(
+                        timeText,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                    )
+                }
+            }
 
-                // Vehicle + amount
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+            // Route — hero element, largest text
+            if (!trip.pickupLocation.isNullOrBlank() || !trip.dropoffLocation.isNullOrBlank()) {
+                Text(
+                    "${trip.pickupLocation ?: "?"} → ${trip.dropoffLocation ?: "?"}",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    lineHeight = 30.sp
+                )
+            }
+
+            // Vehicle + Amount
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column {
                     Text(
                         "${trip.vehicleBrand ?: ""} ${trip.vehicleModel ?: ""}".trim(),
-                        fontSize = 13.sp, color = InkMuted
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.75f)
                     )
-                    Text(fmtBDT(trip.agreedAmount), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ink)
+                    trip.vehicleRegNumber?.let {
+                        Text(it, fontSize = 13.sp, color = Color.White.copy(alpha = 0.6f))
+                    }
                 }
+                Text(
+                    fmtBDT(trip.agreedAmount),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 28.sp,
+                    color = Color.White
+                )
+            }
 
-                // CTA button
-                Button(
-                    onClick = onClick,
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusActive)
-                ) {
-                    Text(s.viewTripBtn, fontWeight = FontWeight.SemiBold, color = Color.White)
-                }
+            // CTA
+            Button(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f))
+            ) {
+                Text(
+                    s.viewTripBtn,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
             }
         }
     }
@@ -200,36 +265,70 @@ private fun UpcomingTripCard(trip: Rental, now: Long, onClick: () -> Unit) {
 
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Box(Modifier.border(1.5.dp, StatusPending, RoundedCornerShape(14.dp))) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Surface(Modifier.size(8.dp), CircleShape, StatusPending) {}
-                        Text(s.upcomingTripsTitle, fontWeight = FontWeight.Bold, color = StatusPending, fontSize = 13.sp)
+        Box(Modifier.border(2.dp, StatusPending.copy(alpha = 0.5f), RoundedCornerShape(16.dp))) {
+            Column(
+                Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Header
+                Row(
+                    Modifier.fillMaxWidth(),
+                    Arrangement.SpaceBetween,
+                    Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(Modifier.size(10.dp), CircleShape, StatusPending) {}
+                        Text(
+                            s.upcomingTripsTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = StatusPending,
+                            fontSize = 14.sp
+                        )
                     }
-                    Surface(color = timeColor.copy(alpha = 0.12f), shape = RoundedCornerShape(20.dp)) {
-                        Text(timeText, color = timeColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                    Surface(
+                        color = timeColor.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text(
+                            timeText,
+                            color = timeColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
                     }
                 }
 
+                // Route
                 if (!trip.pickupLocation.isNullOrBlank() || !trip.dropoffLocation.isNullOrBlank()) {
                     Text(
                         "${trip.pickupLocation ?: "?"} → ${trip.dropoffLocation ?: "?"}",
-                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Ink
                     )
                 }
 
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                // Vehicle + Amount
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                     Text(
                         "${trip.vehicleBrand ?: ""} ${trip.vehicleModel ?: ""}".trim(),
-                        fontSize = 12.sp, color = InkMuted
+                        fontSize = 13.sp,
+                        color = InkMuted
                     )
-                    Text(fmtBDT(trip.agreedAmount), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ink)
+                    Text(
+                        fmtBDT(trip.agreedAmount),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = Ink
+                    )
                 }
             }
         }
@@ -239,15 +338,37 @@ private fun UpcomingTripCard(trip: Rental, now: Long, onClick: () -> Unit) {
 // ── Month summary card ─────────────────────────────────────────────────────
 
 @Composable
-private fun HomeMonthCard(label: String, tripCount: Int, earned: Double, pending: Double, modifier: Modifier) {
+private fun HomeMonthCard(
+    label: String,
+    tripCount: Int,
+    earned: Double,
+    pending: Double,
+    modifier: Modifier
+) {
     val s = LocalStrings.current
-    Card(modifier = modifier, shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = PrimaryLight)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(label, fontSize = 12.sp, color = Primary, fontWeight = FontWeight.SemiBold)
-            Text("$tripCount ${s.trips}", fontSize = 11.sp, color = InkMuted)
-            Text(fmtBDT(earned), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
-            if (pending > 0) Text("${s.pending}: ${fmtBDT(pending)}", fontSize = 11.sp, color = StatusDue)
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = PrimaryLight),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(label, fontSize = 13.sp, color = Primary, fontWeight = FontWeight.Bold)
+            Text("$tripCount ${s.trips}", fontSize = 13.sp, color = InkMuted)
+            Text(
+                fmtBDT(earned),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Ink
+            )
+            if (pending > 0) {
+                Text(
+                    "${s.pending}: ${fmtBDT(pending)}",
+                    fontSize = 12.sp,
+                    color = StatusDue,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
