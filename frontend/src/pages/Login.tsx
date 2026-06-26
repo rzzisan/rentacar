@@ -11,6 +11,7 @@ export default function Login({ onLogin }: Props) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,11 +21,14 @@ export default function Login({ onLogin }: Props) {
     setLoading(true);
 
     try {
-      const res = await api.post<User>('/auth/login.php', { email, password });
+      const res = await api.post<User>('/auth/login.php', { email, password, remember_me: rememberMe });
       if (res.success && res.data) {
         onLogin(res.data);
-        const dest = res.data.role === 'admin' ? '/admin'
-                   : res.data.role === 'employee' ? '/employee'
+        const role = res.data.role;
+        const dest = role === 'admin' ? '/admin'
+                   : role === 'manager' ? '/manager'
+                   : role === 'driver' ? '/driver'
+                   : role === 'employee' ? '/employee'
                    : '/customer';
         navigate(dest, { replace: true });
       } else {
@@ -106,6 +110,19 @@ export default function Login({ onLogin }: Props) {
                 placeholder="পাসওয়ার্ড"
               />
             </div>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-checked:bg-indigo-600 rounded-full transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+              </div>
+              <span className="text-sm text-slate-600">আমাকে মনে রাখুন <span className="text-slate-400 text-xs">(৩ মাস)</span></span>
+            </label>
             <button
               type="submit"
               disabled={loading}

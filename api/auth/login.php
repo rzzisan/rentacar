@@ -6,10 +6,10 @@ require_once '../_helpers.php';
 
 only_method('POST');
 
-// ৩০ দিনের মেয়াদের API token তৈরি করে DB-তে সংরক্ষণ করে
-function _generate_api_token(mysqli $conn, string $role, int $user_id, int $driver_id, int $manager_id, string $username, string $email): string {
+// API token তৈরি করে DB-তে সংরক্ষণ করে; $days মেয়াদ (default 30)
+function _generate_api_token(mysqli $conn, string $role, int $user_id, int $driver_id, int $manager_id, string $username, string $email, int $days = 30): string {
     $token   = bin2hex(random_bytes(32)); // 64-char hex token
-    $expires = date('Y-m-d H:i:s', time() + 30 * 24 * 3600);
+    $expires = date('Y-m-d H:i:s', time() + $days * 24 * 3600);
     $stmt    = $conn->prepare(
         "INSERT INTO api_tokens (token, role, user_id, driver_id, manager_id, username, email, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
@@ -20,10 +20,31 @@ function _generate_api_token(mysqli $conn, string $role, int $user_id, int $driv
     return $token;
 }
 
-$body      = input();
-$email     = trim($body['email'] ?? '');
-$pass      = $body['password'] ?? '';
-$is_mobile = ($body['source'] ?? '') === 'mobile';
+// Remember Me হলে session cookie-র মেয়াদ 90 দিনে বাড়িয়ে দেয়
+function _apply_remember_me(): void {
+    $lifetime = REMEMBER_ME_DURATION; // 90 days
+    $params   = session_get_cookie_params();
+    setcookie(
+        session_name(),
+        session_id(),
+        [
+            'expires'  => time() + $lifetime,
+            'path'     => $params['path'],
+            'domain'   => $params['domain'],
+            'secure'   => $params['secure'],
+            'httponly' => $params['httponly'],
+            'samesite' => 'Strict',
+        ]
+    );
+    ini_set('session.gc_maxlifetime', $lifetime);
+}
+
+$body        = input();
+$email       = trim($body['email'] ?? '');
+$pass        = $body['password'] ?? '';
+$is_mobile   = ($body['source'] ?? '') === 'mobile';
+$remember_me = !empty($body['remember_me']);
+$token_days  = $remember_me ? 90 : 30;
 
 if (!$email || !$pass) {
     json_response(['success' => false, 'message' => 'ইমেইল এবং পাসওয়ার্ড দিন']);
@@ -34,6 +55,7 @@ $user = new User($conn);
 $result = $user->login($email, $pass);
 
 if ($result['success']) {
+    if ($remember_me) _apply_remember_me();
     $resp = [
         'id'       => (int) $_SESSION['user_id'],
         'username' => $_SESSION['username'],
@@ -43,7 +65,7 @@ if ($result['success']) {
     if ($is_mobile) {
         $resp['token'] = _generate_api_token(
             $conn, $_SESSION['role'], (int)$_SESSION['user_id'], 0, 0,
-            $_SESSION['username'], $_SESSION['email']
+            $_SESSION['username'], $_SESSION['email'], $token_days
         );
     }
     json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
@@ -65,6 +87,7 @@ if ($driver_result->num_rows === 1) {
         $_SESSION['username']  = $driver['name'];
         $_SESSION['email']     = $driver['email'];
 
+        if ($remember_me) _apply_remember_me();
         $resp = [
             'id'       => (int)$driver['id'],
             'username' => $driver['name'],
@@ -74,7 +97,7 @@ if ($driver_result->num_rows === 1) {
         if ($is_mobile) {
             $resp['token'] = _generate_api_token(
                 $conn, 'driver', 0, (int)$driver['id'], 0,
-                $driver['name'], $driver['email']
+                $driver['name'], $driver['email'], $token_days
             );
         }
         json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
@@ -101,6 +124,7 @@ if ($manager_result->num_rows === 1) {
         $_SESSION['username']   = $manager['name'];
         $_SESSION['email']      = $manager['email'];
 
+        if ($remember_me) _apply_remember_me();
         $resp = [
             'id'       => (int)$manager['id'],
             'username' => $manager['name'],
@@ -110,7 +134,7 @@ if ($manager_result->num_rows === 1) {
         if ($is_mobile) {
             $resp['token'] = _generate_api_token(
                 $conn, 'manager', 0, 0, (int)$manager['id'],
-                $manager['name'], $manager['email']
+                $manager['name'], $manager['email'], $token_days
             );
         }
         json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
