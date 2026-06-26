@@ -2,15 +2,26 @@ package com.rzzisan.carrental.data.network
 
 import com.rzzisan.carrental.BuildConfig
 import com.rzzisan.carrental.data.auth.AuthTokenStore
+import com.squareup.moshi.FromJson
+import com.squareup.moshi.JsonReader
+import com.squareup.moshi.JsonWriter
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.ToJson
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
+// Moshi can't deserialize kotlin.Unit by default — this adapter skips the JSON value
+private object UnitAdapter {
+    @FromJson fun fromJson(reader: JsonReader): Unit { reader.skipValue() }
+    @ToJson  fun toJson(writer: JsonWriter, @Suppress("UNUSED_PARAMETER") v: Unit) { writer.nullValue() }
+}
+
 object ApiClient {
     private val moshi = Moshi.Builder()
+        .add(UnitAdapter)
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
