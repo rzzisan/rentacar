@@ -3,6 +3,7 @@ package com.rzzisan.carrental.data.network
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.*
+import retrofit2.http.FormUrlEncoded
 
 interface ApiService {
 
@@ -126,4 +127,95 @@ interface ApiService {
         @Query("id") id: Int,
         @Body request: DriverCollectRequest
     ): ApiResponse<DriverCollectResult>
+
+    // ── Vehicle CRUD ──────────────────────────────────────────────
+
+    @POST("vehicles/index.php")
+    suspend fun createVehicle(@Body request: CreateVehicleRequest): ApiResponse<Map<String, Int>>
+
+    @PUT("vehicles/update.php")
+    suspend fun updateVehicle(
+        @Query("id") id: Int,
+        @Body request: UpdateVehicleRequest
+    ): ApiResponse<Unit>
+
+    @DELETE("vehicles/destroy.php")
+    suspend fun deleteVehicle(@Query("id") id: Int): ApiResponse<Unit>
+
+    // ── Admin Rental ──────────────────────────────────────────────
+
+    @POST("admin/rentals/index.php")
+    suspend fun createAdminRental(@Body request: CreateAdminRentalRequest): ApiResponse<Map<String, Int>>
+
+    @GET("admin/rentals/show.php")
+    suspend fun getAdminRentalDetail(@Query("id") id: Int): ApiResponse<AdminRentalDetail>
+
+    // ── Admin Settlements ─────────────────────────────────────────
+
+    @GET("admin/settlements/show.php")
+    suspend fun getAdminSettlementDetail(@Query("id") id: Int): ApiResponse<AdminSettlementDetail>
+
+    @GET("admin/settlements/payment-history.php")
+    suspend fun getSettlementPaymentHistory(@Query("id") id: Int): ApiResponse<SettlementPaymentHistoryData>
+
+    // ── Admin Drivers CRUD ────────────────────────────────────────
+
+    @FormUrlEncoded
+    @POST("admin/drivers/index.php")
+    suspend fun createDriver(
+        @Field("name") name: String,
+        @Field("mobile") mobile: String,
+        @Field("email") email: String,
+        @Field("password") password: String,
+        @Field("commission_rate") commissionRate: String,
+        @Field("status") status: String,
+        @Field("vehicle_ids") vehicleIds: String = "[]"
+    ): ApiResponse<Map<String, Int>>
+
+    @FormUrlEncoded
+    @POST("admin/drivers/update.php")
+    suspend fun updateDriver(
+        @Query("id") id: Int,
+        @Field("name") name: String,
+        @Field("mobile") mobile: String,
+        @Field("email") email: String,
+        @Field("commission_rate") commissionRate: String,
+        @Field("status") status: String,
+        @Field("vehicle_ids") vehicleIds: String = "[]"
+    ): ApiResponse<Unit>
+
+    @DELETE("admin/drivers/destroy.php")
+    suspend fun deleteDriver(@Query("id") id: Int): ApiResponse<Unit>
+
+    // ── Admin Managers ────────────────────────────────────────────
+
+    @GET("admin/managers/index.php")
+    suspend fun getAdminManagers(
+        @Query("search") search: String? = null
+    ): ApiResponse<List<AdminManager>>
+
+    @FormUrlEncoded
+    @POST("admin/managers/index.php")
+    suspend fun createManager(
+        @Field("name") name: String,
+        @Field("mobile") mobile: String,
+        @Field("email") email: String,
+        @Field("password") password: String,
+        @Field("status") status: String,
+        @Field("vehicle_id") vehicleId: String = "0"
+    ): ApiResponse<Map<String, Int>>
+
+    @FormUrlEncoded
+    @POST("admin/managers/update.php")
+    suspend fun updateManager(
+        @Field("id") id: Int,
+        @Field("name") name: String,
+        @Field("mobile") mobile: String,
+        @Field("email") email: String,
+        @Field("status") status: String,
+        @Field("vehicle_id") vehicleId: String = "0"
+    ): ApiResponse<Unit>
+
+    @DELETE("admin/managers/destroy.php")
+    suspend fun deleteManager(@Query("id") id: Int): ApiResponse<Unit>
 }

@@ -25,6 +25,7 @@ sealed class AdminScreen(val route: String) {
     object Rentals     : AdminScreen("admin_rentals")
     object Settlements : AdminScreen("admin_settlements")
     object Drivers     : AdminScreen("admin_drivers")
+    object Managers    : AdminScreen("admin_managers")
 }
 
 @Composable
@@ -34,11 +35,12 @@ fun AdminAppShell(onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     val navItems = listOf(
-        Triple(AdminScreen.Dashboard,   Icons.Filled.Home,           s.navDashboard),
-        Triple(AdminScreen.Vehicles,    Icons.Filled.DirectionsCar,  s.navVehicles),
-        Triple(AdminScreen.Rentals,     Icons.Filled.Assignment,     s.navRentals),
-        Triple(AdminScreen.Settlements, Icons.Filled.AccountBalance, s.navSettlements),
-        Triple(AdminScreen.Drivers,     Icons.Filled.People,         s.navDrivers),
+        Triple(AdminScreen.Dashboard,   Icons.Filled.Home,              s.navDashboard),
+        Triple(AdminScreen.Vehicles,    Icons.Filled.DirectionsCar,     s.navVehicles),
+        Triple(AdminScreen.Rentals,     Icons.Filled.Assignment,        s.navRentals),
+        Triple(AdminScreen.Settlements, Icons.Filled.AccountBalance,    s.navSettlements),
+        Triple(AdminScreen.Drivers,     Icons.Filled.People,            s.navDrivers),
+        Triple(AdminScreen.Managers,    Icons.Filled.SupervisorAccount, s.navManagers),
     )
 
     Scaffold(
@@ -82,6 +84,7 @@ fun AdminAppShell(onLogout: () -> Unit) {
             composable(AdminScreen.Rentals.route)     { AdminRentalsScreen() }
             composable(AdminScreen.Settlements.route) { AdminSettlementsScreen() }
             composable(AdminScreen.Drivers.route)     { AdminDriversScreen() }
+            composable(AdminScreen.Managers.route)    { AdminManagersScreen() }
         }
     }
 }

@@ -18,12 +18,13 @@
 | Trip detail / start / complete | কোড আছে, test হয়নি |
 | Expense add (GPS + camera) | কোড আছে, test হয়নি |
 | Profile screen | কোড আছে, test হয়নি |
-| Admin: Dashboard | ✅ কোড সম্পন্ন (APK v4-এ) |
-| Admin: Vehicles | ✅ কোড সম্পন্ন (APK v4-এ) |
-| Admin: Rentals | ✅ কোড সম্পন্ন (APK v4-এ) |
-| Admin: Settlements | ✅ কোড সম্পন্ন (APK v4-এ) |
-| Admin: Drivers | ✅ কোড সম্পন্ন (APK v4-এ) |
-| APK | v4 — https://car.zisan.me/apk/ |
+| Admin: Dashboard | ✅ কোড সম্পন্ন (APK v5-এ) |
+| Admin: Vehicles | ✅ Full CRUD — Add/Edit/Delete (APK v5) |
+| Admin: Rentals | ✅ Full CRUD — Create + Detail + Expenses (APK v5) |
+| Admin: Settlements | ✅ Detail + Payment History tabs (APK v5) |
+| Admin: Drivers | ✅ Full CRUD + Vehicle Assignment + Dues (APK v5) |
+| Admin: Managers | ✅ Full CRUD + Vehicle Assignment (APK v5) |
+| APK | v5 — https://car.zisan.me/apk/ |
 
 ---
 
@@ -75,7 +76,7 @@ android/
 │   │       │       ├── ApiService.kt       — Retrofit interface (driver + admin endpoints)
 │   │       │       └── Models.kt           — data classes (NO @JsonClass annotation — দেখো সমস্যা ৫)
 │   │       ├── ui/
-│   │       │   ├── AdminAppShell.kt        — Admin: Bottom nav 5 tabs, NavHost
+│   │       │   ├── AdminAppShell.kt        — Admin: Bottom nav 6 tabs, NavHost
 │   │       │   ├── strings/
 │   │       │   │   ├── AppStrings.kt       — abstract class + Bangla/English objects
 │   │       │   │   └── LocalStrings.kt     — CompositionLocal provider
@@ -91,11 +92,12 @@ android/
 │   │       │       ├── AddExpenseScreen.kt
 │   │       │       ├── ProfileScreen.kt
 │   │       │       └── admin/
-│   │       │           ├── AdminDashboardScreen.kt  — stats grid (8 কার্ড) + active/upcoming trips
-│   │       │           ├── AdminVehiclesScreen.kt   — filter chip + vehicle list
-│   │       │           ├── AdminRentalsScreen.kt    — filter + status change (BottomSheet)
-│   │       │           ├── AdminSettlementsScreen.kt — filter + payment collect (BottomSheet)
-│   │       │           └── AdminDriversScreen.kt    — driver list + dues collect (BottomSheet)
+│   │       │           ├── AdminDashboardScreen.kt   — stats grid (8 কার্ড) + active/upcoming trips
+│   │       │           ├── AdminVehiclesScreen.kt    — CRUD: Add/Edit/Delete; FilterChips form
+│   │       │           ├── AdminRentalsScreen.kt     — Create rental + Detail sheet + Expenses list
+│   │       │           ├── AdminSettlementsScreen.kt — Detail + TabRow (Expenses / Payment History)
+│   │       │           ├── AdminDriversScreen.kt     — CRUD + multi-vehicle checkbox + dues collect
+│   │       │           └── AdminManagersScreen.kt    — CRUD + single vehicle dropdown assignment
 │   │       └── util/
 │   │           └── LocationUtils.kt        — reverseGeocode() via Android Geocoder
 ├── build.gradle.kts                  — root: AGP 8.3.0, Kotlin 1.9.22
@@ -399,15 +401,71 @@ when (AuthTokenStore.getRole()) {
 }
 ```
 
-### AdminAppShell (5-tab bottom nav)
+### AdminAppShell (6-tab bottom nav)
 
 ```
-Dashboard → AdminDashboardScreen (stats + active/upcoming trips)
-Vehicles  → AdminVehiclesScreen  (filter chips + vehicle list)
-Rentals   → AdminRentalsScreen   (filter + ModalBottomSheet status change)
-Settlements → AdminSettlementsScreen (filter + payment collect sheet)
-Drivers   → AdminDriversScreen   (driver list + dues collect sheet)
+Dashboard   → AdminDashboardScreen   (stats + active/upcoming trips)
+Vehicles    → AdminVehiclesScreen    (filter chips + CRUD: Add/Edit/Delete modal)
+Rentals     → AdminRentalsScreen     (Create rental + Detail sheet + Expenses list)
+Settlements → AdminSettlementsScreen (Detail + Tabs: Expenses / Payment History)
+Drivers     → AdminDriversScreen     (CRUD + multi-vehicle assignment checkbox + dues collect)
+Managers    → AdminManagersScreen    (CRUD + single vehicle dropdown assignment)
 ```
+
+### Admin Full CRUD — Implementation Summary (APK v5)
+
+**Vehicles (JSON body):**
+- `POST /api/vehicles/index.php` → `@Body CreateVehicleRequest`
+- `PUT /api/vehicles/update.php?id=` → `@Body UpdateVehicleRequest`
+- `DELETE /api/vehicles/destroy.php?id=`
+- Form: reg (new only), brand, model, year, color, type/fuel/status FilterChips, seats, price
+
+**Rentals:**
+- `POST /api/admin/rentals/index.php` → `@Body CreateAdminRentalRequest` (JSON)
+- `GET /api/admin/rentals/show.php?id=` → `AdminRentalDetail` (includes expenses)
+- Create form: ExposedDropdownMenuBox for vehicle + driver; tripType FilterChips; datetime text input
+
+**Settlements:**
+- `GET /api/admin/settlements/show.php?id=` → `AdminSettlementDetail`
+- `GET /api/admin/settlements/payment-history.php?id=` → `SettlementPaymentHistoryData`
+- Detail sheet: TabRow (Expenses tab | Payment History tab)
+
+**Drivers (@FormUrlEncoded — PHP reads `$_POST`):**
+- `POST /api/admin/drivers/index.php` → `@FormUrlEncoded @POST`
+- `POST /api/admin/drivers/update.php?id=` → `@FormUrlEncoded @POST`
+- `DELETE /api/admin/drivers/destroy.php?id=`
+- vehicle_ids: `"[1,2,3]"` JSON string — multi-select Checkbox list
+
+**Managers (@FormUrlEncoded — PHP reads `$_POST`):**
+- `POST /api/admin/managers/index.php` → `@FormUrlEncoded @POST`
+- `POST /api/admin/managers/update.php` → `@FormUrlEncoded @POST` — **ID via `@Field("id")`, NOT `@Query`**
+- `DELETE /api/admin/managers/destroy.php?id=`
+- vehicle_id: single int string ("0" = none) — ExposedDropdownMenuBox
+
+**Critical difference — Manager vs Driver update:**
+- Driver update: `@POST("admin/drivers/update.php") + @Query("id")`
+- Manager update: `@POST("admin/managers/update.php") + @Field("id")` ← PHP reads from `$_POST['id']`
+
+### API Endpoints (Admin — Full CRUD)
+
+| Method | URL | কাজ |
+|---|---|---|
+| POST | `/api/vehicles/index.php` | Vehicle create (JSON body) |
+| PUT | `/api/vehicles/update.php?id=` | Vehicle update (JSON body) |
+| DELETE | `/api/vehicles/destroy.php?id=` | Vehicle delete |
+| POST | `/api/admin/rentals/index.php` | Rental create (JSON body) |
+| GET | `/api/admin/rentals/show.php?id=` | Rental detail + expenses |
+| GET | `/api/admin/settlements/show.php?id=` | Settlement detail |
+| GET | `/api/admin/settlements/payment-history.php?id=` | Payment history |
+| POST | `/api/admin/drivers/index.php` | Driver create (FormUrlEncoded) |
+| POST | `/api/admin/drivers/update.php?id=` | Driver update (FormUrlEncoded) |
+| DELETE | `/api/admin/drivers/destroy.php?id=` | Driver delete |
+| GET | `/api/admin/managers/index.php` | Manager list |
+| POST | `/api/admin/managers/index.php` | Manager create (FormUrlEncoded) |
+| POST | `/api/admin/managers/update.php` | Manager update (FormUrlEncoded, id as @Field) |
+| DELETE | `/api/admin/managers/destroy.php?id=` | Manager delete |
+
+---
 
 ### Moshi Map<String, Any> সমস্যা — এড়ানো হয়েছে
 
@@ -436,7 +494,8 @@ data class DriverCollectResult(
 | `5d64221` | Login HTTP 401 → 200 fix + HttpException handler |
 | `9b6049a` | ANDROID_CONTEXT.md: HTTP 401 bug documented |
 | *(এই session)* | Admin module সম্পূর্ণ (5 screens) + APK v4 |
+| *(v5 session)* | Admin Full CRUD: Vehicles/Rentals/Settlements/Drivers/Managers — 6-tab shell + APK v5 |
 
 ---
 
-*শেষ আপডেট: 2026-06-26 — Admin module সম্পূর্ণ (APK v4)*
+*শেষ আপডেট: 2026-06-26 — Admin Full CRUD সম্পূর্ণ (APK v5): Vehicles, Rentals, Settlements, Drivers, Managers*

@@ -177,6 +177,79 @@ abstract class AppStrings {
     abstract val collectDues: String
     abstract val dueAmount: String
     abstract val driverStatus: String
+
+    // Vehicle CRUD
+    abstract val addVehicle: String
+    abstract val editVehicle: String
+    abstract val deleteVehicle: String
+    abstract val deleteConfirm: String
+    abstract val registrationNumberLabel: String
+    abstract val vehicleTypeLabel: String
+    abstract val fuelTypeLabel: String
+    abstract val yearLabel: String
+    abstract val colorLabel: String
+    abstract val priceLabel: String
+    abstract val seatsLabel: String
+    abstract val fuelPetrol: String
+    abstract val fuelDiesel: String
+    abstract val fuelHybrid: String
+    abstract val fuelElectric: String
+    abstract val vehicleAdded: String
+    abstract val vehicleUpdated: String
+    abstract val vehicleDeleted: String
+
+    // Admin Rental create + detail
+    abstract val createRental: String
+    abstract val rentalDetail: String
+    abstract val selectDriver: String
+    abstract val autoDriver: String
+    abstract val rentalCreated: String
+    abstract val tripExpenses: String
+    abstract val noExpenses: String
+    abstract val totalExpensesLabel: String
+    abstract val customerPhone: String
+    abstract val viewDetail: String
+    abstract val pickupLabel: String
+    abstract val dropoffLabel: String
+
+    // Settlement detail + payment history
+    abstract val settlementDetail: String
+    abstract val paymentHistory: String
+    abstract val noPaymentHistory: String
+    abstract val totalCollected: String
+    abstract val expensesLabel: String
+    abstract val commissionLabel: String
+    abstract val recordedBy: String
+
+    // Driver CRUD
+    abstract val addDriver: String
+    abstract val editDriver: String
+    abstract val deleteDriver: String
+    abstract val driverAdded: String
+    abstract val driverUpdated: String
+    abstract val driverDeleted: String
+    abstract val commissionRateLabel: String
+    abstract val vehicleAssignment: String
+    abstract val driverPassword: String
+
+    // Manager CRUD
+    abstract val managersTitle: String
+    abstract val navManagers: String
+    abstract val addManager: String
+    abstract val editManager: String
+    abstract val deleteManager: String
+    abstract val managerAdded: String
+    abstract val managerUpdated: String
+    abstract val managerDeleted: String
+    abstract val noManagers: String
+    abstract val assignedVehicleLabel: String
+    abstract val noVehicleAssigned: String
+    abstract val managerPassword: String
+
+    // Generic CRUD helpers
+    abstract val deleteQuestion: String
+    abstract val activeLabel: String
+    abstract val inactiveLabel: String
 }
 
 object BanglaStrings : AppStrings() {
@@ -325,6 +398,67 @@ object BanglaStrings : AppStrings() {
     override val collectDues          = "বকেয়া জমা"
     override val dueAmount            = "বকেয়া পরিমাণ"
     override val driverStatus         = "স্ট্যাটাস"
+    override val addVehicle           = "গাড়ি যোগ করুন"
+    override val editVehicle          = "গাড়ি সম্পাদনা"
+    override val deleteVehicle        = "গাড়ি মুছুন"
+    override val deleteConfirm        = "মুছে দিতে চান?"
+    override val registrationNumberLabel = "রেজিস্ট্রেশন নম্বর"
+    override val vehicleTypeLabel     = "গাড়ির ধরন"
+    override val fuelTypeLabel        = "জ্বালানির ধরন"
+    override val yearLabel            = "বছর"
+    override val colorLabel           = "রং"
+    override val priceLabel           = "দৈনিক ভাড়া (টাকা)"
+    override val seatsLabel           = "আসন সংখ্যা"
+    override val fuelPetrol           = "পেট্রোল"
+    override val fuelDiesel           = "ডিজেল"
+    override val fuelHybrid           = "হাইব্রিড"
+    override val fuelElectric         = "বৈদ্যুতিক"
+    override val vehicleAdded         = "গাড়ি সফলভাবে যোগ হয়েছে"
+    override val vehicleUpdated       = "গাড়ি আপডেট হয়েছে"
+    override val vehicleDeleted       = "গাড়ি মুছে ফেলা হয়েছে"
+    override val createRental         = "নতুন ট্রিপ তৈরি"
+    override val rentalDetail         = "ট্রিপ বিবরণ"
+    override val selectDriver         = "ড্রাইভার নির্বাচন"
+    override val autoDriver           = "স্বয়ংক্রিয় (গাড়ি থেকে)"
+    override val rentalCreated        = "ট্রিপ সফলভাবে তৈরি হয়েছে"
+    override val tripExpenses         = "ট্রিপ খরচ"
+    override val noExpenses           = "কোনো খরচ নেই"
+    override val totalExpensesLabel   = "মোট খরচ"
+    override val customerPhone        = "যাত্রীর মোবাইল"
+    override val viewDetail           = "বিবরণ"
+    override val pickupLabel          = "পিকআপ"
+    override val dropoffLabel         = "গন্তব্য"
+    override val settlementDetail     = "সেটেলমেন্ট বিবরণ"
+    override val paymentHistory       = "পেমেন্ট ইতিহাস"
+    override val noPaymentHistory     = "কোনো পেমেন্ট ইতিহাস নেই"
+    override val totalCollected       = "মোট সংগৃহীত"
+    override val expensesLabel        = "খরচ তালিকা"
+    override val commissionLabel      = "কমিশন"
+    override val recordedBy           = "রেকর্ডকারী"
+    override val addDriver            = "ড্রাইভার যোগ করুন"
+    override val editDriver           = "ড্রাইভার সম্পাদনা"
+    override val deleteDriver         = "ড্রাইভার মুছুন"
+    override val driverAdded          = "ড্রাইভার সফলভাবে যোগ হয়েছে"
+    override val driverUpdated        = "ড্রাইভার আপডেট হয়েছে"
+    override val driverDeleted        = "ড্রাইভার মুছে ফেলা হয়েছে"
+    override val commissionRateLabel  = "কমিশন হার (%)"
+    override val vehicleAssignment    = "গাড়ি অ্যাসাইনমেন্ট"
+    override val driverPassword       = "পাসওয়ার্ড"
+    override val managersTitle        = "ম্যানেজার তালিকা"
+    override val navManagers          = "ম্যানেজার"
+    override val addManager           = "ম্যানেজার যোগ করুন"
+    override val editManager          = "ম্যানেজার সম্পাদনা"
+    override val deleteManager        = "ম্যানেজার মুছুন"
+    override val managerAdded         = "ম্যানেজার সফলভাবে যোগ হয়েছে"
+    override val managerUpdated       = "ম্যানেজার আপডেট হয়েছে"
+    override val managerDeleted       = "ম্যানেজার মুছে ফেলা হয়েছে"
+    override val noManagers           = "কোনো ম্যানেজার নেই"
+    override val assignedVehicleLabel = "অ্যাসাইন করা গাড়ি"
+    override val noVehicleAssigned    = "কোনো গাড়ি অ্যাসাইন নেই"
+    override val managerPassword      = "পাসওয়ার্ড"
+    override val deleteQuestion       = "নিশ্চিতভাবে মুছে দিতে চান?"
+    override val activeLabel          = "সক্রিয়"
+    override val inactiveLabel        = "নিষ্ক্রিয়"
 }
 
 object EnglishStrings : AppStrings() {
@@ -473,4 +607,65 @@ object EnglishStrings : AppStrings() {
     override val collectDues          = "Collect Dues"
     override val dueAmount            = "Due Amount"
     override val driverStatus         = "Status"
+    override val addVehicle           = "Add Vehicle"
+    override val editVehicle          = "Edit Vehicle"
+    override val deleteVehicle        = "Delete Vehicle"
+    override val deleteConfirm        = "Delete this?"
+    override val registrationNumberLabel = "Registration No."
+    override val vehicleTypeLabel     = "Vehicle Type"
+    override val fuelTypeLabel        = "Fuel Type"
+    override val yearLabel            = "Year"
+    override val colorLabel           = "Color"
+    override val priceLabel           = "Daily Rate (BDT)"
+    override val seatsLabel           = "Seats"
+    override val fuelPetrol           = "Petrol"
+    override val fuelDiesel           = "Diesel"
+    override val fuelHybrid           = "Hybrid"
+    override val fuelElectric         = "Electric"
+    override val vehicleAdded         = "Vehicle added successfully"
+    override val vehicleUpdated       = "Vehicle updated"
+    override val vehicleDeleted       = "Vehicle deleted"
+    override val createRental         = "Create Trip"
+    override val rentalDetail         = "Trip Detail"
+    override val selectDriver         = "Select Driver"
+    override val autoDriver           = "Auto (from vehicle)"
+    override val rentalCreated        = "Trip created successfully"
+    override val tripExpenses         = "Trip Expenses"
+    override val noExpenses           = "No expenses"
+    override val totalExpensesLabel   = "Total Expenses"
+    override val customerPhone        = "Passenger Phone"
+    override val viewDetail           = "Detail"
+    override val pickupLabel          = "Pickup"
+    override val dropoffLabel         = "Dropoff"
+    override val settlementDetail     = "Settlement Detail"
+    override val paymentHistory       = "Payment History"
+    override val noPaymentHistory     = "No payment history"
+    override val totalCollected       = "Total Collected"
+    override val expensesLabel        = "Expenses"
+    override val commissionLabel      = "Commission"
+    override val recordedBy           = "Recorded By"
+    override val addDriver            = "Add Driver"
+    override val editDriver           = "Edit Driver"
+    override val deleteDriver         = "Delete Driver"
+    override val driverAdded          = "Driver added successfully"
+    override val driverUpdated        = "Driver updated"
+    override val driverDeleted        = "Driver deleted"
+    override val commissionRateLabel  = "Commission Rate (%)"
+    override val vehicleAssignment    = "Vehicle Assignment"
+    override val driverPassword       = "Password"
+    override val managersTitle        = "Managers"
+    override val navManagers          = "Managers"
+    override val addManager           = "Add Manager"
+    override val editManager          = "Edit Manager"
+    override val deleteManager        = "Delete Manager"
+    override val managerAdded         = "Manager added successfully"
+    override val managerUpdated       = "Manager updated"
+    override val managerDeleted       = "Manager deleted"
+    override val noManagers           = "No managers found"
+    override val assignedVehicleLabel = "Assigned Vehicle"
+    override val noVehicleAssigned    = "No vehicle assigned"
+    override val managerPassword      = "Password"
+    override val deleteQuestion       = "Are you sure you want to delete this?"
+    override val activeLabel          = "Active"
+    override val inactiveLabel        = "Inactive"
 }
