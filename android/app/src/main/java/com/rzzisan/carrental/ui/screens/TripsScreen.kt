@@ -1,7 +1,10 @@
 package com.rzzisan.carrental.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +32,7 @@ import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.rzzisan.carrental.BuildConfig
 import com.rzzisan.carrental.data.network.*
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
@@ -711,6 +715,7 @@ private fun TripDetailSheet(
 
 @Composable
 private fun ExpenseItem(exp: TripExpense, s: com.rzzisan.carrental.ui.strings.AppStrings) {
+    val context = LocalContext.current
     Card(shape = RoundedCornerShape(8.dp), border = CardDefaults.outlinedCardBorder()) {
         Row(Modifier.padding(10.dp).fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Top) {
             Column(Modifier.weight(1f)) {
@@ -720,6 +725,20 @@ private fun ExpenseItem(exp: TripExpense, s: com.rzzisan.carrental.ui.strings.Ap
                 if (!exp.locationName.isNullOrBlank())
                     Text(exp.locationName, fontSize = 11.sp, color = InkLight)
                 Text(exp.createdAt.take(16), fontSize = 11.sp, color = InkLight)
+                if (!exp.receiptImage.isNullOrBlank()) {
+                    val receiptUrl = BuildConfig.API_BASE_URL.substringBefore("api/") + "public/" + exp.receiptImage
+                    TextButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(receiptUrl))
+                            context.startActivity(intent)
+                        },
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)
+                    ) {
+                        Icon(Icons.Filled.Image, null, Modifier.size(14.dp), tint = Primary)
+                        Spacer(Modifier.width(2.dp))
+                        Text(s.viewReceipt, fontSize = 12.sp, color = Primary)
+                    }
+                }
             }
             Text(fmtBDT(exp.amount), fontWeight = FontWeight.Bold, color = StatusDue, fontSize = 14.sp)
         }
@@ -861,8 +880,25 @@ private fun AddExpenseInline(
                         val latPart    = lat?.toString()?.toRequestBody("text/plain".toMediaType())
                         val lngPart    = lng?.toString()?.toRequestBody("text/plain".toMediaType())
                         val locPart    = locName?.toRequestBody("text/plain".toMediaType())
-                        val imgPart    = photoFile?.let { f ->
-                            MultipartBody.Part.createFormData("receipt_image", f.name, f.asRequestBody("image/jpeg".toMediaType()))
+                        val imgPart = photoFile?.let { f ->
+                            val compressed = File(context.cacheDir, "exp_c_${System.currentTimeMillis()}.jpg")
+                            val original = BitmapFactory.decodeFile(f.absolutePath)
+                            if (original != null) {
+                                val maxW = 1920
+                                val scaled = if (original.width > maxW) {
+                                    val ratio = maxW.toFloat() / original.width
+                                    val s2 = Bitmap.createScaledBitmap(
+                                        original, maxW, (original.height * ratio).toInt(), true
+                                    )
+                                    original.recycle()
+                                    s2
+                                } else original
+                                compressed.outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, 80, it) }
+                                scaled.recycle()
+                                MultipartBody.Part.createFormData("receipt_image", compressed.name, compressed.asRequestBody("image/jpeg".toMediaType()))
+                            } else {
+                                MultipartBody.Part.createFormData("receipt_image", f.name, f.asRequestBody("image/jpeg".toMediaType()))
+                            }
                         }
 
                         val res = ApiClient.service.addExpense(

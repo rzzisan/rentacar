@@ -91,6 +91,7 @@ abstract class AppStrings {
     abstract val expenseAmount: String
     abstract val description: String
     abstract val takePhoto: String
+    abstract val viewReceipt: String
     abstract val gpsCapturing: String
     abstract val expenseAdded: String
 
@@ -373,6 +374,7 @@ object BanglaStrings : AppStrings() {
     override val expenseAmount        = "পরিমাণ (টাকা)"
     override val description          = "বিবরণ (ঐচ্ছিক)"
     override val takePhoto            = "রসিদের ছবি তুলুন"
+    override val viewReceipt          = "রসিদ দেখুন"
     override val gpsCapturing         = "লোকেশন নেওয়া হচ্ছে..."
     override val expenseAdded         = "খরচ সফলভাবে যোগ হয়েছে"
     override val gettingLocation      = "GPS লোকেশন পাওয়া যাচ্ছে..."
@@ -625,6 +627,7 @@ object EnglishStrings : AppStrings() {
     override val expenseAmount        = "Amount (BDT)"
     override val description          = "Description (optional)"
     override val takePhoto            = "Take Receipt Photo"
+    override val viewReceipt          = "View Receipt"
     override val gpsCapturing         = "Getting location..."
     override val expenseAdded         = "Expense added successfully"
     override val gettingLocation      = "Getting GPS location..."
