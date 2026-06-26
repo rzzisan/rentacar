@@ -385,4 +385,26 @@ Android 13 (API 33+) থেকে `READ_EXTERNAL_STORAGE` deprecated। `READ_ME
 
 ---
 
-*শেষ আপডেট: 2026-06-26 — Login Moshi annotation bug fix (APK v2)*
+### সমস্যা ৬: Login error — "HttpException: HTTP 401 Unauthorized" ✅ সমাধান হয়েছে
+
+**লক্ষণ:** Moshi fix-এর পর login request server পর্যন্ত পৌঁছায়, কিন্তু 401 error দেখায়  
+**কারণ:**
+- `login.php`-এ ভুল credentials / user not found-এর জন্য HTTP 401 status return হচ্ছিল
+- Retrofit-এ `suspend fun login(): ApiResponse<LoginData>` — যেকোনো non-2xx response `HttpException` throw করে
+- JSON body (`{"success": false, "message": "..."}`) কখনো parse হয় না, সরাসরি exception
+
+**সমাধান:**
+1. `api/auth/login.php` — সব credential failure থেকে HTTP status code 401 সরানো হয়েছে (default = 200)
+   - HTTP 401 semantically মানে "এই resource access করতে authentication দরকার"
+   - Login endpoint নিজে public — এখানে 401 অর্থহীন
+   - `success: false` + `message` field-ই যথেষ্ট failure communicate করার জন্য
+2. `LoginScreen.kt`-এ `HttpException` আলাদা catch block যোগ — debug mode-এ error body দেখায়
+
+**ভবিষ্যতে:**
+- Login endpoint-এ credential failure সবসময় HTTP 200 দেওয়া উচিত
+- HTTP 401 শুধু `require_auth()` / `require_role()` — protected endpoint-এ ব্যবহার করো
+- Retrofit `suspend` return type-এ non-2xx response সবসময় exception; error body পেতে `Response<T>` wrapper ব্যবহার করো অথবা server 200 পাঠাক
+
+---
+
+*শেষ আপডেট: 2026-06-26 — Login HTTP 401 bug fix (APK v3)*
