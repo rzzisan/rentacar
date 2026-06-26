@@ -32,9 +32,13 @@ import com.google.android.gms.location.Priority
 import com.rzzisan.carrental.data.network.*
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.rzzisan.carrental.util.reverseGeocode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -95,14 +99,34 @@ fun TripsScreen(navController: NavController) {
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-    // Get location — returns null if unavailable (never blocks the user flow)
+    // Get location — never blocks the user flow
+    // Strategy: lastLocation (instant, cached) → balanced accuracy (10s timeout) → null
     suspend fun getLocation(): Triple<String?, Double?, Double?> {
         if (!hasLocationPerm()) return Triple(null, null, null)
         return try {
+            // 1. lastLocation: instant, uses any recent GPS/network fix
             @Suppress("MissingPermission")
-            val loc = fusedLocation.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
+            var loc = fusedLocation.lastLocation.await()
+
+            // 2. If no cached location, try fresh with 10s timeout
+            if (loc == null) {
+                val cts = CancellationTokenSource()
+                loc = withTimeoutOrNull(10_000L) {
+                    @Suppress("MissingPermission")
+                    fusedLocation.getCurrentLocation(
+                        Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                        cts.token
+                    ).await()
+                }
+                if (loc == null) cts.cancel()
+            }
+
             if (loc != null) {
-                val name = reverseGeocode(context, loc.latitude, loc.longitude)
+                // reverseGeocode is a blocking network call — must be on IO thread
+                val name = withContext(Dispatchers.IO) {
+                    try { reverseGeocode(context, loc.latitude, loc.longitude) }
+                    catch (_: Exception) { null }
+                }
                 Triple(name, loc.latitude, loc.longitude)
             } else Triple(null, null, null)
         } catch (_: Exception) { Triple(null, null, null) }
@@ -809,10 +833,24 @@ private fun AddExpenseInline(
                         if (hasPerm) {
                             try {
                                 @Suppress("MissingPermission")
-                                val loc = fusedLocation.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
+                                var loc = fusedLocation.lastLocation.await()
+                                if (loc == null) {
+                                    val cts = CancellationTokenSource()
+                                    loc = withTimeoutOrNull(8_000L) {
+                                        @Suppress("MissingPermission")
+                                        fusedLocation.getCurrentLocation(
+                                            Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                                            cts.token
+                                        ).await()
+                                    }
+                                    if (loc == null) cts.cancel()
+                                }
                                 if (loc != null) {
                                     lat = loc.latitude; lng = loc.longitude
-                                    locName = reverseGeocode(context, lat, lng)
+                                    locName = withContext(Dispatchers.IO) {
+                                        try { reverseGeocode(context, lat!!, lng!!) }
+                                        catch (_: Exception) { null }
+                                    }
                                 }
                             } catch (_: Exception) {}
                         }
