@@ -98,6 +98,13 @@ abstract class AppStrings {
     abstract val gettingLocation: String
     abstract val locationPermissionNeeded: String
     abstract val openSettings: String
+    abstract val locationUnavailable: String
+
+    // Trip detail labels
+    abstract val plannedStartLabel: String
+    abstract val actualStartLabel: String
+    abstract val actualEndLabel: String
+    abstract val addExpenseTitle: String
 
     // Profile
     abstract val profileTitle: String
@@ -371,6 +378,11 @@ object BanglaStrings : AppStrings() {
     override val gettingLocation      = "GPS লোকেশন পাওয়া যাচ্ছে..."
     override val locationPermissionNeeded = "লোকেশন অনুমতি দিন"
     override val openSettings         = "সেটিংস খুলুন"
+    override val locationUnavailable  = "লোকেশন পাওয়া যায়নি"
+    override val plannedStartLabel    = "নির্ধারিত শুরু"
+    override val actualStartLabel     = "প্রকৃত শুরু"
+    override val actualEndLabel       = "প্রকৃত শেষ"
+    override val addExpenseTitle      = "খরচ যোগ করুন"
     override val profileTitle         = "আমার প্রোফাইল"
     override val name                 = "নাম"
     override val mobile               = "মোবাইল"
@@ -618,6 +630,11 @@ object EnglishStrings : AppStrings() {
     override val gettingLocation      = "Getting GPS location..."
     override val locationPermissionNeeded = "Location permission required"
     override val openSettings         = "Open Settings"
+    override val locationUnavailable  = "Location unavailable"
+    override val plannedStartLabel    = "Planned Start"
+    override val actualStartLabel     = "Actual Start"
+    override val actualEndLabel       = "Actual End"
+    override val addExpenseTitle      = "Add Expense"
     override val profileTitle         = "My Profile"
     override val name                 = "Name"
     override val mobile               = "Mobile"

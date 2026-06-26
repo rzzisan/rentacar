@@ -77,17 +77,6 @@ fun MainAppShell(onLogout: () -> Unit) {
                     }
                 })
             }
-            composable("trip_detail/{id}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: return@composable
-                TripDetailScreen(rentalId = id, navController = navController)
-            }
-            composable("create_trip") {
-                CreateTripScreen(navController = navController)
-            }
-            composable("add_expense/{rentalId}") { backStackEntry ->
-                val rentalId = backStackEntry.arguments?.getString("rentalId")?.toIntOrNull() ?: return@composable
-                AddExpenseScreen(rentalId = rentalId, navController = navController)
-            }
         }
     }
 }
