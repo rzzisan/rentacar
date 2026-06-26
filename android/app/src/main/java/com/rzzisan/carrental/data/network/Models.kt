@@ -369,3 +369,98 @@ data class AdminManager(
     val status: String,
     val vehicles: List<ManagerVehicle> = emptyList()
 )
+
+// ── Manager Panel Models ──────────────────────────────────────────
+
+data class ManagerDriver(
+    val id: Int,
+    val name: String,
+    val mobile: String? = null,
+    val email: String? = null,
+    val status: String,
+    @Json(name = "commission_rate") val commissionRate: Double = 0.0,
+    @Json(name = "total_trips") val totalTrips: Int = 0,
+    @Json(name = "this_month_trips") val thisMonthTrips: Int = 0,
+    @Json(name = "total_due") val totalDue: Double = 0.0,
+    val vehicles: List<DriverVehicle> = emptyList()
+)
+
+data class ManagerDriverDue(
+    val id: Int,
+    val name: String,
+    val mobile: String? = null,
+    val status: String,
+    @Json(name = "commission_rate") val commissionRate: Double = 0.0,
+    @Json(name = "settlement_count") val settlementCount: Int = 0,
+    @Json(name = "due_settlement_count") val dueSettlementCount: Int = 0,
+    @Json(name = "total_to_collect") val totalToCollect: Double = 0.0,
+    @Json(name = "total_paid") val totalPaid: Double = 0.0,
+    @Json(name = "total_due") val totalDue: Double = 0.0,
+    @Json(name = "last_payment_date") val lastPaymentDate: String? = null
+)
+
+data class ManagerDriverDuesSummaryStats(
+    @Json(name = "grand_total_due") val grandTotalDue: Double,
+    @Json(name = "grand_total_paid") val grandTotalPaid: Double,
+    @Json(name = "drivers_with_due") val driversWithDue: Int
+)
+
+data class ManagerDriverDuesData(
+    val drivers: List<ManagerDriverDue>,
+    val summary: ManagerDriverDuesSummaryStats
+)
+
+data class MonthlyRevenueItem(
+    val month: String,
+    @Json(name = "trip_count") val tripCount: Int,
+    val revenue: Double,
+    val expenses: Double,
+    val net: Double
+)
+
+data class VehicleRevenueItem(
+    val id: Int,
+    val brand: String,
+    val model: String,
+    @Json(name = "registration_number") val registrationNumber: String,
+    val status: String,
+    @Json(name = "trip_count") val tripCount: Int,
+    val revenue: Double,
+    val expenses: Double,
+    val net: Double
+)
+
+data class ExpenseBreakdownItem(
+    @Json(name = "expense_type") val expenseType: String,
+    val total: Double
+)
+
+data class DriverPerformanceItem(
+    val id: Int,
+    val name: String,
+    val mobile: String? = null,
+    @Json(name = "commission_rate") val commissionRate: Double,
+    val status: String,
+    @Json(name = "total_trips") val totalTrips: Int,
+    @Json(name = "this_month_trips") val thisMonthTrips: Int,
+    @Json(name = "total_commission") val totalCommission: Double,
+    @Json(name = "total_paid") val totalPaid: Double,
+    @Json(name = "total_due") val totalDue: Double
+)
+
+data class ReportSummary(
+    @Json(name = "total_trips") val totalTrips: Int,
+    @Json(name = "total_revenue") val totalRevenue: Double,
+    @Json(name = "total_expenses") val totalExpenses: Double,
+    @Json(name = "total_due") val totalDue: Double
+)
+
+data class ManagerReport(
+    @Json(name = "monthly_revenue") val monthlyRevenue: List<MonthlyRevenueItem>,
+    @Json(name = "vehicle_revenue") val vehicleRevenue: List<VehicleRevenueItem>,
+    @Json(name = "expense_breakdown") val expenseBreakdown: List<ExpenseBreakdownItem>,
+    @Json(name = "driver_performance") val driverPerformance: List<DriverPerformanceItem>,
+    val summary: ReportSummary
+)
+
+data class VehicleStatusRequest(val status: String)

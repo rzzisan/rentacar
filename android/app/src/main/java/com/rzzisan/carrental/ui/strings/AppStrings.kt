@@ -250,6 +250,44 @@ abstract class AppStrings {
     abstract val deleteQuestion: String
     abstract val activeLabel: String
     abstract val inactiveLabel: String
+
+    // Manager Panel Navigation
+    abstract val managerPanelTitle: String
+    abstract val navReports: String
+    abstract val navMgrVehicles: String
+    abstract val navMgrDrivers: String
+
+    // Manager Vehicles
+    abstract val mgrVehiclesTitle: String
+    abstract val changeStatus: String
+    abstract val currentStatus: String
+    abstract val vehicleStatusChanged: String
+    abstract val cannotChangeRented: String
+
+    // Manager Drivers
+    abstract val mgrDriversTitle: String
+    abstract val totalTripsLabel: String
+    abstract val thisMonthLabel: String
+    abstract val totalDueLabel: String
+    abstract val noMgrDrivers: String
+    abstract val performanceStats: String
+
+    // Manager Reports
+    abstract val reportsTitle: String
+    abstract val tabMonthly: String
+    abstract val tabVehicle: String
+    abstract val tabExpenses: String
+    abstract val tabDriverPerf: String
+    abstract val totalRevenueLabel: String
+    abstract val netRevenueLabel: String
+    abstract val tripCountLabel: String
+    abstract val monthLabel: String
+    abstract val summaryLabel: String
+    abstract val noReportData: String
+    abstract val expenseTypeLabel: String
+    abstract val totalCommissionLabel: String
+    abstract val totalPaidLabel: String
+    abstract val expDriverAllowance: String
 }
 
 object BanglaStrings : AppStrings() {
@@ -459,6 +497,44 @@ object BanglaStrings : AppStrings() {
     override val deleteQuestion       = "নিশ্চিতভাবে মুছে দিতে চান?"
     override val activeLabel          = "সক্রিয়"
     override val inactiveLabel        = "নিষ্ক্রিয়"
+
+    // Manager Panel Navigation
+    override val managerPanelTitle    = "ম্যানেজার প্যানেল"
+    override val navReports           = "রিপোর্ট"
+    override val navMgrVehicles       = "গাড়ি"
+    override val navMgrDrivers        = "ড্রাইভার"
+
+    // Manager Vehicles
+    override val mgrVehiclesTitle     = "আমার গাড়িসমূহ"
+    override val changeStatus         = "স্ট্যাটাস পরিবর্তন"
+    override val currentStatus        = "বর্তমান স্ট্যাটাস"
+    override val vehicleStatusChanged = "গাড়ির স্ট্যাটাস আপডেট হয়েছে"
+    override val cannotChangeRented   = "চলমান ভাড়া থাকাকালীন পরিবর্তন করা যাবে না"
+
+    // Manager Drivers
+    override val mgrDriversTitle      = "ড্রাইভার তালিকা"
+    override val totalTripsLabel      = "মোট ট্রিপ"
+    override val thisMonthLabel       = "এই মাস"
+    override val totalDueLabel        = "মোট বকেয়া"
+    override val noMgrDrivers         = "কোনো ড্রাইভার নেই"
+    override val performanceStats     = "পারফরম্যান্স"
+
+    // Manager Reports
+    override val reportsTitle         = "রিপোর্ট"
+    override val tabMonthly           = "মাসিক"
+    override val tabVehicle           = "গাড়ি"
+    override val tabExpenses          = "খরচ"
+    override val tabDriverPerf        = "ড্রাইভার"
+    override val totalRevenueLabel    = "মোট রাজস্ব"
+    override val netRevenueLabel      = "নিট রাজস্ব"
+    override val tripCountLabel       = "ট্রিপ"
+    override val monthLabel           = "মাস"
+    override val summaryLabel         = "সারসংক্ষেপ"
+    override val noReportData         = "কোনো ডেটা নেই"
+    override val expenseTypeLabel     = "খরচের ধরন"
+    override val totalCommissionLabel = "মোট কমিশন"
+    override val totalPaidLabel       = "মোট পরিশোধ"
+    override val expDriverAllowance   = "ভাতা"
 }
 
 object EnglishStrings : AppStrings() {
@@ -668,4 +744,42 @@ object EnglishStrings : AppStrings() {
     override val deleteQuestion       = "Are you sure you want to delete this?"
     override val activeLabel          = "Active"
     override val inactiveLabel        = "Inactive"
+
+    // Manager Panel Navigation
+    override val managerPanelTitle    = "Manager Panel"
+    override val navReports           = "Reports"
+    override val navMgrVehicles       = "Vehicles"
+    override val navMgrDrivers        = "Drivers"
+
+    // Manager Vehicles
+    override val mgrVehiclesTitle     = "My Vehicles"
+    override val changeStatus         = "Change Status"
+    override val currentStatus        = "Current Status"
+    override val vehicleStatusChanged = "Vehicle status updated"
+    override val cannotChangeRented   = "Cannot change while trip is active"
+
+    // Manager Drivers
+    override val mgrDriversTitle      = "Driver List"
+    override val totalTripsLabel      = "Total Trips"
+    override val thisMonthLabel       = "This Month"
+    override val totalDueLabel        = "Total Due"
+    override val noMgrDrivers         = "No drivers found"
+    override val performanceStats     = "Performance"
+
+    // Manager Reports
+    override val reportsTitle         = "Reports"
+    override val tabMonthly           = "Monthly"
+    override val tabVehicle           = "Vehicle"
+    override val tabExpenses          = "Expenses"
+    override val tabDriverPerf        = "Drivers"
+    override val totalRevenueLabel    = "Total Revenue"
+    override val netRevenueLabel      = "Net Revenue"
+    override val tripCountLabel       = "Trips"
+    override val monthLabel           = "Month"
+    override val summaryLabel         = "Summary"
+    override val noReportData         = "No data available"
+    override val expenseTypeLabel     = "Expense Type"
+    override val totalCommissionLabel = "Total Commission"
+    override val totalPaidLabel       = "Total Paid"
+    override val expDriverAllowance   = "Allowance"
 }

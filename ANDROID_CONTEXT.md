@@ -24,7 +24,13 @@
 | Admin: Settlements | ✅ Detail + Payment History tabs (APK v5) |
 | Admin: Drivers | ✅ Full CRUD + Vehicle Assignment + Dues (APK v5) |
 | Admin: Managers | ✅ Full CRUD + Vehicle Assignment (APK v5) |
-| APK | v5 — https://car.zisan.me/apk/ |
+| Manager: Dashboard | ✅ stats + active/upcoming trips (APK v6) |
+| Manager: Vehicles | ✅ তালিকা + status change (APK v6) |
+| Manager: Rentals | ✅ Create + Detail + Expenses (APK v6) |
+| Manager: Settlements | ✅ Detail + Payment collect (APK v6) |
+| Manager: Drivers | ✅ তালিকা + performance stats + dues collect (APK v6) |
+| Manager: Reports | ✅ 4 tabs: monthly/vehicle/expense/driver (APK v6) |
+| APK | v6 — https://car.zisan.me/apk/ |
 
 ---
 
@@ -77,6 +83,7 @@ android/
 │   │       │       └── Models.kt           — data classes (NO @JsonClass annotation — দেখো সমস্যা ৫)
 │   │       ├── ui/
 │   │       │   ├── AdminAppShell.kt        — Admin: Bottom nav 6 tabs, NavHost
+│   ├── ManagerAppShell.kt      — Manager: Bottom nav 6 tabs (Dashboard/Vehicles/Rentals/Settlements/Drivers/Reports)
 │   │       │   ├── strings/
 │   │       │   │   ├── AppStrings.kt       — abstract class + Bangla/English objects
 │   │       │   │   └── LocalStrings.kt     — CompositionLocal provider
@@ -98,6 +105,13 @@ android/
 │   │       │           ├── AdminSettlementsScreen.kt — Detail + TabRow (Expenses / Payment History)
 │   │       │           ├── AdminDriversScreen.kt     — CRUD + multi-vehicle checkbox + dues collect
 │   │       │           └── AdminManagersScreen.kt    — CRUD + single vehicle dropdown assignment
+│   │       └── manager/
+│   │           ├── ManagerDashboardScreen.kt         — stats grid + active/upcoming trips (logout)
+│   │           ├── ManagerVehiclesScreen.kt          — assigned vehicles + status change BottomSheet
+│   │           ├── ManagerRentalsScreen.kt           — Create + Detail + Expenses (manager endpoints)
+│   │           ├── ManagerSettlementsScreen.kt       — Detail + Payment collect (manager endpoints)
+│   │           ├── ManagerDriversScreen.kt           — driver list + perf stats + dues collect
+│   │           └── ManagerReportsScreen.kt           — 4 tabs: monthly/vehicle/expense/driver perf
 │   │       └── util/
 │   │           └── LocationUtils.kt        — reverseGeocode() via Android Geocoder
 ├── build.gradle.kts                  — root: AGP 8.3.0, Kotlin 1.9.22
@@ -401,6 +415,26 @@ when (AuthTokenStore.getRole()) {
 }
 ```
 
+### ManagerAppShell (6-tab bottom nav)
+
+```
+Dashboard   → ManagerDashboardScreen   (stats + active/upcoming trips; logout button)
+Vehicles    → ManagerVehiclesScreen    (assigned vehicles list + status change via BottomSheet)
+Rentals     → ManagerRentalsScreen     (Create + Detail + Expenses — manager endpoints)
+Settlements → ManagerSettlementsScreen (Detail + Payment collect — manager endpoints)
+Drivers     → ManagerDriversScreen     (driver list + performance stats + dues collect)
+Reports     → ManagerReportsScreen     (4 tabs: monthly/vehicle/expense/driver perf)
+```
+
+**Manager panel rules:**
+- Manager লগইন → `role: "manager"` → `ManagerAppShell()`
+- Vehicle CRUD নেই — শুধু status change (`PUT /api/manager/vehicles.php?id=`)
+- Driver CRUD নেই — শুধু view + dues collect
+- Reports tab admin-এ নেই, manager-এ আছে (4 tabs)
+- সব data manager-এর assigned vehicles-এ ফিলার করা
+
+---
+
 ### AdminAppShell (6-tab bottom nav)
 
 ```
@@ -495,7 +529,8 @@ data class DriverCollectResult(
 | `9b6049a` | ANDROID_CONTEXT.md: HTTP 401 bug documented |
 | *(এই session)* | Admin module সম্পূর্ণ (5 screens) + APK v4 |
 | *(v5 session)* | Admin Full CRUD: Vehicles/Rentals/Settlements/Drivers/Managers — 6-tab shell + APK v5 |
+| *(v6 session)* | Manager Panel সম্পূর্ণ: 6 screens + ManagerAppShell + MainActivity routing + APK v6 |
 
 ---
 
-*শেষ আপডেট: 2026-06-26 — Admin Full CRUD সম্পূর্ণ (APK v5): Vehicles, Rentals, Settlements, Drivers, Managers*
+*শেষ আপডেট: 2026-06-26 — Manager Panel সম্পূর্ণ (APK v6): Dashboard, Vehicles, Rentals, Settlements, Drivers, Reports*

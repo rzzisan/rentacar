@@ -218,4 +218,72 @@ interface ApiService {
 
     @DELETE("admin/managers/destroy.php")
     suspend fun deleteManager(@Query("id") id: Int): ApiResponse<Unit>
+
+    // ── Manager Panel ─────────────────────────────────────────────
+
+    @GET("manager/stats.php")
+    suspend fun getManagerStats(): ApiResponse<AdminStats>
+
+    @GET("manager/vehicles.php")
+    suspend fun getManagerVehicles(): ApiResponse<List<Vehicle>>
+
+    @PUT("manager/vehicles.php")
+    suspend fun updateManagerVehicleStatus(
+        @Query("id") id: Int,
+        @Body request: VehicleStatusRequest
+    ): ApiResponse<Unit>
+
+    @GET("manager/rentals/index.php")
+    suspend fun getManagerRentals(
+        @Query("status") status: String? = null,
+        @Query("search") search: String? = null
+    ): ApiResponse<List<Rental>>
+
+    @POST("manager/rentals/index.php")
+    suspend fun createManagerRental(@Body request: CreateAdminRentalRequest): ApiResponse<Map<String, Int>>
+
+    @GET("manager/rentals/show.php")
+    suspend fun getManagerRentalDetail(@Query("id") id: Int): ApiResponse<AdminRentalDetail>
+
+    @POST("manager/rentals/update_status.php")
+    suspend fun updateManagerRentalStatus(
+        @Query("id") id: Int,
+        @Body request: AdminUpdateStatusRequest
+    ): ApiResponse<Unit>
+
+    @GET("manager/settlements/index.php")
+    suspend fun getManagerSettlements(
+        @Query("status") status: String? = null,
+        @Query("search") search: String? = null
+    ): ApiResponse<List<AdminSettlement>>
+
+    @GET("manager/settlements/show.php")
+    suspend fun getManagerSettlementDetail(@Query("id") id: Int): ApiResponse<AdminSettlementDetail>
+
+    @GET("manager/settlements/payment-history.php")
+    suspend fun getManagerSettlementPaymentHistory(@Query("id") id: Int): ApiResponse<SettlementPaymentHistoryData>
+
+    @POST("manager/settlements/collect-payment.php")
+    suspend fun collectManagerSettlementPayment(
+        @Query("id") id: Int,
+        @Body request: CollectPaymentRequest
+    ): ApiResponse<Unit>
+
+    @GET("manager/drivers/index.php")
+    suspend fun getManagerDrivers(
+        @Query("search") search: String? = null,
+        @Query("status") status: String? = null
+    ): ApiResponse<List<ManagerDriver>>
+
+    @GET("manager/drivers/dues.php")
+    suspend fun getManagerDriverDues(): ApiResponse<ManagerDriverDuesData>
+
+    @POST("manager/drivers/collect.php")
+    suspend fun collectManagerDriverDues(
+        @Query("id") id: Int,
+        @Body request: DriverCollectRequest
+    ): ApiResponse<DriverCollectResult>
+
+    @GET("manager/reports.php")
+    suspend fun getManagerReports(): ApiResponse<ManagerReport>
 }

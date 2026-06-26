@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.rzzisan.carrental.data.auth.AuthTokenStore
 import com.rzzisan.carrental.ui.AdminAppShell
+import com.rzzisan.carrental.ui.ManagerAppShell
 import com.rzzisan.carrental.ui.MainAppShell
 import com.rzzisan.carrental.ui.screens.LoginScreen
 import com.rzzisan.carrental.ui.strings.BanglaStrings
@@ -47,7 +48,8 @@ fun AppRoot(onLangToggle: () -> Unit) {
     if (!isLoggedIn) {
         LoginScreen(onLoginSuccess = { isLoggedIn = true })
     } else when (role) {
-        "admin" -> AdminAppShell(onLogout = { isLoggedIn = false })
-        else    -> MainAppShell(onLogout = { isLoggedIn = false })
+        "admin"   -> AdminAppShell(onLogout = { isLoggedIn = false })
+        "manager" -> ManagerAppShell(onLogout = { isLoggedIn = false })
+        else      -> MainAppShell(onLogout = { isLoggedIn = false })
     }
 }
