@@ -73,6 +73,10 @@ interface ApiService {
         @Part receiptImage: MultipartBody.Part? = null
     ): ApiResponse<Map<String, Int>>
 
+    // Location tracking
+    @POST("driver/location.php")
+    suspend fun postLocation(@Body body: LocationBody): ApiResponse<Unit>
+
     // Ledger
     @GET("driver/ledger.php")
     suspend fun getLedger(): ApiResponse<LedgerData>

@@ -23,6 +23,13 @@ data class LoginRequest(
     @Json(name = "remember_me") val rememberMe: Boolean = false
 )
 
+data class LocationBody(
+    @Json(name = "rental_id") val rentalId: Int,
+    val latitude: Double,
+    val longitude: Double,
+    val accuracy: Float? = null
+)
+
 data class DriverProfile(
     val id: Int,
     val name: String,

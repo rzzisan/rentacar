@@ -39,6 +39,7 @@ import androidx.compose.foundation.background
 import coil.compose.AsyncImage
 import com.rzzisan.carrental.BuildConfig
 import com.rzzisan.carrental.data.network.*
+import com.rzzisan.carrental.service.LocationTrackingService
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -610,7 +611,13 @@ private fun TripDetailSheet(
                                 UpdateStatusRequest(newStatus, locName ?: "", lat ?: 0.0, lng ?: 0.0)
                             )
                             actionMsg = res.message ?: s.success
-                            if (res.success) { reload(); onStatusChanged(res.message ?: s.success) }
+                            if (res.success) {
+                                when (newStatus) {
+                                    "active"    -> LocationTrackingService.start(context, rentalId)
+                                    "completed" -> LocationTrackingService.stop(context)
+                                }
+                                reload(); onStatusChanged(res.message ?: s.success)
+                            }
                             actionLoading = false
                         }
                     }
@@ -622,7 +629,13 @@ private fun TripDetailSheet(
                     UpdateStatusRequest(newStatus, locName ?: "", lat ?: 0.0, lng ?: 0.0)
                 )
                 actionMsg = res.message ?: if (res.success) s.success else s.error
-                if (res.success) { reload(); onStatusChanged(res.message ?: s.success) }
+                if (res.success) {
+                    when (newStatus) {
+                        "active"    -> LocationTrackingService.start(context, rentalId)
+                        "completed" -> LocationTrackingService.stop(context)
+                    }
+                    reload(); onStatusChanged(res.message ?: s.success)
+                }
             } catch (_: Exception) { actionMsg = s.error }
             finally { actionLoading = false }
         }
