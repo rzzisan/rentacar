@@ -2,6 +2,24 @@
 
 এই ফাইলটি Android app development-এর সম্পূর্ণ ইতিহাস, সিদ্ধান্ত, সমস্যা ও সমাধান ট্র্যাক করে।
 
+> **নিয়ম:** Android-সংক্রান্ত যেকোনো কাজ শেষে এই ফাইল আপডেট করতে হবে।
+> নতুন সমস্যা, fix, feature, বা সিদ্ধান্ত — সবকিছু এখানে লিখতে হবে।
+> ভবিষ্যতের developer (বা AI session) যেন শুধু এই ফাইল পড়েই পুরো context বুঝতে পারে।
+
+---
+
+## বর্তমান অবস্থা (2026-06-26)
+
+| বিষয় | অবস্থা |
+|---|---|
+| Login | ✅ কাজ করছে |
+| Ledger screen | কোড আছে, test হয়নি |
+| Trips screen | কোড আছে, test হয়নি |
+| Trip detail / start / complete | কোড আছে, test হয়নি |
+| Expense add (GPS + camera) | কোড আছে, test হয়নি |
+| Profile screen | কোড আছে, test হয়নি |
+| APK | v3 — https://car.zisan.me/apk/ |
+
 ---
 
 ## প্রজেক্ট লক্ষ্য
@@ -35,6 +53,7 @@ Driver-focused Android app যেখানে driver:
 android/
 ├── app/
 │   ├── build.gradle.kts              — dependencies, BuildConfig.API_BASE_URL
+│   ├── proguard-rules.pro            — keep rules for Moshi reflection
 │   ├── src/main/
 │   │   ├── AndroidManifest.xml       — permissions, FileProvider
 │   │   ├── res/xml/file_paths.xml    — FileProvider path config
@@ -49,7 +68,7 @@ android/
 │   │       │   └── network/
 │   │       │       ├── ApiClient.kt        — OkHttp + Retrofit + Moshi setup
 │   │       │       ├── ApiService.kt       — Retrofit interface (driver endpoints)
-│   │       │       └── Models.kt           — data classes (NO @JsonClass annotation)
+│   │       │       └── Models.kt           — data classes (NO @JsonClass annotation — দেখো সমস্যা ৫)
 │   │       ├── ui/
 │   │       │   ├── strings/
 │   │       │   │   ├── AppStrings.kt       — abstract class + Bangla/English objects
@@ -58,7 +77,7 @@ android/
 │   │       │   │   ├── Color.kt            — Primary=Indigo, Status colors
 │   │       │   │   └── Theme.kt            — MaterialTheme lightColorScheme
 │   │       │   └── screens/
-│   │       │       ├── LoginScreen.kt
+│   │       │       ├── LoginScreen.kt      — ✅ কাজ করছে
 │   │       │       ├── LedgerScreen.kt
 │   │       │       ├── TripsScreen.kt
 │   │       │       ├── TripDetailScreen.kt
@@ -71,7 +90,7 @@ android/
 ├── settings.gradle.kts
 ├── gradle.properties                 — useAndroidX=true, enableJetifier=true
 ├── gradle/wrapper/gradle-wrapper.properties — Gradle 8.6
-└── deploy-apk.sh                     — build + copy to /var/www/car-apk/
+└── deploy-apk.sh                     — build + copy to /var/www/car-apk/ (ANDROID_HOME লাগবে)
 ```
 
 ---
@@ -80,8 +99,8 @@ android/
 
 ### ১. Token-based Authentication
 
-**কারণ:** PHP session cookie (`Set-Cookie` header) Android WebView-এর বাইরে কাজ করে না।  
-Retrofit/OkHttp cookie jar থেকে same-site cookie অন্য request-এ পাঠানো যায় না reliably।
+**কারণ:** PHP session cookie (`Set-Cookie: samesite=Strict`) Android native app-এ reliable নয়।
+Retrofit/OkHttp cookie jar থেকে same-site cookie অন্য request-এ পাঠানো যায় না।
 
 **সমাধান:** `api_tokens` টেবিল + Bearer header সাপোর্ট।
 
@@ -103,23 +122,22 @@ CREATE TABLE api_tokens (
 
 **Flow:**
 1. App → `POST /api/auth/login.php` with `{"source": "mobile", ...}`
-2. Server → returns `{"token": "abc123...", "role": "driver", ...}` in `data`
-3. App stores token in `EncryptedSharedPreferences`
-4. প্রতিটি পরবর্তী request-এ `Authorization: Bearer <token>` header
+2. Server → `{"success": true, "data": {"token": "abc123...", "role": "driver", ...}}`
+3. App → token EncryptedSharedPreferences-এ save করে
+4. প্রতিটি পরবর্তী request → `Authorization: Bearer <token>` header (OkHttp interceptor-এ)
 
-**ফাইল পরিবর্তন:**
-- `api/_helpers.php` — `_validate_bearer_token()` function যোগ, `require_auth()` আপডেট
-- `api/auth/login.php` — token generate করে response-এ পাঠায়
-- `api/auth/logout.php` — Bearer token রিভোক করে
-- `api/auth/me.php` — `require_auth()` যোগ (token সাপোর্ট)
+**পরিবর্তিত ফাইল:**
+- `api/_helpers.php` — `_helpers_db()` (lazy DB), `_validate_bearer_token()`, `require_auth()` আপডেট
+- `api/auth/login.php` — token generate + return; credential failure-এ HTTP 200 (দেখো সমস্যা ৬)
+- `api/auth/logout.php` — Bearer token DB থেকে DELETE করে (revoke)
+- `api/auth/me.php` — `require_auth()` যোগ
 
 ### ২. Remember Me (৩ মাস)
 
 **কারণ:** User-এর অনুরোধ — minimum ৩ মাস session।
 
-- Web: Session cookie lifetime `90 days` (REMEMBER_ME_DURATION = 7776000)
-- Mobile: Token `expires_at = now + 90 days` (remember_me=true হলে)
-- Default mobile token: `30 days`
+- Web: Session cookie lifetime → `90 days` (`REMEMBER_ME_DURATION = 7776000` in `config.php`)
+- Mobile: Token `expires_at = now + 90 days` (`remember_me: true` হলে), default `30 days`
 
 ---
 
@@ -130,36 +148,38 @@ CREATE TABLE api_tokens (
 ```bash
 ANDROID_HOME=/opt/android-sdk
 mkdir -p $ANDROID_HOME/cmdline-tools
-# cmdline-tools download + extract
+# cmdline-tools download + extract করতে হবে
 $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 ```
 
-### Java (JDK required — JRE যথেষ্ট নয়)
+### Java — JDK required (JRE যথেষ্ট নয়)
 
 ```bash
 apt-get install -y openjdk-21-jdk-headless
 ```
 
-**গুরুত্বপূর্ণ:** শুধু JRE install করলে Gradle এর `jlink` টুল পাওয়া যায় না এবং `compileDebugJavaWithJavac` task ব্যর্থ হয়।
+শুধু JRE থাকলে `jlink` পাওয়া যায় না → `compileDebugJavaWithJavac` fail (দেখো সমস্যা ৪)।
 
-### Gradle Build
+### Build Command
 
 ```bash
 cd /var/www/html/car.zisan.me/android
 ANDROID_HOME=/opt/android-sdk ./gradlew assembleDebug
 ```
 
-`assembleRelease` ব্যবহার করা যাবে না — unsigned APK install হয় না।  
-`assembleDebug` → debug-signed APK যেটি সরাসরি install করা যায়।
+`assembleRelease` ব্যবহার করা যাবে না — unsigned APK install হয় না। `assembleDebug` → debug-signed APK।
 
-### APK Hosting
+### Deploy
 
+```bash
+APK_DIR="/var/www/car-apk"
+TS=$(date +%Y%m%d-%H%M%S)
+cp app/build/outputs/apk/debug/app-debug.apk "$APK_DIR/carrental-${TS}.apk"
+bash "$APK_DIR/gen-index.sh"
+# Download: https://car.zisan.me/apk/
 ```
-/var/www/car-apk/           → Apache serving at car.zisan.me/apk/
-                              (Apache config-এ Alias যোগ করা হয়েছে)
-gen-index.sh                → HTML index page তৈরি করে
-deploy-apk.sh               → build + timestamp-named copy + gen-index
-```
+
+`deploy-apk.sh` সরাসরি কাজ করে না — script-এ `ANDROID_HOME` নেই। উপরের steps manually run করো।
 
 ---
 
@@ -167,37 +187,31 @@ deploy-apk.sh               → build + timestamp-named copy + gen-index
 
 ### সমস্যা ১: `android.useAndroidX` not enabled
 
-**লক্ষণ:** Build error: `Dependency ... requires core library desugaring`  
-**কারণ:** `gradle.properties`-এ `android.useAndroidX=true` ছিল না।  
-**সমাধান:** `android/gradle.properties` তৈরি করে নিচের লাইন যোগ:
+**লক্ষণ:** Build error — `Dependency requires core library desugaring`
+**কারণ:** `gradle.properties`-এ `android.useAndroidX=true` ছিল না।
+**সমাধান:** `android/gradle.properties` তৈরি করে:
 ```
 android.useAndroidX=true
 android.enableJetifier=true
 ```
-**ভবিষ্যতে:** নতুন Android project-এ সবসময় এই দুটি লাইন `gradle.properties`-এ রাখো।
+**ভবিষ্যতে:** নতুন Android project-এ সবসময় এই দুটি লাইন রাখো।
 
 ---
 
 ### সমস্যা ২: Launcher icon not found (AAPT error)
 
-**লক্ষণ:** `processDebugResources` fail — `mipmap/ic_launcher` resource not found  
-**কারণ:** `res/mipmap-*/` ফোল্ডারে কোনো PNG ছিল না।  
-**সমাধান:** Python3 দিয়ে minimal valid 1x1 PNG তৈরি করে সব density-তে রাখা:
-```python
-import struct, zlib
-# 1x1 white pixel PNG — minimum valid PNG bytes
-```
-**ভবিষ্যতে:** Project তৈরির শুরুতেই placeholder icon PNG রাখো।  
-Real icon পরে `res/mipmap-*/ic_launcher.png` replace করলেই হবে।
+**লক্ষণ:** `processDebugResources` fail — `mipmap/ic_launcher` not found
+**কারণ:** `res/mipmap-*/` ফোল্ডারে কোনো PNG ছিল না।
+**সমাধান:** Python3 দিয়ে minimal 1x1 PNG তৈরি করে সব density-তে রাখা।
+**ভবিষ্যতে:** Project শুরুতেই placeholder icon দাও। Real icon পরে replace করলেই হবে।
 
 ---
 
-### সমস্যা ৩: `Unresolved reference: tasks` / `Unresolved reference: await`
+### সমস্যা ৩: `Unresolved reference: await` (FusedLocation)
 
-**লক্ষণ:** Compile error in `TripDetailScreen.kt` ও `AddExpenseScreen.kt`  
-**কারণ:** `fusedLocation.getCurrentLocation(...).await()` — এই `.await()` extension  
-FusedLocationProvider-এর `Task<T>` object-এ কাজ করতে `kotlinx-coroutines-play-services` দরকার।  
-**সমাধান:** `app/build.gradle.kts`-এ dependency যোগ:
+**লক্ষণ:** Compile error in `TripDetailScreen.kt`, `AddExpenseScreen.kt`
+**কারণ:** `fusedLocation.getCurrentLocation(...).await()` → Google Play Services `Task<T>`-এ `.await()` ব্যবহার করতে আলাদা dependency লাগে।
+**সমাধান:** `app/build.gradle.kts`-এ:
 ```kotlin
 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 ```
@@ -207,46 +221,54 @@ implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 
 ### সমস্যা ৪: `jlink executable does not exist`
 
-**লক্ষণ:** `compileDebugJavaWithJavac` task fail  
-**কারণ:** Server-এ শুধু JRE ছিল, JDK ছিল না। Gradle-এর `jlink` tool JDK-এর অংশ।  
-**সমাধান:**
-```bash
-apt-get install -y openjdk-21-jdk-headless
-```
-**ভবিষ্যতে:** নতুন server-এ Android build করার আগে `java -version` ও `javac -version` দুটোই চেক করো।
+**লক্ষণ:** `compileDebugJavaWithJavac` task fail
+**কারণ:** Server-এ শুধু JRE ছিল, JDK ছিল না।
+**সমাধান:** `apt-get install -y openjdk-21-jdk-headless`
+**ভবিষ্যতে:** নতুন server-এ build করার আগে `javac -version` চেক করো।
 
 ---
 
-### সমস্যা ৫: Login error — "সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে" ✅ সমাধান হয়েছে
+### সমস্যা ৫: "সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে" ✅ সমাধান হয়েছে
 
-**লক্ষণ:** App install করার পর login করলে error message দেখায়, সার্ভারে কোনো request পৌঁছায় না  
-**কারণ:** `Models.kt`-এ সব data class-এ `@JsonClass(generateAdapter = true)` annotation ছিল।  
-এই annotation Moshi-কে বলে "এই class-এর জন্য compile-time generated adapter ব্যবহার কর।"  
-কিন্তু `app/build.gradle.kts`-এ kapt বা ksp plugin নেই, এবং `moshi-kotlin-codegen` dependency নেই।  
-তাই runtime-এ `LoginRequestJsonAdapter.class` খোঁজে পায় না → `ClassNotFoundException` → catch block-এ ধরা পড়ে।
+**লক্ষণ:** App install-এর পর login-এ error, server-এ কোনো request পৌঁছায় না।
+**কারণ:** `Models.kt`-এ সব data class-এ `@JsonClass(generateAdapter = true)` ছিল, কিন্তু `app/build.gradle.kts`-এ kapt/ksp plugin বা `moshi-kotlin-codegen` নেই। Runtime-এ `LoginRequestJsonAdapter.class` খোঁজে পায় না → `ClassNotFoundException` → catch block ধরে generic error।
+**সমাধান:** `Models.kt` থেকে সব `@JsonClass(generateAdapter = true)` সরানো হয়েছে। `ApiClient.kt`-এ `KotlinJsonAdapterFactory` (reflection) যথেষ্ট।
+**ভবিষ্যতে:**
+- `@JsonClass(generateAdapter = true)` শুধু তখনই ব্যবহার করো যখন kapt/ksp + `moshi-kotlin-codegen` থাকে।
+- Reflection-based approach এই app-এর জন্য যথেষ্ট।
 
-**সমাধান:** `Models.kt` থেকে সব `@JsonClass(generateAdapter = true)` সরিয়ে দেওয়া হয়েছে।  
-`KotlinJsonAdapterFactory` (reflection-based) এখন সব serialization handle করে।  
-`ApiClient.kt`-এ `.addLast(KotlinJsonAdapterFactory())` already ছিল — এটাই যথেষ্ট।
+---
+
+### সমস্যা ৬: "HttpException: HTTP 401 Unauthorized" ✅ সমাধান হয়েছে
+
+**লক্ষণ:** Moshi fix-এর পর request server পর্যন্ত পৌঁছায়, কিন্তু HttpException error।
+**কারণ:**
+- `login.php`-এ ভুল credentials-এ HTTP `401` status return হচ্ছিল।
+- Retrofit `suspend` function-এ যেকোনো non-2xx response → `HttpException` throw; JSON body parse হয় না।
+- HTTP 401 login endpoint-এ semantically ভুল ("এই resource-এ access করতে auth লাগবে" — কিন্তু login endpoint নিজেই public)।
+
+**সমাধান:**
+1. `api/auth/login.php` — সব credential failure থেকে `401` status সরানো → HTTP `200` (default)।
+2. `LoginScreen.kt`-এ `HttpException` আলাদা catch block যোগ — debug mode-এ error body দেখায়।
 
 **ভবিষ্যতে:**
-- `@JsonClass(generateAdapter = true)` শুধু তখনই ব্যবহার করো যখন kapt/ksp + `moshi-kotlin-codegen` configured থাকে।
-- Reflection-based (KotlinJsonAdapterFactory) সহজ এবং driver app-এর size/performance trade-off acceptable।
-- Code generation শুধু তখন দরকার হয় যখন reflection avoid করতে চাও (ProGuard বা R8 aggressiveness-এর কারণে)।
+- Login endpoint-এ credential failure → HTTP `200`, `success: false`, `message: "..."` — এটাই সঠিক।
+- HTTP `401` শুধু `require_auth()` / `require_role()` — protected endpoint-এ।
+- Retrofit `suspend` return type-এ non-2xx সবসময় exception। Error body পেতে `Response<T>` wrapper ব্যবহার করো, অথবা server `200` পাঠাক।
 
 ---
 
 ## Moshi Configuration — সঠিক Pattern
 
 ```kotlin
-// ApiClient.kt — এইভাবে থাকবে
+// ApiClient.kt
 private val moshi = Moshi.Builder()
-    .addLast(KotlinJsonAdapterFactory())  // reflection-based — annotation processor ছাড়াই কাজ করে
+    .addLast(KotlinJsonAdapterFactory())  // kapt ছাড়াই কাজ করে
     .build()
 ```
 
 ```kotlin
-// Models.kt — এইভাবে থাকবে (NO @JsonClass annotation)
+// Models.kt — @JsonClass annotation নেই, @Json(name=) শুধু field rename-এর জন্য
 data class LoginRequest(
     val email: String,
     val password: String,
@@ -259,28 +281,23 @@ data class LoginRequest(
 
 ## i18n — Abstract Class Pattern (DEX Limit Fix)
 
-**সমস্যা:** `data class AppStrings(val field1: String, ..., val field75: String)` → DEX register limit (74 args)।
-
-**সমাধান:** Abstract class + object:
+**সমস্যা:** `data class AppStrings(75+ params)` → DEX 74-arg register limit error।
+**সমাধান:**
 ```kotlin
 abstract class AppStrings {
     abstract val login: String
     abstract val serverError: String
-    // ...
 }
-
 object BanglaStrings : AppStrings() {
     override val login = "লগইন"
     override val serverError = "সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে"
 }
-
 object EnglishStrings : AppStrings() {
     override val login = "Login"
     override val serverError = "Connection failed"
 }
 ```
-
-**ভবিষ্যতে:** i18n string class-এ যদি কখনো error আসে `Too many arguments for DEX method`, এই pattern-এই fix।
+**ভবিষ্যতে:** String class-এ `Too many arguments for DEX method` error আসলে এই pattern-এই fix।
 
 ---
 
@@ -297,9 +314,9 @@ object EnglishStrings : AppStrings() {
 | GET | `/api/driver/rentals/index.php` | Trip list (filter: status, date) |
 | POST | `/api/driver/rentals/index.php` | Create trip |
 | GET | `/api/driver/rentals/show.php?id=` | Trip detail |
-| POST | `/api/driver/rentals/update_status.php?id=` | Update status (active/completed) + GPS |
+| POST | `/api/driver/rentals/update_status.php?id=` | Update status + GPS location |
 | GET | `/api/driver/rentals/expenses.php?rental_id=` | Expense list |
-| POST | `/api/driver/rentals/expenses.php?rental_id=` | Add expense (multipart: type/amount/location/receipt) |
+| POST | `/api/driver/rentals/expenses.php?rental_id=` | Add expense (multipart + receipt) |
 | GET | `/api/driver/ledger.php` | Settlements + monthly breakdown |
 
 ---
@@ -318,93 +335,42 @@ object EnglishStrings : AppStrings() {
 
 ---
 
-## Build ও Deploy Steps
-
-```bash
-# 1. Project directory
-cd /var/www/html/car.zisan.me/android
-
-# 2. Build (ANDROID_HOME অবশ্যই set করতে হবে)
-ANDROID_HOME=/opt/android-sdk ./gradlew assembleDebug
-
-# 3. APK copy + index update
-APK_DIR="/var/www/car-apk"
-TS=$(date +%Y%m%d-%H%M%S)
-cp app/build/outputs/apk/debug/app-debug.apk "$APK_DIR/carrental-${TS}.apk"
-bash "$APK_DIR/gen-index.sh"
-
-# 4. Download করো: https://car.zisan.me/apk/
-```
-
-> **নোট:** `deploy-apk.sh` সরাসরি কাজ করে না কারণ script নিজেই build করে  
-> এবং সেখানে `ANDROID_HOME` পাওয়া যায় না। ANDROID_HOME export করে  
-> অথবা উপরের manual steps ব্যবহার করো।
-
----
-
 ## APK Info
 
 | Item | Value |
 |---|---|
-| App ID | `com.rzzisan.carrental.debug` (debug build) |
+| App ID | `com.rzzisan.carrental.debug` |
 | Min SDK | API 24 (Android 7.0) |
 | Target SDK | API 34 (Android 14) |
 | Size | ~20MB |
-| Build type | debug (self-signed) |
+| Build type | debug (self-signed, সরাসরি install করা যায়) |
+| Download | https://car.zisan.me/apk/ |
 
 ---
 
-## সম্ভাব্য ভবিষ্যৎ সমস্যা ও সমাধান
+## সম্ভাব্য ভবিষ্যৎ সমস্যা
 
 ### ProGuard/R8 (Release build)
-
-Release build-এ R8 minification active থাকে। Moshi reflection-based serialization কাজ নাও করতে পারে কারণ R8 data class-এর field names obfuscate করে।
-
-**সমাধান options:**
-1. `proguard-rules.pro`-এ already `-keep class com.rzzisan.carrental.data.network.** { *; }` আছে — এটা যথেষ্ট হওয়া উচিত।
-2. অথবা kapt + moshi-kotlin-codegen যোগ করে code generation ব্যবহার করো।
-
-### Generic Type Deserialize
-
-`ApiResponse<T>` generic। Retrofit-এর Moshi converter `ParameterizedType` ব্যবহার করে এটা handle করে। এটা নিয়ে সমস্যা হলে সরাসরি Moshi builder-এ `Types.newParameterizedType` দিয়ে adapter তৈরি করো।
+Release build-এ R8 reflection-based field names obfuscate করে। `proguard-rules.pro`-এ `-keep class com.rzzisan.carrental.data.network.** { *; }` আছে — যথেষ্ট হওয়া উচিত। না হলে kapt + `moshi-kotlin-codegen` যোগ করো।
 
 ### SSL Certificate Renewal
+Let's Encrypt certificate expire হলে Android app-এ SSL handshake fail। `certbot renew` cron job দেওয়া উচিত।
 
-`car.zisan.me` SSL Let's Encrypt ব্যবহার করে। Certificate expire হলে Android app কাজ করবে না (SSL handshake fail)। Certificate renewal automate করতে `certbot renew` cron job দেওয়া উচিত।
-
-### Camera Permission on Android 13+
-
-Android 13 (API 33+) থেকে `READ_EXTERNAL_STORAGE` deprecated। `READ_MEDIA_IMAGES` ব্যবহার হচ্ছে। এটা সঠিকভাবে কনফিগার আছে।
+### Camera (Android 13+)
+`READ_MEDIA_IMAGES` ব্যবহার হচ্ছে — সঠিকভাবে configured আছে।
 
 ---
 
 ## Commit History (Android-related)
 
-- `1704383` — Android App: Token-based auth + feasibility report
-- `8b8f808` — Login: Remember Me ফিচার (৩ মাস session)
+| Commit | বিবরণ |
+|---|---|
+| `1704383` | Android App: Token-based auth + feasibility report |
+| `8b8f808` | Login: Remember Me ফিচার (৩ মাস session) |
+| `4335129` | Moshi @JsonClass bug fix + ANDROID_CONTEXT.md তৈরি |
+| `5d64221` | Login HTTP 401 → 200 fix + HttpException handler |
+| `9b6049a` | ANDROID_CONTEXT.md: HTTP 401 bug documented |
 
 ---
 
-### সমস্যা ৬: Login error — "HttpException: HTTP 401 Unauthorized" ✅ সমাধান হয়েছে
-
-**লক্ষণ:** Moshi fix-এর পর login request server পর্যন্ত পৌঁছায়, কিন্তু 401 error দেখায়  
-**কারণ:**
-- `login.php`-এ ভুল credentials / user not found-এর জন্য HTTP 401 status return হচ্ছিল
-- Retrofit-এ `suspend fun login(): ApiResponse<LoginData>` — যেকোনো non-2xx response `HttpException` throw করে
-- JSON body (`{"success": false, "message": "..."}`) কখনো parse হয় না, সরাসরি exception
-
-**সমাধান:**
-1. `api/auth/login.php` — সব credential failure থেকে HTTP status code 401 সরানো হয়েছে (default = 200)
-   - HTTP 401 semantically মানে "এই resource access করতে authentication দরকার"
-   - Login endpoint নিজে public — এখানে 401 অর্থহীন
-   - `success: false` + `message` field-ই যথেষ্ট failure communicate করার জন্য
-2. `LoginScreen.kt`-এ `HttpException` আলাদা catch block যোগ — debug mode-এ error body দেখায়
-
-**ভবিষ্যতে:**
-- Login endpoint-এ credential failure সবসময় HTTP 200 দেওয়া উচিত
-- HTTP 401 শুধু `require_auth()` / `require_role()` — protected endpoint-এ ব্যবহার করো
-- Retrofit `suspend` return type-এ non-2xx response সবসময় exception; error body পেতে `Response<T>` wrapper ব্যবহার করো অথবা server 200 পাঠাক
-
----
-
-*শেষ আপডেট: 2026-06-26 — Login HTTP 401 bug fix (APK v3)*
+*শেষ আপডেট: 2026-06-26 — Login সম্পূর্ণ কাজ করছে (APK v3)*
