@@ -17,6 +17,7 @@ import ManagerRentals from '@/pages/manager/Rentals';
 import ManagerSettlements from '@/pages/manager/Settlements';
 import ManagerDrivers from '@/pages/manager/Drivers';
 import ManagerDriverCollections from '@/pages/manager/DriverCollections';
+import ManagerReports from '@/pages/manager/Reports';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
 import type { User } from '@/types';
@@ -140,6 +141,7 @@ export default function App() {
           <Route path="settlements"       element={<ManagerSettlements />} />
           <Route path="driver-collections" element={<ManagerDriverCollections />} />
           <Route path="drivers"           element={<ManagerDrivers />} />
+          <Route path="reports"           element={<ManagerReports />} />
         </Route>
 
         {/* Employee */}

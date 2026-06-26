@@ -34,7 +34,12 @@ if ($method === 'GET') {
         $types   .= 's';
     }
 
-    $sql = "SELECT DISTINCT d.* FROM drivers d
+    $sql = "SELECT DISTINCT d.*,
+            (SELECT COUNT(*) FROM rentals r WHERE r.driver_id = d.id AND r.vehicle_id IN $in AND r.rental_status = 'completed') as total_trips,
+            (SELECT COUNT(*) FROM rentals r WHERE r.driver_id = d.id AND r.vehicle_id IN $in AND r.rental_status = 'completed'
+               AND MONTH(r.start_date) = MONTH(CURDATE()) AND YEAR(r.start_date) = YEAR(CURDATE())) as this_month_trips,
+            (SELECT COALESCE(SUM(s.remaining_amount), 0) FROM settlements s JOIN rentals r ON s.rental_id = r.id WHERE s.driver_id = d.id AND r.vehicle_id IN $in AND s.payment_status != 'paid') as total_due
+            FROM drivers d
             JOIN driver_vehicles dv ON d.id = dv.driver_id
             WHERE " . implode(' AND ', $where) . " ORDER BY d.name";
 
@@ -69,9 +74,12 @@ if ($method === 'GET') {
 
     $drivers = array_map(function ($d) use ($vehicleMap) {
         unset($d['password']);
-        $d['id']              = (int)$d['id'];
-        $d['commission_rate'] = (float)$d['commission_rate'];
-        $d['vehicles']        = $vehicleMap[$d['id']] ?? [];
+        $d['id']               = (int)$d['id'];
+        $d['commission_rate']  = (float)$d['commission_rate'];
+        $d['total_trips']      = (int)($d['total_trips'] ?? 0);
+        $d['this_month_trips'] = (int)($d['this_month_trips'] ?? 0);
+        $d['total_due']        = (float)($d['total_due'] ?? 0);
+        $d['vehicles']         = $vehicleMap[$d['id']] ?? [];
         return $d;
     }, $rows);
 

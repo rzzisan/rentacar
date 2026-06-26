@@ -52,6 +52,7 @@ const managerNav: NavItem[] = [
   { label: 'পেমেন্ট সেটেলমেন্ট', icon: '💳', href: '/manager/settlements' },
   { label: 'ড্রাইভার বকেয়া জমা', icon: '💰', href: '/manager/driver-collections' },
   { label: 'ড্রাইভার', icon: '🧑‍✈️', href: '/manager/drivers' },
+  { label: 'রিপোর্ট', icon: '📊', href: '/manager/reports' },
 ];
 
 const navByRole: Record<Role, NavItem[]> = {

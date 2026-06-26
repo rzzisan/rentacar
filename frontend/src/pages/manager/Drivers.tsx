@@ -19,6 +19,9 @@ interface Driver {
   commission_rate: number;
   status: 'active' | 'inactive';
   vehicles: AssignedVehicle[];
+  total_trips?: number;
+  this_month_trips?: number;
+  total_due?: number;
 }
 
 interface FormState {
@@ -525,7 +528,7 @@ export default function AdminDrivers() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    {['ড্রাইভার', 'যোগাযোগ', 'কমিশন', 'অ্যাসাইন করা গাড়ি', 'স্ট্যাটাস', ''].map(h => (
+                    {['ড্রাইভার', 'যোগাযোগ', 'কমিশন', 'পারফরম্যান্স', 'অ্যাসাইন করা গাড়ি', 'স্ট্যাটাস', ''].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -547,6 +550,18 @@ export default function AdminDrivers() {
                         <td className="px-4 py-3 text-slate-600">{d.mobile}</td>
                         <td className="px-4 py-3">
                           <span className="font-semibold text-indigo-700">{d.commission_rate}%</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-sm">
+                            <div>
+                              <span className="font-semibold text-indigo-600">{d.this_month_trips ?? 0}</span>
+                              <span className="text-xs text-gray-400"> এই মাসে</span>
+                            </div>
+                            <div className="text-xs text-gray-500">মোট: {d.total_trips ?? 0} ট্রিপ</div>
+                            {(d.total_due ?? 0) > 0 && (
+                              <div className="text-xs text-amber-600 font-medium">বকেয়া: ৳{(d.total_due ?? 0).toFixed(0)}</div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           {d.vehicles.length === 0 ? (
@@ -614,7 +629,7 @@ export default function AdminDrivers() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap mb-3">
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
                       <span className="text-xs text-slate-500">কমিশন:</span>
                       <span className="text-xs font-semibold text-indigo-700">{d.commission_rate}%</span>
                       {d.vehicles.length > 0 && (
@@ -622,6 +637,22 @@ export default function AdminDrivers() {
                           <span className="text-slate-300">·</span>
                           <span className="text-xs text-slate-500">{d.vehicles.length} টি গাড়ি</span>
                         </>
+                      )}
+                    </div>
+                    <div className="flex gap-3 text-xs mb-3">
+                      <div className="bg-indigo-50 rounded-lg px-2 py-1">
+                        <span className="font-bold text-indigo-600">{d.this_month_trips ?? 0}</span>
+                        <span className="text-gray-500"> এই মাসে</span>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg px-2 py-1">
+                        <span className="font-bold text-gray-700">{d.total_trips ?? 0}</span>
+                        <span className="text-gray-500"> মোট ট্রিপ</span>
+                      </div>
+                      {(d.total_due ?? 0) > 0 && (
+                        <div className="bg-amber-50 rounded-lg px-2 py-1">
+                          <span className="font-bold text-amber-600">৳{(d.total_due ?? 0).toFixed(0)}</span>
+                          <span className="text-gray-500"> বকেয়া</span>
+                        </div>
                       )}
                     </div>
 
