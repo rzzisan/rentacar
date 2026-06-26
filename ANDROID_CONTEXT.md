@@ -18,7 +18,12 @@
 | Trip detail / start / complete | কোড আছে, test হয়নি |
 | Expense add (GPS + camera) | কোড আছে, test হয়নি |
 | Profile screen | কোড আছে, test হয়নি |
-| APK | v3 — https://car.zisan.me/apk/ |
+| Admin: Dashboard | ✅ কোড সম্পন্ন (APK v4-এ) |
+| Admin: Vehicles | ✅ কোড সম্পন্ন (APK v4-এ) |
+| Admin: Rentals | ✅ কোড সম্পন্ন (APK v4-এ) |
+| Admin: Settlements | ✅ কোড সম্পন্ন (APK v4-এ) |
+| Admin: Drivers | ✅ কোড সম্পন্ন (APK v4-এ) |
+| APK | v4 — https://car.zisan.me/apk/ |
 
 ---
 
@@ -59,31 +64,38 @@ android/
 │   │   ├── res/xml/file_paths.xml    — FileProvider path config
 │   │   └── java/com/rzzisan/carrental/
 │   │       ├── CarRentalApp.kt       — Application class + AppContext singleton
-│   │       ├── MainActivity.kt       — Entry point, language toggle
-│   │       ├── MainAppShell.kt       — Bottom nav (Ledger/Trips/Profile), NavHost
+│   │       ├── MainActivity.kt       — Entry point; AppRoot: role→AdminAppShell or MainAppShell
+│   │       ├── MainAppShell.kt       — Driver: Bottom nav (Ledger/Trips/Profile), NavHost
 │   │       ├── data/
 │   │       │   ├── auth/
 │   │       │   │   ├── AuthStorage.kt      — SharedPreferences wrapper
 │   │       │   │   └── AuthTokenStore.kt   — token/role/username/id save/load
 │   │       │   └── network/
 │   │       │       ├── ApiClient.kt        — OkHttp + Retrofit + Moshi setup
-│   │       │       ├── ApiService.kt       — Retrofit interface (driver endpoints)
+│   │       │       ├── ApiService.kt       — Retrofit interface (driver + admin endpoints)
 │   │       │       └── Models.kt           — data classes (NO @JsonClass annotation — দেখো সমস্যা ৫)
 │   │       ├── ui/
+│   │       │   ├── AdminAppShell.kt        — Admin: Bottom nav 5 tabs, NavHost
 │   │       │   ├── strings/
 │   │       │   │   ├── AppStrings.kt       — abstract class + Bangla/English objects
 │   │       │   │   └── LocalStrings.kt     — CompositionLocal provider
 │   │       │   ├── theme/
-│   │       │   │   ├── Color.kt            — Primary=Indigo, Status colors
+│   │       │   │   ├── Color.kt            — Primary=Indigo, StatusActive/Paid/Due/Partial
 │   │       │   │   └── Theme.kt            — MaterialTheme lightColorScheme
 │   │       │   └── screens/
-│   │       │       ├── LoginScreen.kt      — ✅ কাজ করছে
+│   │       │       ├── LoginScreen.kt      — ✅ কাজ করছে (HTTP 401 fix সহ)
 │   │       │       ├── LedgerScreen.kt
 │   │       │       ├── TripsScreen.kt
 │   │       │       ├── TripDetailScreen.kt
 │   │       │       ├── CreateTripScreen.kt
 │   │       │       ├── AddExpenseScreen.kt
-│   │       │       └── ProfileScreen.kt
+│   │       │       ├── ProfileScreen.kt
+│   │       │       └── admin/
+│   │       │           ├── AdminDashboardScreen.kt  — stats grid (8 কার্ড) + active/upcoming trips
+│   │       │           ├── AdminVehiclesScreen.kt   — filter chip + vehicle list
+│   │       │           ├── AdminRentalsScreen.kt    — filter + status change (BottomSheet)
+│   │       │           ├── AdminSettlementsScreen.kt — filter + payment collect (BottomSheet)
+│   │       │           └── AdminDriversScreen.kt    — driver list + dues collect (BottomSheet)
 │   │       └── util/
 │   │           └── LocationUtils.kt        — reverseGeocode() via Android Geocoder
 ├── build.gradle.kts                  — root: AGP 8.3.0, Kotlin 1.9.22
@@ -319,6 +331,21 @@ object EnglishStrings : AppStrings() {
 | POST | `/api/driver/rentals/expenses.php?rental_id=` | Add expense (multipart + receipt) |
 | GET | `/api/driver/ledger.php` | Settlements + monthly breakdown |
 
+## API Endpoints (Admin)
+
+| Method | URL | কাজ |
+|---|---|---|
+| GET | `/api/admin/stats.php` | Dashboard stats + active/upcoming trips list |
+| GET | `/api/vehicles/index.php` | Vehicle list (filter: status, search) |
+| GET | `/api/admin/rentals/index.php` | Rental list (filter: status, search) |
+| POST | `/api/admin/rentals/update_status.php?id=` | Status change — শুধু `{status}`, GPS নেই |
+| GET | `/api/admin/settlements/index.php` | Settlement list (filter: status) |
+| POST | `/api/admin/settlements/collect-payment.php?id=` | Payment collect: `{amount, payment_method, payment_notes}` |
+| GET | `/api/admin/drivers/index.php` | Driver list |
+| POST | `/api/admin/drivers/collect.php?id=` | Driver dues FIFO collect: `{amount, payment_method, notes}` |
+
+**গুরুত্বপূর্ণ:** `admin/rentals/update_status.php` — শুধু `{status: "..."}` পাঠাতে হয়। Driver-এর `update_status.php` GPS (latitude/longitude/location_name) নেয় — দুটি ভিন্ন endpoint।
+
 ---
 
 ## Permissions (AndroidManifest.xml)
@@ -361,6 +388,44 @@ Let's Encrypt certificate expire হলে Android app-এ SSL handshake fail।
 
 ---
 
+## Admin Module Architecture
+
+### Role-based Navigation (MainActivity.kt → AppRoot)
+
+```kotlin
+when (AuthTokenStore.getRole()) {
+    "admin"  -> AdminAppShell(onLogout = { ... })
+    else     -> MainAppShell(onLogout = { ... })   // driver (default)
+}
+```
+
+### AdminAppShell (5-tab bottom nav)
+
+```
+Dashboard → AdminDashboardScreen (stats + active/upcoming trips)
+Vehicles  → AdminVehiclesScreen  (filter chips + vehicle list)
+Rentals   → AdminRentalsScreen   (filter + ModalBottomSheet status change)
+Settlements → AdminSettlementsScreen (filter + payment collect sheet)
+Drivers   → AdminDriversScreen   (driver list + dues collect sheet)
+```
+
+### Moshi Map<String, Any> সমস্যা — এড়ানো হয়েছে
+
+`collectDriverDues` এর API response `data: {...}` এ complex nested JSON ছিল। `ApiResponse<Map<String, Any>>` Moshi reflection দিয়ে safely parse করতে পারে না।
+
+**সমাধান:** `DriverCollectResult` data class তৈরি করা হয়েছে — শুধু প্রয়োজনীয় fields:
+```kotlin
+data class DriverCollectResult(
+    @Json(name = "collected_amount") val collectedAmount: Double? = null,
+    @Json(name = "remaining_due") val remainingDue: Double? = null,
+    @Json(name = "driver_name") val driverName: String? = null
+)
+```
+
+**ভবিষ্যতে:** API response-এ যদি JSON object দরকার না হয়, তাহলে `ApiResponse<Unit>` ব্যবহার করা যায় — কিন্তু server `"data": null` পাঠাতে হবে। নাহলে specific data class বানাও।
+
+---
+
 ## Commit History (Android-related)
 
 | Commit | বিবরণ |
@@ -370,7 +435,8 @@ Let's Encrypt certificate expire হলে Android app-এ SSL handshake fail।
 | `4335129` | Moshi @JsonClass bug fix + ANDROID_CONTEXT.md তৈরি |
 | `5d64221` | Login HTTP 401 → 200 fix + HttpException handler |
 | `9b6049a` | ANDROID_CONTEXT.md: HTTP 401 bug documented |
+| *(এই session)* | Admin module সম্পূর্ণ (5 screens) + APK v4 |
 
 ---
 
-*শেষ আপডেট: 2026-06-26 — Login সম্পূর্ণ কাজ করছে (APK v3)*
+*শেষ আপডেট: 2026-06-26 — Admin module সম্পূর্ণ (APK v4)*

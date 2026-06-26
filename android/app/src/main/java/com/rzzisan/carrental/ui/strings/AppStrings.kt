@@ -113,6 +113,70 @@ abstract class AppStrings {
     abstract val totalTrips: String
     abstract val completedTrips: String
     abstract val activeTrips: String
+
+    // Admin Nav
+    abstract val navDashboard: String
+    abstract val navVehicles: String
+    abstract val navRentals: String
+    abstract val navSettlements: String
+    abstract val navDrivers: String
+
+    // Admin Dashboard
+    abstract val dashboardTitle: String
+    abstract val totalVehicles: String
+    abstract val availableVehicles: String
+    abstract val monthlyRevenue: String
+    abstract val totalDues: String
+    abstract val todayTrips: String
+    abstract val activeTripsTitle: String
+    abstract val upcomingTripsTitle: String
+    abstract val noActiveTrips: String
+    abstract val noUpcomingTrips: String
+    abstract val taka: String
+
+    // Admin Vehicles
+    abstract val vehiclesTitle: String
+    abstract val regNumber: String
+    abstract val noVehicles: String
+    abstract val statusAvailable: String
+    abstract val statusRented: String
+    abstract val statusMaintenance: String
+    abstract val statusInactive: String
+    abstract val seatingCapacity: String
+    abstract val dailyRate: String
+
+    // Admin Rentals
+    abstract val adminRentalsTitle: String
+    abstract val driverLabel: String
+    abstract val customerLabel: String
+    abstract val noRentals: String
+    abstract val activateTrip: String
+    abstract val cancelTripBtn: String
+    abstract val confirmStatusChange: String
+    abstract val statusChangeQuestion: String
+
+    // Admin Settlements
+    abstract val settlementsTitle: String
+    abstract val collectPayment: String
+    abstract val paymentMethod: String
+    abstract val cash: String
+    abstract val bankTransfer: String
+    abstract val mobileBanking: String
+    abstract val paymentNotes: String
+    abstract val amountToCollect: String
+    abstract val remainingAmount: String
+    abstract val paidAmount: String
+    abstract val noAdminSettlements: String
+    abstract val paymentCollected: String
+    abstract val statusPaid: String
+    abstract val statusPartial: String
+
+    // Admin Drivers
+    abstract val adminDriversTitle: String
+    abstract val noDrivers: String
+    abstract val collectDues: String
+    abstract val dueAmount: String
+    abstract val driverStatus: String
 }
 
 object BanglaStrings : AppStrings() {
@@ -209,6 +273,58 @@ object BanglaStrings : AppStrings() {
     override val totalTrips           = "মোট ট্রিপ"
     override val completedTrips       = "সম্পন্ন ট্রিপ"
     override val activeTrips          = "চলমান ট্রিপ"
+    override val navDashboard         = "ড্যাশবোর্ড"
+    override val navVehicles          = "গাড়ি"
+    override val navRentals           = "ট্রিপ"
+    override val navSettlements       = "সেটেলমেন্ট"
+    override val navDrivers           = "ড্রাইভার"
+    override val dashboardTitle       = "অ্যাডমিন ড্যাশবোর্ড"
+    override val totalVehicles        = "মোট গাড়ি"
+    override val availableVehicles    = "উপলব্ধ গাড়ি"
+    override val monthlyRevenue       = "মাসিক রাজস্ব"
+    override val totalDues            = "মোট বকেয়া"
+    override val todayTrips           = "আজকের ট্রিপ"
+    override val activeTripsTitle     = "চলমান ট্রিপ"
+    override val upcomingTripsTitle   = "আসন্ন ট্রিপ"
+    override val noActiveTrips        = "কোনো চলমান ট্রিপ নেই"
+    override val noUpcomingTrips      = "কোনো আসন্ন ট্রিপ নেই"
+    override val taka                 = "৳"
+    override val vehiclesTitle        = "গাড়ির তালিকা"
+    override val regNumber            = "রেজিস্ট্রেশন"
+    override val noVehicles           = "কোনো গাড়ি নেই"
+    override val statusAvailable      = "উপলব্ধ"
+    override val statusRented         = "ভাড়ায়"
+    override val statusMaintenance    = "রক্ষণাবেক্ষণ"
+    override val statusInactive       = "নিষ্ক্রিয়"
+    override val seatingCapacity      = "আসন"
+    override val dailyRate            = "দৈনিক ভাড়া"
+    override val adminRentalsTitle    = "ট্রিপ ম্যানেজমেন্ট"
+    override val driverLabel          = "ড্রাইভার"
+    override val customerLabel        = "যাত্রী"
+    override val noRentals            = "কোনো ট্রিপ নেই"
+    override val activateTrip         = "সক্রিয় করুন"
+    override val cancelTripBtn        = "বাতিল করুন"
+    override val confirmStatusChange  = "স্ট্যাটাস পরিবর্তন"
+    override val statusChangeQuestion = "নিশ্চিত করতে চান?"
+    override val settlementsTitle     = "সেটেলমেন্ট"
+    override val collectPayment       = "পেমেন্ট সংগ্রহ"
+    override val paymentMethod        = "পেমেন্ট পদ্ধতি"
+    override val cash                 = "নগদ"
+    override val bankTransfer         = "ব্যাংক ট্রান্সফার"
+    override val mobileBanking        = "মোবাইল ব্যাংকিং"
+    override val paymentNotes         = "নোট (ঐচ্ছিক)"
+    override val amountToCollect      = "সংগ্রহযোগ্য"
+    override val remainingAmount      = "বকেয়া"
+    override val paidAmount           = "পরিশোধিত"
+    override val noAdminSettlements   = "কোনো সেটেলমেন্ট নেই"
+    override val paymentCollected     = "পেমেন্ট সফলভাবে সংগ্রহ হয়েছে"
+    override val statusPaid           = "পরিশোধিত"
+    override val statusPartial        = "আংশিক"
+    override val adminDriversTitle    = "ড্রাইভার তালিকা"
+    override val noDrivers            = "কোনো ড্রাইভার নেই"
+    override val collectDues          = "বকেয়া জমা"
+    override val dueAmount            = "বকেয়া পরিমাণ"
+    override val driverStatus         = "স্ট্যাটাস"
 }
 
 object EnglishStrings : AppStrings() {
@@ -305,4 +421,56 @@ object EnglishStrings : AppStrings() {
     override val totalTrips           = "Total Trips"
     override val completedTrips       = "Completed"
     override val activeTrips          = "Active"
+    override val navDashboard         = "Dashboard"
+    override val navVehicles          = "Vehicles"
+    override val navRentals           = "Trips"
+    override val navSettlements       = "Settlements"
+    override val navDrivers           = "Drivers"
+    override val dashboardTitle       = "Admin Dashboard"
+    override val totalVehicles        = "Total Vehicles"
+    override val availableVehicles    = "Available"
+    override val monthlyRevenue       = "Monthly Revenue"
+    override val totalDues            = "Total Dues"
+    override val todayTrips           = "Today's Trips"
+    override val activeTripsTitle     = "Active Trips"
+    override val upcomingTripsTitle   = "Upcoming Trips"
+    override val noActiveTrips        = "No active trips"
+    override val noUpcomingTrips      = "No upcoming trips"
+    override val taka                 = "৳"
+    override val vehiclesTitle        = "Vehicles"
+    override val regNumber            = "Reg. No."
+    override val noVehicles           = "No vehicles found"
+    override val statusAvailable      = "Available"
+    override val statusRented         = "Rented"
+    override val statusMaintenance    = "Maintenance"
+    override val statusInactive       = "Inactive"
+    override val seatingCapacity      = "Seats"
+    override val dailyRate            = "Daily Rate"
+    override val adminRentalsTitle    = "Trip Management"
+    override val driverLabel          = "Driver"
+    override val customerLabel        = "Passenger"
+    override val noRentals            = "No trips found"
+    override val activateTrip         = "Activate"
+    override val cancelTripBtn        = "Cancel Trip"
+    override val confirmStatusChange  = "Confirm Status Change"
+    override val statusChangeQuestion = "Are you sure?"
+    override val settlementsTitle     = "Settlements"
+    override val collectPayment       = "Collect Payment"
+    override val paymentMethod        = "Payment Method"
+    override val cash                 = "Cash"
+    override val bankTransfer         = "Bank Transfer"
+    override val mobileBanking        = "Mobile Banking"
+    override val paymentNotes         = "Notes (optional)"
+    override val amountToCollect      = "To Collect"
+    override val remainingAmount      = "Remaining"
+    override val paidAmount           = "Paid"
+    override val noAdminSettlements   = "No settlements found"
+    override val paymentCollected     = "Payment collected successfully"
+    override val statusPaid           = "Paid"
+    override val statusPartial        = "Partial"
+    override val adminDriversTitle    = "Drivers"
+    override val noDrivers            = "No drivers found"
+    override val collectDues          = "Collect Dues"
+    override val dueAmount            = "Due Amount"
+    override val driverStatus         = "Status"
 }

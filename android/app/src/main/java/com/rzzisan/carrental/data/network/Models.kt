@@ -74,7 +74,8 @@ data class Rental(
     @Json(name = "vehicle_brand") val vehicleBrand: String?,
     @Json(name = "vehicle_model") val vehicleModel: String?,
     @Json(name = "vehicle_registration_number") val vehicleRegNumber: String?,
-    val notes: String?
+    val notes: String?,
+    @Json(name = "driver_name") val driverName: String? = null
 )
 
 data class CreateRentalRequest(
@@ -137,4 +138,100 @@ data class LedgerData(
     @Json(name = "monthly_breakdown") val monthlyBreakdown: List<MonthlyBreakdown>,
     @Json(name = "this_month") val thisMonth: MonthlyBreakdown?,
     @Json(name = "last_month") val lastMonth: MonthlyBreakdown?
+)
+
+// ── Admin Models ──────────────────────────────────────────────────
+
+data class Vehicle(
+    val id: Int,
+    val brand: String,
+    val model: String,
+    @Json(name = "registration_number") val registrationNumber: String,
+    @Json(name = "vehicle_type") val vehicleType: String,
+    val color: String?,
+    val status: String,
+    @Json(name = "daily_rent_price") val dailyRentPrice: Double,
+    @Json(name = "seating_capacity") val seatingCapacity: Int?,
+    val year: Int?
+)
+
+data class DashboardTrip(
+    val id: Int,
+    @Json(name = "pickup_location") val pickupLocation: String?,
+    @Json(name = "dropoff_location") val dropoffLocation: String?,
+    @Json(name = "trip_type") val tripType: String?,
+    @Json(name = "agreed_amount") val agreedAmount: Double,
+    @Json(name = "rental_status") val rentalStatus: String,
+    @Json(name = "start_date") val startDate: String?,
+    @Json(name = "actual_start_time") val actualStartTime: String?,
+    @Json(name = "customer_first_name") val customerFirstName: String?,
+    @Json(name = "customer_last_name") val customerLastName: String?,
+    @Json(name = "vehicle_brand") val vehicleBrand: String?,
+    @Json(name = "vehicle_model") val vehicleModel: String?,
+    @Json(name = "vehicle_registration_number") val vehicleRegNumber: String?,
+    @Json(name = "driver_name") val driverName: String?
+)
+
+data class AdminStats(
+    @Json(name = "total_vehicles") val totalVehicles: Int,
+    @Json(name = "available_vehicles") val availableVehicles: Int,
+    @Json(name = "active_rentals") val activeRentals: Int,
+    @Json(name = "pending_rentals") val pendingRentals: Int,
+    @Json(name = "total_customers") val totalCustomers: Int,
+    @Json(name = "monthly_revenue") val monthlyRevenue: Double,
+    @Json(name = "total_dues") val totalDues: Double,
+    @Json(name = "today_trips") val todayTrips: Int,
+    @Json(name = "active_trips") val activeTrips: List<DashboardTrip>,
+    @Json(name = "upcoming_trips") val upcomingTrips: List<DashboardTrip>
+)
+
+data class AdminSettlement(
+    val id: Int,
+    @Json(name = "rental_id") val rentalId: Int,
+    @Json(name = "agreed_amount") val agreedAmount: Double,
+    @Json(name = "total_expenses") val totalExpenses: Double,
+    @Json(name = "driver_commission") val driverCommission: Double,
+    @Json(name = "amount_to_collect") val amountToCollect: Double,
+    @Json(name = "paid_amount") val paidAmount: Double,
+    @Json(name = "remaining_amount") val remainingAmount: Double,
+    @Json(name = "payment_status") val paymentStatus: String,
+    @Json(name = "driver_name") val driverName: String?,
+    @Json(name = "customer_first_name") val customerFirstName: String?,
+    @Json(name = "customer_last_name") val customerLastName: String?,
+    @Json(name = "vehicle_brand") val vehicleBrand: String?,
+    @Json(name = "vehicle_model") val vehicleModel: String?,
+    @Json(name = "vehicle_registration_number") val vehicleRegNumber: String?,
+    @Json(name = "rental_start_date") val rentalStartDate: String?,
+    @Json(name = "pickup_location") val pickupLocation: String?,
+    @Json(name = "dropoff_location") val dropoffLocation: String?,
+    @Json(name = "trip_type") val tripType: String?
+)
+
+data class AdminDriver(
+    val id: Int,
+    val name: String,
+    val mobile: String?,
+    val email: String?,
+    @Json(name = "commission_rate") val commissionRate: Double,
+    val status: String
+)
+
+data class AdminUpdateStatusRequest(val status: String)
+
+data class CollectPaymentRequest(
+    val amount: Double,
+    @Json(name = "payment_method") val paymentMethod: String,
+    @Json(name = "payment_notes") val paymentNotes: String? = null
+)
+
+data class DriverCollectRequest(
+    val amount: Double,
+    @Json(name = "payment_method") val paymentMethod: String,
+    val notes: String? = null
+)
+
+data class DriverCollectResult(
+    @Json(name = "collected_amount") val collectedAmount: Double? = null,
+    @Json(name = "remaining_due") val remainingDue: Double? = null,
+    @Json(name = "driver_name") val driverName: String? = null
 )

@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.rzzisan.carrental.data.auth.AuthTokenStore
+import com.rzzisan.carrental.ui.AdminAppShell
 import com.rzzisan.carrental.ui.MainAppShell
 import com.rzzisan.carrental.ui.screens.LoginScreen
 import com.rzzisan.carrental.ui.strings.BanglaStrings
@@ -41,10 +42,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppRoot(onLangToggle: () -> Unit) {
     var isLoggedIn by remember { mutableStateOf(!AuthTokenStore.getToken().isNullOrBlank()) }
+    val role = AuthTokenStore.getRole()
 
     if (!isLoggedIn) {
         LoginScreen(onLoginSuccess = { isLoggedIn = true })
-    } else {
-        MainAppShell(onLogout = { isLoggedIn = false })
+    } else when (role) {
+        "admin" -> AdminAppShell(onLogout = { isLoggedIn = false })
+        else    -> MainAppShell(onLogout = { isLoggedIn = false })
     }
 }

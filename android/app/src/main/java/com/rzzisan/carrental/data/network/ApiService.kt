@@ -75,4 +75,55 @@ interface ApiService {
     // Ledger
     @GET("driver/ledger.php")
     suspend fun getLedger(): ApiResponse<LedgerData>
+
+    // ── Admin ──────────────────────────────────────────────────────
+
+    @GET("admin/stats.php")
+    suspend fun getAdminStats(): ApiResponse<AdminStats>
+
+    // Admin Vehicles
+    @GET("vehicles/index.php")
+    suspend fun getAdminVehicles(
+        @Query("status") status: String? = null,
+        @Query("search") search: String? = null
+    ): ApiResponse<List<Vehicle>>
+
+    // Admin Rentals
+    @GET("admin/rentals/index.php")
+    suspend fun getAdminRentals(
+        @Query("status") status: String? = null,
+        @Query("search") search: String? = null
+    ): ApiResponse<List<Rental>>
+
+    @POST("admin/rentals/update_status.php")
+    suspend fun updateAdminRentalStatus(
+        @Query("id") id: Int,
+        @Body request: AdminUpdateStatusRequest
+    ): ApiResponse<Unit>
+
+    // Admin Settlements
+    @GET("admin/settlements/index.php")
+    suspend fun getAdminSettlements(
+        @Query("status") status: String? = null,
+        @Query("search") search: String? = null
+    ): ApiResponse<List<AdminSettlement>>
+
+    @POST("admin/settlements/collect-payment.php")
+    suspend fun collectSettlementPayment(
+        @Query("id") id: Int,
+        @Body request: CollectPaymentRequest
+    ): ApiResponse<Unit>
+
+    // Admin Drivers
+    @GET("admin/drivers/index.php")
+    suspend fun getAdminDrivers(
+        @Query("search") search: String? = null,
+        @Query("status") status: String? = null
+    ): ApiResponse<List<AdminDriver>>
+
+    @POST("admin/drivers/collect.php")
+    suspend fun collectDriverDues(
+        @Query("id") id: Int,
+        @Body request: DriverCollectRequest
+    ): ApiResponse<DriverCollectResult>
 }
