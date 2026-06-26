@@ -78,14 +78,16 @@ frontend/src/
     │   └── Managers.tsx           — ম্যানেজার CRUD + গাড়ি অ্যাসাইনমেন্ট (একটি গাড়ি ↔ একজন ম্যানেজার)
     ├── manager/
     │   ├── Dashboard.tsx          — ম্যানেজার ড্যাশবোর্ড: assigned গাড়ির stats, active/upcoming trips
-    │   ├── Vehicles.tsx           — assigned গাড়ির তালিকা (read-only view)
+    │   ├── Vehicles.tsx           — assigned গাড়ির তালিকা + স্ট্যাটাস পরিবর্তন (available/maintenance/inactive)
     │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট (assigned গাড়ির জন্য, admin Rentals-এর মতো)
     │   ├── Settlements.tsx        — সেটেলমেন্ট ম্যানেজমেন্ট (assigned গাড়ির জন্য)
-    │   ├── Drivers.tsx            — ড্রাইভার ম্যানেজমেন্ট (assigned গাড়ির ড্রাইভার)
-    │   └── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (assigned গাড়ির ড্রাইভার)
+    │   ├── Drivers.tsx            — ড্রাইভার ম্যানেজমেন্ট + পারফরম্যান্স stats (এই মাস ট্রিপ, মোট, বকেয়া)
+    │   ├── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (assigned গাড়ির ড্রাইভার)
+    │   └── Reports.tsx            — রিপোর্ট: মাসিক রাজস্ব, গাড়িভিত্তিক, খরচ ব্রেকডাউন, ড্রাইভার পারফরম্যান্স
     └── driver/
-        ├── Dashboard.tsx          — লেজার (কমিশন/পেমেন্ট) + চলমান ট্রিপ হাইলাইট কার্ড (লাইভ টাইমার, ?open=<id> দিয়ে খরচ ফর্মে শর্টকাট)
-        └── Rentals.tsx            — নিজের ট্রিপ: তৈরি/শুরু/সম্পন্ন (বাতিল নয়), খরচ + রসিদ আপলোড; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে; খরচে অটো GPS লোকেশন (read-only, GPS ছাড়া submit নয়)
+        ├── Dashboard.tsx          — লেজার (কমিশন/পেমেন্ট) + মাসিক আয়ের সারসংক্ষেপ (৬ মাস) + expense breakdown per trip + লাইভ ট্রিপ কার্ড
+        ├── Rentals.tsx            — নিজের ট্রিপ: তৈরি/শুরু/সম্পন্ন (বাতিল নয়), খরচ + রসিদ আপলোড; date range ফিল্টার; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে
+        └── Profile.tsx            — প্রোফাইল: নাম/মোবাইল/ছবি আপডেট, পাসওয়ার্ড পরিবর্তন, assigned গাড়ি ও ট্রিপ stats
 ```
 
 ### তৈরি হয়নি এখনো (placeholder দেখায়)
@@ -124,14 +126,16 @@ api/
 │   └── managers/                  — index (GET/POST), update, destroy — ম্যানেজার CRUD + vehicle assignment
 ├── manager/                       — সব endpoint require_manager() দিয়ে গার্ড; শুধু assigned গাড়ির ডেটা দেখায়
 │   ├── stats.php   GET            — admin stats-এর মতো কিন্তু manager-এর assigned vehicles filter করা
-│   ├── vehicles.php GET           — assigned গাড়ির তালিকা
+│   ├── vehicles.php GET/PUT       — assigned গাড়ির তালিকা; PUT ?id= দিয়ে status পরিবর্তন (rented ছাড়া)
+│   ├── reports.php GET            — মাসিক রাজস্ব, গাড়িভিত্তিক revenue, খরচ breakdown, ড্রাইভার performance
 │   ├── rentals/                   — index (GET/POST), show, update, update_status, expenses, expenses_destroy
 │   ├── settlements/               — index, show, update, collect-payment, payment-history
-│   └── drivers/                   — index (GET), dues (বকেয়া), collect (FIFO bulk)
+│   └── drivers/                   — index (GET — total_trips/this_month_trips/total_due সহ), dues (বকেয়া), collect (FIFO bulk)
 ├── driver/                        — সব endpoint require_driver() দিয়ে গার্ড করা
-│   ├── ledger.php  GET            — নিজের settlements + summary (trips/earned/paid/pending)
+│   ├── ledger.php  GET            — settlements + monthly_breakdown (৬ মাস) + expense_breakdown per trip
+│   ├── profile.php GET/POST       — প্রোফাইল তথ্য + assigned vehicles + stats; POST: নাম/মোবাইল/ছবি/পাসওয়ার্ড আপডেট
 │   ├── vehicles.php GET           — নিজেকে অ্যাসাইন করা গাড়ির তালিকা
-│   └── rentals/                   — index (GET list / POST create), show (expenses এ location_name/lat/lng সহ), update_status (cancel নিষিদ্ধ; completed হলে settlement অটো-তৈরি), expenses (POST: location_name/lat/lng বাধ্যতামূলক, রসিদ আপলোড)
+│   └── rentals/                   — index (GET: status/search/date_from/date_to filter; POST create), show, update_status, expenses
 └── vehicles/
     ├── index.php   GET/POST        — list (filter: status, vehicle_type, search) / create
     ├── show.php    GET ?id=        — single vehicle
