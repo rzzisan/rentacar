@@ -6,7 +6,51 @@ function json_response(array $data, int $status = 200): void {
     exit();
 }
 
+// _helpers.php-এর নিজস্ব lazy DB connection (token validation-এর জন্য)
+function _helpers_db(): mysqli {
+    static $conn = null;
+    if ($conn === null) {
+        require_once __DIR__ . '/../config/Database.php';
+        $conn = (new Database())->connect();
+    }
+    return $conn;
+}
+
+// Authorization: Bearer <token> header থেকে session populate করে।
+// Token অবৈধ বা মেয়াদোত্তীর্ণ হলে 401 দেয়।
+// Token না থাকলে নিরবে ফেরত আসে (session-based auth চলবে)।
+function _validate_bearer_token(): void {
+    $headers = function_exists('getallheaders') ? (getallheaders() ?: []) : [];
+    $auth    = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    if (!preg_match('/^Bearer\s+(\S+)$/i', $auth, $m)) return;
+
+    $token = $m[1];
+    $conn  = _helpers_db();
+    $stmt  = $conn->prepare(
+        "SELECT role, user_id, driver_id, manager_id, username, email
+         FROM api_tokens
+         WHERE token = ? AND (expires_at IS NULL OR expires_at > NOW())"
+    );
+    $stmt->bind_param('s', $token);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row) {
+        json_response(['success' => false, 'message' => 'অবৈধ বা মেয়াদোত্তীর্ণ টোকেন'], 401);
+    }
+
+    // Session variable পুরণ করো — বাকি সব function তখন স্বাভাবিকভাবে কাজ করবে
+    $_SESSION['role']     = $row['role'];
+    $_SESSION['username'] = $row['username'];
+    $_SESSION['email']    = $row['email'];
+    if ((int)$row['driver_id']  > 0) $_SESSION['driver_id']  = (int)$row['driver_id'];
+    if ((int)$row['manager_id'] > 0) $_SESSION['manager_id'] = (int)$row['manager_id'];
+    if ((int)$row['user_id']    > 0) $_SESSION['user_id']    = (int)$row['user_id'];
+}
+
 function require_auth(): void {
+    _validate_bearer_token(); // token থাকলে session populate করে
     if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id']) && !isset($_SESSION['manager_id'])) {
         json_response(['success' => false, 'message' => 'অনুমোদন নেই — আগে লগইন করুন'], 401);
     }

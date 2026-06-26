@@ -6,9 +6,24 @@ require_once '../_helpers.php';
 
 only_method('POST');
 
-$body  = input();
-$email = trim($body['email'] ?? '');
-$pass  = $body['password'] ?? '';
+// ৩০ দিনের মেয়াদের API token তৈরি করে DB-তে সংরক্ষণ করে
+function _generate_api_token(mysqli $conn, string $role, int $user_id, int $driver_id, int $manager_id, string $username, string $email): string {
+    $token   = bin2hex(random_bytes(32)); // 64-char hex token
+    $expires = date('Y-m-d H:i:s', time() + 30 * 24 * 3600);
+    $stmt    = $conn->prepare(
+        "INSERT INTO api_tokens (token, role, user_id, driver_id, manager_id, username, email, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+    $stmt->bind_param('ssiiisss', $token, $role, $user_id, $driver_id, $manager_id, $username, $email, $expires);
+    $stmt->execute();
+    $stmt->close();
+    return $token;
+}
+
+$body      = input();
+$email     = trim($body['email'] ?? '');
+$pass      = $body['password'] ?? '';
+$is_mobile = ($body['source'] ?? '') === 'mobile';
 
 if (!$email || !$pass) {
     json_response(['success' => false, 'message' => 'ইমেইল এবং পাসওয়ার্ড দিন']);
@@ -19,16 +34,19 @@ $user = new User($conn);
 $result = $user->login($email, $pass);
 
 if ($result['success']) {
-    json_response([
-        'success' => true,
-        'message' => 'লগইন সফল হয়েছে',
-        'data'    => [
-            'id'       => (int) $_SESSION['user_id'],
-            'username' => $_SESSION['username'],
-            'email'    => $_SESSION['email'],
-            'role'     => $_SESSION['role'],
-        ],
-    ]);
+    $resp = [
+        'id'       => (int) $_SESSION['user_id'],
+        'username' => $_SESSION['username'],
+        'email'    => $_SESSION['email'],
+        'role'     => $_SESSION['role'],
+    ];
+    if ($is_mobile) {
+        $resp['token'] = _generate_api_token(
+            $conn, $_SESSION['role'], (int)$_SESSION['user_id'], 0, 0,
+            $_SESSION['username'], $_SESSION['email']
+        );
+    }
+    json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
 }
 
 // Fallback: try drivers table
@@ -47,16 +65,19 @@ if ($driver_result->num_rows === 1) {
         $_SESSION['username']  = $driver['name'];
         $_SESSION['email']     = $driver['email'];
 
-        json_response([
-            'success' => true,
-            'message' => 'লগইন সফল হয়েছে',
-            'data'    => [
-                'id'       => (int)$driver['id'],
-                'username' => $driver['name'],
-                'email'    => $driver['email'],
-                'role'     => 'driver',
-            ],
-        ]);
+        $resp = [
+            'id'       => (int)$driver['id'],
+            'username' => $driver['name'],
+            'email'    => $driver['email'],
+            'role'     => 'driver',
+        ];
+        if ($is_mobile) {
+            $resp['token'] = _generate_api_token(
+                $conn, 'driver', 0, (int)$driver['id'], 0,
+                $driver['name'], $driver['email']
+            );
+        }
+        json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
     } else {
         json_response(['success' => false, 'message' => 'অবৈধ পাসওয়ার্ড বা নিষ্ক্রিয় অ্যাকাউন্ট'], 401);
     }
@@ -80,16 +101,19 @@ if ($manager_result->num_rows === 1) {
         $_SESSION['username']   = $manager['name'];
         $_SESSION['email']      = $manager['email'];
 
-        json_response([
-            'success' => true,
-            'message' => 'লগইন সফল হয়েছে',
-            'data'    => [
-                'id'       => (int)$manager['id'],
-                'username' => $manager['name'],
-                'email'    => $manager['email'],
-                'role'     => 'manager',
-            ],
-        ]);
+        $resp = [
+            'id'       => (int)$manager['id'],
+            'username' => $manager['name'],
+            'email'    => $manager['email'],
+            'role'     => 'manager',
+        ];
+        if ($is_mobile) {
+            $resp['token'] = _generate_api_token(
+                $conn, 'manager', 0, 0, (int)$manager['id'],
+                $manager['name'], $manager['email']
+            );
+        }
+        json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
     } else {
         json_response(['success' => false, 'message' => 'অবৈধ পাসওয়ার্ড বা নিষ্ক্রিয় অ্যাকাউন্ট'], 401);
     }

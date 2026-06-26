@@ -5,6 +5,9 @@ require_once '../_helpers.php';
 
 only_method('GET');
 
+// Bearer token থাকলে session populate করবে; না থাকলে session check করবে
+require_auth();
+
 // Handle user session
 if (isset($_SESSION['user_id'])) {
     json_response([
