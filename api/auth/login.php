@@ -102,7 +102,7 @@ if ($driver_result->num_rows === 1) {
         }
         json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
     } else {
-        json_response(['success' => false, 'message' => 'অবৈধ পাসওয়ার্ড বা নিষ্ক্রিয় অ্যাকাউন্ট'], 401);
+        json_response(['success' => false, 'message' => 'অবৈধ পাসওয়ার্ড বা নিষ্ক্রিয় অ্যাকাউন্ট']);
     }
 }
 
@@ -139,9 +139,9 @@ if ($manager_result->num_rows === 1) {
         }
         json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
     } else {
-        json_response(['success' => false, 'message' => 'অবৈধ পাসওয়ার্ড বা নিষ্ক্রিয় অ্যাকাউন্ট'], 401);
+        json_response(['success' => false, 'message' => 'অবৈধ পাসওয়ার্ড বা নিষ্ক্রিয় অ্যাকাউন্ট']);
     }
 }
 
 $mstmt->close();
-json_response(['success' => false, 'message' => $result['message']], 401);
+json_response(['success' => false, 'message' => $result['message']]);

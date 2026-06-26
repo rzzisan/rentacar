@@ -23,6 +23,7 @@ import com.rzzisan.carrental.data.auth.AuthTokenStore
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
@@ -150,6 +151,12 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 } else {
                                     errorMsg = res.message ?: s.loginFailed
                                 }
+                            } catch (e: HttpException) {
+                                Log.e("LoginScreen", "HTTP ${e.code()} error", e)
+                                val body = e.response()?.errorBody()?.string()
+                                errorMsg = if (!body.isNullOrBlank() && BuildConfig.DEBUG)
+                                    "HTTP ${e.code()}: $body"
+                                else s.loginFailed
                             } catch (e: Exception) {
                                 Log.e("LoginScreen", "Login error", e)
                                 errorMsg = if (BuildConfig.DEBUG)
