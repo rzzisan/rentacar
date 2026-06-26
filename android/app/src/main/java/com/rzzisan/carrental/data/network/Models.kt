@@ -1,16 +1,13 @@
 package com.rzzisan.carrental.data.network
 
 import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
 
-@JsonClass(generateAdapter = true)
 data class ApiResponse<T>(
     val success: Boolean,
     val message: String? = null,
     val data: T? = null
 )
 
-@JsonClass(generateAdapter = true)
 data class LoginData(
     val id: Int,
     val username: String,
@@ -19,7 +16,6 @@ data class LoginData(
     val token: String? = null
 )
 
-@JsonClass(generateAdapter = true)
 data class LoginRequest(
     val email: String,
     val password: String,
@@ -27,7 +23,6 @@ data class LoginRequest(
     @Json(name = "remember_me") val rememberMe: Boolean = false
 )
 
-@JsonClass(generateAdapter = true)
 data class DriverProfile(
     val id: Int,
     val name: String,
@@ -38,14 +33,12 @@ data class DriverProfile(
     val status: String
 )
 
-@JsonClass(generateAdapter = true)
 data class ProfileData(
     val driver: DriverProfile,
     val vehicles: List<AssignedVehicle>,
     val stats: DriverStats
 )
 
-@JsonClass(generateAdapter = true)
 data class AssignedVehicle(
     val id: Int,
     val brand: String,
@@ -55,7 +48,6 @@ data class AssignedVehicle(
     @Json(name = "vehicle_type") val vehicleType: String
 )
 
-@JsonClass(generateAdapter = true)
 data class DriverStats(
     @Json(name = "total_trips") val totalTrips: Int,
     @Json(name = "completed_trips") val completedTrips: Int,
@@ -63,7 +55,6 @@ data class DriverStats(
     @Json(name = "pending_trips") val pendingTrips: Int
 )
 
-@JsonClass(generateAdapter = true)
 data class Rental(
     val id: Int,
     @Json(name = "vehicle_id") val vehicleId: Int,
@@ -86,7 +77,6 @@ data class Rental(
     val notes: String?
 )
 
-@JsonClass(generateAdapter = true)
 data class CreateRentalRequest(
     @Json(name = "passenger_name") val passengerName: String,
     @Json(name = "passenger_mobile") val passengerMobile: String,
@@ -99,7 +89,6 @@ data class CreateRentalRequest(
     val notes: String? = null
 )
 
-@JsonClass(generateAdapter = true)
 data class UpdateStatusRequest(
     val status: String,
     @Json(name = "location_name") val locationName: String,
@@ -107,7 +96,6 @@ data class UpdateStatusRequest(
     val longitude: Double
 )
 
-@JsonClass(generateAdapter = true)
 data class TripExpense(
     val id: Int,
     @Json(name = "rental_id") val rentalId: Int,
@@ -121,7 +109,6 @@ data class TripExpense(
     @Json(name = "created_at") val createdAt: String
 )
 
-@JsonClass(generateAdapter = true)
 data class Settlement(
     val id: Int,
     @Json(name = "rental_id") val rentalId: Int,
@@ -137,7 +124,6 @@ data class Settlement(
     @Json(name = "dropoff_location") val dropoffLocation: String?
 )
 
-@JsonClass(generateAdapter = true)
 data class MonthlyBreakdown(
     val month: String,
     @Json(name = "trip_count") val tripCount: Int,
@@ -146,7 +132,6 @@ data class MonthlyBreakdown(
     val pending: Double
 )
 
-@JsonClass(generateAdapter = true)
 data class LedgerData(
     val settlements: List<Settlement>,
     @Json(name = "monthly_breakdown") val monthlyBreakdown: List<MonthlyBreakdown>,

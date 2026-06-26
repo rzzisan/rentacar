@@ -15,6 +15,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
+import com.rzzisan.carrental.BuildConfig
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.data.network.LoginRequest
 import com.rzzisan.carrental.data.auth.AuthTokenStore
@@ -149,7 +151,10 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                     errorMsg = res.message ?: s.loginFailed
                                 }
                             } catch (e: Exception) {
-                                errorMsg = s.serverError
+                                Log.e("LoginScreen", "Login error", e)
+                                errorMsg = if (BuildConfig.DEBUG)
+                                    "${s.serverError}\n${e.javaClass.simpleName}: ${e.message}"
+                                else s.serverError
                             } finally {
                                 loading = false
                             }
