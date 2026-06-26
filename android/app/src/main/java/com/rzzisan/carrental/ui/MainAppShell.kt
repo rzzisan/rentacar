@@ -20,8 +20,9 @@ import com.rzzisan.carrental.ui.theme.Primary
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
-    object Ledger  : Screen("ledger")
+    object Home    : Screen("home")
     object Trips   : Screen("trips")
+    object Ledger  : Screen("ledger")
     object Profile : Screen("profile")
 }
 
@@ -32,9 +33,13 @@ fun MainAppShell(onLogout: () -> Unit) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
 
+    // Trip ID to auto-open when navigating from Home → Trips
+    var pendingTripId by remember { mutableStateOf<Int?>(null) }
+
     val navItems = listOf(
-        Triple(Screen.Ledger,  Icons.Filled.AccountBalanceWallet, s.navLedger),
+        Triple(Screen.Home,    Icons.Filled.Home,                 s.navHome),
         Triple(Screen.Trips,   Icons.Filled.DirectionsCar,        s.navTrips),
+        Triple(Screen.Ledger,  Icons.Filled.AccountBalanceWallet, s.navLedger),
         Triple(Screen.Profile, Icons.Filled.Person,               s.navProfile),
     )
 
@@ -63,11 +68,27 @@ fun MainAppShell(onLogout: () -> Unit) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Ledger.route,
+            startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Ledger.route)  { LedgerScreen() }
-            composable(Screen.Trips.route)   { TripsScreen(navController) }
+            composable(Screen.Home.route) {
+                HomeScreen(onTripClick = { tripId ->
+                    pendingTripId = tripId
+                    navController.navigate(Screen.Trips.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                })
+            }
+            composable(Screen.Trips.route) {
+                TripsScreen(
+                    navController = navController,
+                    openTripId = pendingTripId,
+                    onTripOpened = { pendingTripId = null }
+                )
+            }
+            composable(Screen.Ledger.route) { LedgerScreen() }
             composable(Screen.Profile.route) {
                 ProfileScreen(onLogout = {
                     scope.launch {

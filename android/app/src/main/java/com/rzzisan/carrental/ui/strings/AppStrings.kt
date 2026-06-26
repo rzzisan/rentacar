@@ -30,9 +30,11 @@ abstract class AppStrings {
     abstract val serverError: String
 
     // Nav
+    abstract val navHome: String
     abstract val navLedger: String
     abstract val navTrips: String
     abstract val navProfile: String
+    abstract val viewTripBtn: String
 
     // Dashboard / Ledger
     abstract val ledgerTitle: String
@@ -321,10 +323,12 @@ object BanglaStrings : AppStrings() {
     override val loggingIn            = "লগইন হচ্ছে..."
     override val loginFailed          = "লগইন ব্যর্থ হয়েছে"
     override val serverError          = "সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে"
-    override val navLedger            = "আমার লেজার"
+    override val navHome              = "হোম"
+    override val navLedger            = "হিসাব"
     override val navTrips             = "আমার ট্রিপ"
     override val navProfile           = "প্রোফাইল"
-    override val ledgerTitle          = "আমার লেজার"
+    override val viewTripBtn          = "ট্রিপ দেখুন →"
+    override val ledgerTitle          = "হিসাব"
     override val thisMonth            = "এই মাস"
     override val lastMonth            = "গত মাস"
     override val earned               = "আয়"
@@ -574,9 +578,11 @@ object EnglishStrings : AppStrings() {
     override val loggingIn            = "Logging in..."
     override val loginFailed          = "Login failed"
     override val serverError          = "Server connection failed"
-    override val navLedger            = "My Ledger"
+    override val navHome              = "Home"
+    override val navLedger            = "Ledger"
     override val navTrips             = "My Trips"
     override val navProfile           = "Profile"
+    override val viewTripBtn          = "View Trip →"
     override val ledgerTitle          = "My Ledger"
     override val thisMonth            = "This Month"
     override val lastMonth            = "Last Month"

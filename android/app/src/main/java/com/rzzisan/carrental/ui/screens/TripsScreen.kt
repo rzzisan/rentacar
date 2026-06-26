@@ -1,7 +1,6 @@
 package com.rzzisan.carrental.ui.screens
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -14,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +32,11 @@ import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.background
+import coil.compose.AsyncImage
 import com.rzzisan.carrental.BuildConfig
 import com.rzzisan.carrental.data.network.*
 import com.rzzisan.carrental.ui.strings.LocalStrings
@@ -73,7 +78,11 @@ private fun statusColor(status: String) = when (status) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TripsScreen(navController: NavController) {
+fun TripsScreen(
+    navController: NavController,
+    openTripId: Int? = null,
+    onTripOpened: () -> Unit = {}
+) {
     val s = LocalStrings.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -149,6 +158,14 @@ fun TripsScreen(navController: NavController) {
     }
 
     LaunchedEffect(statusFilter) { load() }
+
+    // Auto-open trip detail when coming from Home screen
+    LaunchedEffect(openTripId, rentals) {
+        if (openTripId != null && !loading) {
+            detailRentalId = openTripId
+            onTripOpened()
+        }
+    }
 
     LaunchedEffect(snackMsg) {
         if (snackMsg.isNotEmpty()) {
@@ -532,11 +549,12 @@ private fun TripDetailSheet(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var rental     by remember { mutableStateOf<Rental?>(null) }
-    var expenses   by remember { mutableStateOf<List<TripExpense>>(emptyList()) }
-    var loading    by remember { mutableStateOf(true) }
-    var actionMsg  by remember { mutableStateOf("") }
+    var rental        by remember { mutableStateOf<Rental?>(null) }
+    var expenses      by remember { mutableStateOf<List<TripExpense>>(emptyList()) }
+    var loading       by remember { mutableStateOf(true) }
+    var actionMsg     by remember { mutableStateOf("") }
     var actionLoading by remember { mutableStateOf(false) }
+    var previewUrl    by remember { mutableStateOf<String?>(null) }
 
     fun reload() {
         scope.launch {
@@ -679,7 +697,7 @@ private fun TripDetailSheet(
                             Text(s.noExpenses, fontSize = 13.sp, color = InkMuted)
                         } else {
                             expenses.forEach { exp ->
-                                ExpenseItem(exp, s)
+                                ExpenseItem(exp, s, onReceiptClick = { url -> previewUrl = url })
                             }
                             Surface(shape = RoundedCornerShape(8.dp), color = PrimaryLight) {
                                 Row(
@@ -709,13 +727,49 @@ private fun TripDetailSheet(
             }
         }
     }
+
+    // ── In-app receipt preview ─────────────────────────────────────────
+    if (previewUrl != null) {
+        Dialog(
+            onDismissRequest = { previewUrl = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f))
+                    .clickable { previewUrl = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = previewUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentScale = ContentScale.Fit
+                )
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.15f)
+                ) {
+                    Text("✕", color = Color.White, fontSize = 18.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                }
+            }
+        }
+    }
 }
 
 // ── Expense item ───────────────────────────────────────────────────────────
 
 @Composable
-private fun ExpenseItem(exp: TripExpense, s: com.rzzisan.carrental.ui.strings.AppStrings) {
-    val context = LocalContext.current
+private fun ExpenseItem(
+    exp: TripExpense,
+    s: com.rzzisan.carrental.ui.strings.AppStrings,
+    onReceiptClick: (String) -> Unit = {}
+) {
     Card(shape = RoundedCornerShape(8.dp), border = CardDefaults.outlinedCardBorder()) {
         Row(Modifier.padding(10.dp).fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Top) {
             Column(Modifier.weight(1f)) {
@@ -728,10 +782,7 @@ private fun ExpenseItem(exp: TripExpense, s: com.rzzisan.carrental.ui.strings.Ap
                 if (!exp.receiptImage.isNullOrBlank()) {
                     val receiptUrl = BuildConfig.API_BASE_URL.substringBefore("api/") + "public/" + exp.receiptImage
                     TextButton(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(receiptUrl))
-                            context.startActivity(intent)
-                        },
+                        onClick = { onReceiptClick(receiptUrl) },
                         contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)
                     ) {
                         Icon(Icons.Filled.Image, null, Modifier.size(14.dp), tint = Primary)
