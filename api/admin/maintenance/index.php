@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              km_reading, next_due_date, next_due_km, cost, status)
          VALUES (?,?,?,?,?,?,?,?,?,?,?)"
     );
-    $stmt->bind_param('isssssisis', $vehicle_id, $type, $desc, $vendor, $start_date,
+    $stmt->bind_param('isssssisiss', $vehicle_id, $type, $desc, $vendor, $start_date,
         $end_date, $km, $next_date, $next_km, $cost, $status);
     $stmt->execute();
     $new_id = $stmt->insert_id;

@@ -31,7 +31,7 @@ $stmt = $conn->prepare(
         km_reading=?, next_due_date=?, next_due_km=?, cost=?, status=?
      WHERE id=?"
 );
-$stmt->bind_param('sssssisisii', $type, $desc, $vendor, $start, $end,
+$stmt->bind_param('sssssisissi', $type, $desc, $vendor, $start, $end,
     $km, $next_date, $next_km, $cost, $status, $id);
 $stmt->execute();
 $stmt->close();
