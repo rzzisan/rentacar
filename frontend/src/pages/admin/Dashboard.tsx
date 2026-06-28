@@ -3,6 +3,20 @@ import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import type { Rental } from '@/types';
 
+interface ExpiringDoc {
+  id: number;
+  vehicle: string;
+  registration_number: string;
+  doc_type: string;
+  expiry_date: string;
+  days_remaining: number;
+}
+
+const DOC_LABELS: Record<string, string> = {
+  fitness: 'ফিটনেস', insurance: 'বীমা', tax_token: 'ট্যাক্স টোকেন',
+  route_permit: 'রুট পারমিট', registration: 'রেজিস্ট্রেশন', other: 'ডকুমেন্ট',
+};
+
 interface Stats {
   total_vehicles: number;
   available_vehicles: number;
@@ -90,18 +104,21 @@ const statCards = (s: Stats) => [
 ];
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [now, setNow] = useState(Date.now());
+  const [stats, setStats]         = useState<Stats | null>(null);
+  const [expiringDocs, setExpiring] = useState<ExpiringDoc[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+  const [now, setNow]             = useState(Date.now());
 
   useEffect(() => {
-    api.get<Stats>('/admin/stats.php')
-      .then(res => {
-        if (res.success && res.data) setStats(res.data);
-        else setError(res.message ?? 'ডেটা লোড ব্যর্থ');
-      })
-      .catch(() => setError('সার্ভার সংযোগ ব্যর্থ'))
+    Promise.all([
+      api.get<Stats>('/admin/stats.php'),
+      api.get<ExpiringDoc[]>('/admin/documents/index.php?expiring_days=60'),
+    ]).then(([sres, dres]) => {
+      if (sres.success && sres.data) setStats(sres.data);
+      else setError(sres.message ?? 'ডেটা লোড ব্যর্থ');
+      if (dres.success && dres.data) setExpiring(dres.data);
+    }).catch(() => setError('সার্ভার সংযোগ ব্যর্থ'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -123,6 +140,34 @@ export default function AdminDashboard() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-4">
           {error}
+        </div>
+      )}
+
+      {/* ডকুমেন্ট মেয়াদ সতর্কতা */}
+      {expiringDocs.length > 0 && (
+        <div className="mb-5 bg-amber-50 border border-amber-300 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-amber-600 font-bold text-sm">⚠️ মেয়াদ শেষ হচ্ছে ({expiringDocs.length}টি ডকুমেন্ট)</span>
+            <Link to="/admin/maintenance" className="ml-auto text-xs text-indigo-600 hover:underline">সব দেখুন →</Link>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {expiringDocs.slice(0, 6).map(d => (
+              <div key={d.id} className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium ${
+                d.days_remaining < 0 ? 'bg-red-100 border-red-300 text-red-700'
+                : d.days_remaining <= 15 ? 'bg-red-50 border-red-200 text-red-600'
+                : d.days_remaining <= 30 ? 'bg-orange-50 border-orange-200 text-orange-600'
+                : 'bg-yellow-50 border-yellow-200 text-yellow-700'
+              }`}>
+                <span className="font-semibold">{d.vehicle}</span> · {DOC_LABELS[d.doc_type] ?? d.doc_type}
+                <span className="ml-1 opacity-80">
+                  {d.days_remaining < 0 ? `(${Math.abs(d.days_remaining)}দি আগে শেষ)` : `(${d.days_remaining}দি বাকি)`}
+                </span>
+              </div>
+            ))}
+            {expiringDocs.length > 6 && (
+              <div className="text-xs px-2.5 py-1.5 text-gray-500">+{expiringDocs.length - 6}টি আরও</div>
+            )}
+          </div>
         </div>
       )}
 
