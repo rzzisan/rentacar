@@ -18,9 +18,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.data.network.LedgerData
 import com.rzzisan.carrental.data.network.Rental
+import com.rzzisan.carrental.service.LocationTrackingService
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.async
@@ -30,7 +32,8 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onTripClick: (Int) -> Unit) {
-    val s = LocalStrings.current
+    val s       = LocalStrings.current
+    val context = LocalContext.current
     var activeTrips  by remember { mutableStateOf<List<Rental>>(emptyList()) }
     var pendingTrips by remember { mutableStateOf<List<Rental>>(emptyList()) }
     var ledger       by remember { mutableStateOf<LedgerData?>(null) }
@@ -56,6 +59,13 @@ fun HomeScreen(onTripClick: (Int) -> Unit) {
             }
         } catch (_: Exception) {}
         finally { loading = false }
+    }
+
+    // অ্যাপ খুললে active trip থাকলে LocationTrackingService নিশ্চিত করো
+    LaunchedEffect(activeTrips) {
+        activeTrips.firstOrNull()?.let { trip ->
+            LocationTrackingService.start(context, trip.id)
+        }
     }
 
     Scaffold(

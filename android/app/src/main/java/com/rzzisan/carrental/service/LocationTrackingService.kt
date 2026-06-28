@@ -31,14 +31,21 @@ class LocationTrackingService : Service() {
         private const val CHANNEL_ID      = "location_tracking"
         private const val NOTIFICATION_ID = 1001
         const val  EXTRA_RENTAL_ID        = "rental_id"
+        private const val PREF_NAME       = "location_tracking_prefs"
+        private const val PREF_RENTAL_ID  = "active_rental_id"
 
         fun start(context: Context, rentalId: Int) {
+            // SharedPreferences-এ rentalId সংরক্ষণ (service restart-এ টিকে থাকবে)
+            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .edit().putInt(PREF_RENTAL_ID, rentalId).apply()
             val intent = Intent(context, LocationTrackingService::class.java)
                 .putExtra(EXTRA_RENTAL_ID, rentalId)
             ContextCompat.startForegroundService(context, intent)
         }
 
         fun stop(context: Context) {
+            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .edit().remove(PREF_RENTAL_ID).apply()
             context.stopService(Intent(context, LocationTrackingService::class.java))
         }
     }
@@ -49,10 +56,15 @@ class LocationTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val rentalId = intent?.getIntExtra(EXTRA_RENTAL_ID, 0) ?: 0
+        // Intent থেকে rentalId পাও। null intent (START_STICKY restart) হলে
+        // SharedPreferences থেকে শেষবারের rentalId পুনরুদ্ধার করো।
+        val rentalId = intent?.getIntExtra(EXTRA_RENTAL_ID, 0)
+            ?.takeIf { it != 0 }
+            ?: getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getInt(PREF_RENTAL_ID, 0)
+
         if (rentalId == 0) { stopSelf(); return START_NOT_STICKY }
 
-        // Foreground notification — required for background location access
         val notifIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this, 0, notifIntent,
@@ -69,7 +81,6 @@ class LocationTrackingService : Service() {
 
         startForeground(NOTIFICATION_ID, notification)
 
-        // Cancel any previous job, start fresh
         trackingJob?.cancel()
         trackingJob = scope.launch { trackLoop(rentalId) }
 

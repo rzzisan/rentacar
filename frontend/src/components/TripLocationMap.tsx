@@ -117,9 +117,7 @@ export default function TripLocationMap({ rentalId, apiPrefix }: Props) {
   )
 
   const polyline: [number, number][] = data.points.map(p => [p.lat, p.lng])
-  const first = data.points[0]
-  const last  = data.points[data.points.length - 1]
-  const mids  = data.points.slice(1, -1)
+  const first  = data.points[0]
   const center: [number, number] = [first.lat, first.lng]
 
   return (
@@ -130,10 +128,10 @@ export default function TripLocationMap({ rentalId, apiPrefix }: Props) {
           <span className="font-semibold text-gray-800">{data.total_points}</span>টি পয়েন্ট
         </span>
         <span>
-          শুরু: <span className="font-medium">{fmtTime(first.recorded_at)}</span>
+          শুরু: <span className="font-medium">{fmtTime(data.points[0].recorded_at)}</span>
         </span>
         <span>
-          শেষ: <span className="font-medium">{fmtTime(last.recorded_at)}</span>
+          শেষ: <span className="font-medium">{fmtTime(data.points[data.points.length - 1].recorded_at)}</span>
         </span>
         {data.driver_name && (
           <span>চালক: <span className="font-medium">{data.driver_name}</span></span>
@@ -177,38 +175,29 @@ export default function TripLocationMap({ rentalId, apiPrefix }: Props) {
             pathOptions={{ color: '#4F46E5', weight: 3, opacity: 0.75 }}
           />
 
-          {/* Start marker */}
-          <Marker position={[first.lat, first.lng]} icon={startIcon}>
-            <Popup>
-              <div className="text-sm">
-                <p className="font-semibold text-emerald-700">🟢 যাত্রা শুরু</p>
-                <p>{fmtTime(first.recorded_at)}</p>
-              </div>
-            </Popup>
-          </Marker>
-
-          {/* Middle markers — only show every 3rd point to avoid clutter */}
-          {mids.filter((_, i) => i % 3 === 0).map(pt => (
-            <Marker key={pt.id} position={[pt.lat, pt.lng]} icon={midIcon}>
-              <Popup>
-                <p className="text-xs">{fmtTime(pt.recorded_at)}</p>
-              </Popup>
-            </Marker>
-          ))}
-
-          {/* Last marker */}
-          {data.points.length > 1 && (
-            <Marker position={[last.lat, last.lng]} icon={lastIcon}>
-              <Popup>
-                <div className="text-sm">
-                  <p className="font-semibold text-red-700">
-                    {data.rental_status === 'completed' ? '🏁 যাত্রা শেষ' : '📍 সর্বশেষ অবস্থান'}
-                  </p>
-                  <p>{fmtTime(last.recorded_at)}</p>
-                </div>
-              </Popup>
-            </Marker>
-          )}
+          {/* সব recorded point — প্রথমটি সবুজ, শেষটি লাল, বাকিগুলো নীল */}
+          {data.points.map((pt, idx) => {
+            const isFirst = idx === 0
+            const isLast  = idx === data.points.length - 1
+            const icon    = isFirst ? startIcon : isLast ? lastIcon : midIcon
+            return (
+              <Marker key={pt.id} position={[pt.lat, pt.lng]} icon={icon}>
+                <Popup>
+                  <div className="text-sm">
+                    {isFirst && <p className="font-semibold text-emerald-700">🟢 যাত্রা শুরু</p>}
+                    {isLast && !isFirst && (
+                      <p className="font-semibold text-red-700">
+                        {data.rental_status === 'completed' ? '🏁 যাত্রা শেষ' : '📍 সর্বশেষ অবস্থান'}
+                      </p>
+                    )}
+                    {!isFirst && !isLast && <p className="font-semibold text-indigo-700">📍 পয়েন্ট {idx + 1}</p>}
+                    <p className="text-gray-600 mt-1">{fmtTime(pt.recorded_at)}</p>
+                    {pt.accuracy && <p className="text-gray-400 text-xs">নির্ভুলতা: ±{Math.round(pt.accuracy)}মি</p>}
+                  </div>
+                </Popup>
+              </Marker>
+            )
+          })}
         </MapContainer>
       </div>
     </div>
