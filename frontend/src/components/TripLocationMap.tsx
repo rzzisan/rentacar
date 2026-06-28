@@ -12,24 +12,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-const startIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:14px;height:14px;background:#059669;border-radius:50%;border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-})
-const lastIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:14px;height:14px;background:#DC2626;border-radius:50%;border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-})
-const midIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:8px;height:8px;background:#4F46E5;border-radius:50%;border:1.5px solid white;box-shadow:0 1px 2px rgba(0,0,0,0.3)"></div>`,
-  iconSize: [8, 8],
-  iconAnchor: [4, 4],
-})
+function makeIcon(color: string, size: number, count = 1) {
+  const badge = count > 1
+    ? `<div style="position:absolute;top:-6px;right:-6px;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;border-radius:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;box-shadow:0 1px 2px rgba(0,0,0,0.4)">×${count}</div>`
+    : ''
+  return L.divIcon({
+    className: '',
+    html: `<div style="position:relative;width:${size}px;height:${size}px">
+      <div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>
+      ${badge}
+    </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  })
+}
 
 interface LocationPoint {
   id: number
@@ -74,6 +70,29 @@ function fmtTime(dt: string) {
   })
 }
 
+// একই/কাছাকাছি (≤15m) পয়েন্টগুলো cluster করে — প্রথমটি রেখে বাকিগুলো count-এ যোগ করে
+function clusterPoints(points: LocationPoint[]) {
+  const R = 6371000 // পৃথিবীর radius (মিটার)
+  const THRESHOLD = 15 // মিটার
+
+  function dist(a: LocationPoint, b: LocationPoint) {
+    const dLat = (b.lat - a.lat) * Math.PI / 180
+    const dLng = (b.lng - a.lng) * Math.PI / 180
+    const sin2 = Math.sin(dLat / 2) ** 2 +
+      Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2
+    return 2 * R * Math.asin(Math.sqrt(sin2))
+  }
+
+  const result: (LocationPoint & { count: number })[] = []
+  for (const pt of points) {
+    const existing = result.find(r => dist(r, pt) <= THRESHOLD)
+    if (existing) existing.count++
+    else result.push({ ...pt, count: 1 })
+  }
+  return result
+}
+
 interface Props {
   rentalId: number
   apiPrefix: 'admin' | 'manager'
@@ -116,16 +135,21 @@ export default function TripLocationMap({ rentalId, apiPrefix }: Props) {
     </div>
   )
 
-  const polyline: [number, number][] = data.points.map(p => [p.lat, p.lng])
-  const first  = data.points[0]
-  const center: [number, number] = [first.lat, first.lng]
+  const clustered  = clusterPoints(data.points)
+  const polyline: [number, number][] = clustered.map(p => [p.lat, p.lng])
+  const center: [number, number] = [clustered[0].lat, clustered[0].lng]
+  const uniqueCount  = clustered.length
+  const totalCount   = data.total_points
 
   return (
     <div className="space-y-3">
       {/* Stats bar */}
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-600">
         <span>
-          <span className="font-semibold text-gray-800">{data.total_points}</span>টি পয়েন্ট
+          <span className="font-semibold text-gray-800">{totalCount}</span>টি পয়েন্ট
+          {uniqueCount < totalCount && (
+            <span className="text-gray-400 ml-1">({uniqueCount}টি অবস্থান)</span>
+          )}
         </span>
         <span>
           শুরু: <span className="font-medium">{fmtTime(data.points[0].recorded_at)}</span>
@@ -152,6 +176,10 @@ export default function TripLocationMap({ rentalId, apiPrefix }: Props) {
           <span className="inline-block w-3 h-3 rounded-full bg-red-600 border border-white shadow-sm"></span>
           সর্বশেষ
         </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block bg-amber-400 text-white text-[9px] font-bold rounded-full px-1 leading-4">×N</span>
+          একই স্থানে একাধিক
+        </span>
       </div>
 
       {/* Map */}
@@ -175,11 +203,13 @@ export default function TripLocationMap({ rentalId, apiPrefix }: Props) {
             pathOptions={{ color: '#4F46E5', weight: 3, opacity: 0.75 }}
           />
 
-          {/* সব recorded point — প্রথমটি সবুজ, শেষটি লাল, বাকিগুলো নীল */}
-          {data.points.map((pt, idx) => {
+          {/* Clustered markers — প্রথমটি সবুজ, শেষটি লাল, বাকিগুলো নীল; count badge দেখায় */}
+          {clustered.map((pt, idx) => {
             const isFirst = idx === 0
-            const isLast  = idx === data.points.length - 1
-            const icon    = isFirst ? startIcon : isLast ? lastIcon : midIcon
+            const isLast  = idx === clustered.length - 1
+            const color   = isFirst ? '#059669' : isLast ? '#DC2626' : '#4F46E5'
+            const size    = isFirst || isLast ? 14 : 10
+            const icon    = makeIcon(color, size, pt.count)
             return (
               <Marker key={pt.id} position={[pt.lat, pt.lng]} icon={icon}>
                 <Popup>
@@ -192,6 +222,9 @@ export default function TripLocationMap({ rentalId, apiPrefix }: Props) {
                     )}
                     {!isFirst && !isLast && <p className="font-semibold text-indigo-700">📍 পয়েন্ট {idx + 1}</p>}
                     <p className="text-gray-600 mt-1">{fmtTime(pt.recorded_at)}</p>
+                    {pt.count > 1 && (
+                      <p className="text-amber-600 text-xs font-medium">এই স্থানে {pt.count}টি রেকর্ড</p>
+                    )}
                     {pt.accuracy && <p className="text-gray-400 text-xs">নির্ভুলতা: ±{Math.round(pt.accuracy)}মি</p>}
                   </div>
                 </Popup>
