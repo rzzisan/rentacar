@@ -87,6 +87,52 @@ export interface TripExpense {
   created_at: string;
 }
 
+export interface Customer {
+  id: number;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email?: string;
+  nid?: string;
+  address?: string;
+  city?: string;
+  license_number?: string;
+  license_expiry?: string;
+  status: 'active' | 'inactive';
+  created_at?: string;
+  total_trips?: number;
+  completed_trips?: number;
+  total_spent?: number;
+  last_trip_date?: string;
+}
+
+export interface CustomerDetail {
+  customer: Customer;
+  stats: {
+    total_trips: number;
+    completed_trips: number;
+    total_spent: number;
+    pending_payment_trips: number;
+  };
+  rentals: {
+    id: number;
+    start_date: string;
+    end_date?: string;
+    actual_start_time?: string;
+    actual_end_time?: string;
+    pickup_location?: string;
+    dropoff_location?: string;
+    trip_type: 'one_way' | 'round_trip';
+    agreed_amount: number;
+    rental_status: 'pending' | 'active' | 'completed' | 'cancelled';
+    payment_status: 'pending' | 'paid' | 'partial' | 'refunded';
+    vehicle_brand?: string;
+    vehicle_model?: string;
+    vehicle_reg?: string;
+    driver_name?: string;
+  }[];
+}
+
 export interface Driver {
   id: number;
   name: string;

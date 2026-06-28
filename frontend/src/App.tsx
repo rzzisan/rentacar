@@ -18,6 +18,7 @@ import ManagerSettlements from '@/pages/manager/Settlements';
 import ManagerDrivers from '@/pages/manager/Drivers';
 import ManagerDriverCollections from '@/pages/manager/DriverCollections';
 import ManagerReports from '@/pages/manager/Reports';
+import AdminCustomers from '@/pages/admin/Customers';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
 import type { User } from '@/types';
@@ -117,7 +118,7 @@ export default function App() {
           <Route path="rentals"     element={<AdminRentals />} />
           <Route path="settlements" element={<AdminSettlements />} />
           <Route path="driver-collections" element={<DriverCollections />} />
-          <Route path="customers"   element={<PlaceholderPage title="গ্রাহক ব্যবস্থাপনা" />} />
+          <Route path="customers"   element={<AdminCustomers />} />
           <Route path="drivers"     element={<AdminDrivers />} />
           <Route path="managers"    element={<AdminManagers />} />
           <Route path="employees"   element={<PlaceholderPage title="কর্মচারী" />} />
