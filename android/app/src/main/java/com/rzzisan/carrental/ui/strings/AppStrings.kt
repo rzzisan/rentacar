@@ -298,6 +298,31 @@ abstract class AppStrings {
     abstract val totalCommissionLabel: String
     abstract val totalPaidLabel: String
     abstract val expDriverAllowance: String
+
+    // Customer Management
+    abstract val navCustomers: String
+    abstract val customersTitle: String
+    abstract val noCustomers: String
+    abstract val addCustomer: String
+    abstract val editCustomer: String
+    abstract val customerAdded: String
+    abstract val customerUpdated: String
+    abstract val customerDetail: String
+    abstract val totalSpent: String
+    abstract val lastTrip: String
+    abstract val nidLabel: String
+    abstract val licenseLabel: String
+    abstract val licenseExpiry: String
+    abstract val cityLabel: String
+    abstract val addressLabel: String
+    abstract val customerTrips: String
+    abstract val customerActivated: String
+    abstract val customerDeactivated: String
+    abstract val deactivate: String
+    abstract val activate: String
+    abstract val pendingPayments: String
+    abstract val firstName: String
+    abstract val lastName: String
 }
 
 object BanglaStrings : AppStrings() {
@@ -553,6 +578,31 @@ object BanglaStrings : AppStrings() {
     override val totalCommissionLabel = "মোট কমিশন"
     override val totalPaidLabel       = "মোট পরিশোধ"
     override val expDriverAllowance   = "ভাতা"
+
+    // Customer Management
+    override val navCustomers         = "গ্রাহক"
+    override val customersTitle       = "গ্রাহক তালিকা"
+    override val noCustomers          = "কোনো গ্রাহক নেই"
+    override val addCustomer          = "গ্রাহক যোগ করুন"
+    override val editCustomer         = "গ্রাহক সম্পাদনা"
+    override val customerAdded        = "গ্রাহক সফলভাবে যোগ হয়েছে"
+    override val customerUpdated      = "গ্রাহক আপডেট হয়েছে"
+    override val customerDetail       = "গ্রাহক বিবরণ"
+    override val totalSpent           = "মোট ব্যয়"
+    override val lastTrip             = "সর্বশেষ ট্রিপ"
+    override val nidLabel             = "NID"
+    override val licenseLabel         = "লাইসেন্স"
+    override val licenseExpiry        = "মেয়াদ"
+    override val cityLabel            = "শহর"
+    override val addressLabel         = "ঠিকানা"
+    override val customerTrips        = "ট্রিপ ইতিহাস"
+    override val customerActivated    = "গ্রাহক সক্রিয় করা হয়েছে"
+    override val customerDeactivated  = "গ্রাহক নিষ্ক্রিয় করা হয়েছে"
+    override val deactivate           = "নিষ্ক্রিয় করুন"
+    override val activate             = "সক্রিয় করুন"
+    override val pendingPayments      = "বকেয়া পেমেন্ট"
+    override val firstName            = "প্রথম নাম"
+    override val lastName             = "শেষ নাম"
 }
 
 object EnglishStrings : AppStrings() {
@@ -808,4 +858,29 @@ object EnglishStrings : AppStrings() {
     override val totalCommissionLabel = "Total Commission"
     override val totalPaidLabel       = "Total Paid"
     override val expDriverAllowance   = "Allowance"
+
+    // Customer Management
+    override val navCustomers         = "Customers"
+    override val customersTitle       = "Customer List"
+    override val noCustomers          = "No customers found"
+    override val addCustomer          = "Add Customer"
+    override val editCustomer         = "Edit Customer"
+    override val customerAdded        = "Customer added successfully"
+    override val customerUpdated      = "Customer updated"
+    override val customerDetail       = "Customer Detail"
+    override val totalSpent           = "Total Spent"
+    override val lastTrip             = "Last Trip"
+    override val nidLabel             = "NID"
+    override val licenseLabel         = "License"
+    override val licenseExpiry        = "Expiry"
+    override val cityLabel            = "City"
+    override val addressLabel         = "Address"
+    override val customerTrips        = "Trip History"
+    override val customerActivated    = "Customer activated"
+    override val customerDeactivated  = "Customer deactivated"
+    override val deactivate           = "Deactivate"
+    override val activate             = "Activate"
+    override val pendingPayments      = "Pending Payments"
+    override val firstName            = "First Name"
+    override val lastName             = "Last Name"
 }

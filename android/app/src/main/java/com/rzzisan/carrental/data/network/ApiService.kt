@@ -290,4 +290,41 @@ interface ApiService {
 
     @GET("manager/reports.php")
     suspend fun getManagerReports(): ApiResponse<ManagerReport>
+
+    // ── Admin Customers ───────────────────────────────────────────
+
+    @GET("admin/customers/index.php")
+    suspend fun getAdminCustomers(
+        @Query("search") search: String? = null,
+        @Query("status") status: String? = null
+    ): ApiResponse<List<CustomerListItem>>
+
+    @GET("admin/customers/show.php")
+    suspend fun getAdminCustomerDetail(@Query("id") id: Int): ApiResponse<CustomerDetailData>
+
+    @POST("admin/customers/index.php")
+    suspend fun createCustomer(@Body request: CreateCustomerRequest): ApiResponse<Map<String, Int>>
+
+    @PUT("admin/customers/update.php")
+    suspend fun updateCustomer(
+        @Query("id") id: Int,
+        @Body request: UpdateCustomerRequest
+    ): ApiResponse<Unit>
+
+    @PUT("admin/customers/status.php")
+    suspend fun updateCustomerStatus(
+        @Query("id") id: Int,
+        @Body request: CustomerStatusRequest
+    ): ApiResponse<Unit>
+
+    // ── Manager Customers ─────────────────────────────────────────
+
+    @GET("manager/customers/index.php")
+    suspend fun getManagerCustomers(
+        @Query("search") search: String? = null,
+        @Query("status") status: String? = null
+    ): ApiResponse<List<CustomerListItem>>
+
+    @GET("manager/customers/show.php")
+    suspend fun getManagerCustomerDetail(@Query("id") id: Int): ApiResponse<CustomerDetailData>
 }

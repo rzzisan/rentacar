@@ -14,6 +14,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.rzzisan.carrental.data.auth.AuthTokenStore
 import com.rzzisan.carrental.data.network.ApiClient
+import com.rzzisan.carrental.ui.screens.admin.AdminCustomersScreen
 import com.rzzisan.carrental.ui.screens.manager.*
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.Primary
@@ -26,6 +27,7 @@ sealed class ManagerScreen(val route: String) {
     object Settlements : ManagerScreen("mgr_settlements")
     object Drivers     : ManagerScreen("mgr_drivers")
     object Reports     : ManagerScreen("mgr_reports")
+    object Customers   : ManagerScreen("mgr_customers")
 }
 
 @Composable
@@ -40,6 +42,7 @@ fun ManagerAppShell(onLogout: () -> Unit) {
         Triple(ManagerScreen.Rentals,     Icons.Filled.Assignment,        s.navRentals),
         Triple(ManagerScreen.Settlements, Icons.Filled.AccountBalance,    s.navSettlements),
         Triple(ManagerScreen.Drivers,     Icons.Filled.People,            s.navMgrDrivers),
+        Triple(ManagerScreen.Customers,   Icons.Filled.Group,             s.navCustomers),
         Triple(ManagerScreen.Reports,     Icons.Filled.BarChart,          s.navReports),
     )
 
@@ -84,6 +87,7 @@ fun ManagerAppShell(onLogout: () -> Unit) {
             composable(ManagerScreen.Rentals.route)     { ManagerRentalsScreen() }
             composable(ManagerScreen.Settlements.route) { ManagerSettlementsScreen() }
             composable(ManagerScreen.Drivers.route)     { ManagerDriversScreen() }
+            composable(ManagerScreen.Customers.route)   { AdminCustomersScreen(isAdmin = false) }
             composable(ManagerScreen.Reports.route)     { ManagerReportsScreen() }
         }
     }

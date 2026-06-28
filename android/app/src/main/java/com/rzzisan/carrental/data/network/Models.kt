@@ -471,3 +471,79 @@ data class ManagerReport(
 )
 
 data class VehicleStatusRequest(val status: String)
+
+// ── Customer Models ───────────────────────────────────────────────
+
+data class CustomerListItem(
+    val id: Int,
+    @Json(name = "first_name") val firstName: String,
+    @Json(name = "last_name")  val lastName: String?,
+    val phone: String,
+    val email: String?,
+    val nid: String?,
+    val address: String?,
+    val city: String?,
+    @Json(name = "license_number") val licenseNumber: String?,
+    @Json(name = "license_expiry") val licenseExpiry: String?,
+    val status: String,
+    @Json(name = "created_at")    val createdAt: String?,
+    @Json(name = "total_trips")    val totalTrips: Int = 0,
+    @Json(name = "completed_trips") val completedTrips: Int = 0,
+    @Json(name = "total_spent")    val totalSpent: Double = 0.0,
+    @Json(name = "last_trip_date") val lastTripDate: String? = null
+)
+
+data class CustomerRentalItem(
+    val id: Int,
+    @Json(name = "start_date")       val startDate: String?,
+    @Json(name = "end_date")         val endDate: String?,
+    @Json(name = "pickup_location")  val pickupLocation: String?,
+    @Json(name = "dropoff_location") val dropoffLocation: String?,
+    @Json(name = "trip_type")        val tripType: String?,
+    @Json(name = "agreed_amount")    val agreedAmount: Double,
+    @Json(name = "rental_status")    val rentalStatus: String,
+    @Json(name = "payment_status")   val paymentStatus: String,
+    @Json(name = "vehicle_brand")    val vehicleBrand: String?,
+    @Json(name = "vehicle_model")    val vehicleModel: String?,
+    @Json(name = "vehicle_reg")      val vehicleReg: String?,
+    @Json(name = "driver_name")      val driverName: String?
+)
+
+data class CustomerStats(
+    @Json(name = "total_trips")           val totalTrips: Int,
+    @Json(name = "completed_trips")       val completedTrips: Int,
+    @Json(name = "total_spent")           val totalSpent: Double,
+    @Json(name = "pending_payment_trips") val pendingPaymentTrips: Int
+)
+
+data class CustomerDetailData(
+    val customer: CustomerListItem,
+    val stats: CustomerStats,
+    val rentals: List<CustomerRentalItem>
+)
+
+data class CreateCustomerRequest(
+    @Json(name = "first_name")     val firstName: String,
+    @Json(name = "last_name")      val lastName: String,
+    val phone: String,
+    val email: String? = null,
+    val nid: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    @Json(name = "license_number") val licenseNumber: String? = null,
+    @Json(name = "license_expiry") val licenseExpiry: String? = null
+)
+
+data class UpdateCustomerRequest(
+    @Json(name = "first_name")     val firstName: String,
+    @Json(name = "last_name")      val lastName: String,
+    val phone: String,
+    val email: String? = null,
+    val nid: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    @Json(name = "license_number") val licenseNumber: String? = null,
+    @Json(name = "license_expiry") val licenseExpiry: String? = null
+)
+
+data class CustomerStatusRequest(val status: String)

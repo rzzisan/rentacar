@@ -26,6 +26,7 @@ sealed class AdminScreen(val route: String) {
     object Settlements : AdminScreen("admin_settlements")
     object Drivers     : AdminScreen("admin_drivers")
     object Managers    : AdminScreen("admin_managers")
+    object Customers   : AdminScreen("admin_customers")
 }
 
 @Composable
@@ -41,6 +42,7 @@ fun AdminAppShell(onLogout: () -> Unit) {
         Triple(AdminScreen.Settlements, Icons.Filled.AccountBalance,    s.navSettlements),
         Triple(AdminScreen.Drivers,     Icons.Filled.People,            s.navDrivers),
         Triple(AdminScreen.Managers,    Icons.Filled.SupervisorAccount, s.navManagers),
+        Triple(AdminScreen.Customers,   Icons.Filled.Group,             s.navCustomers),
     )
 
     Scaffold(
@@ -85,6 +87,7 @@ fun AdminAppShell(onLogout: () -> Unit) {
             composable(AdminScreen.Settlements.route) { AdminSettlementsScreen() }
             composable(AdminScreen.Drivers.route)     { AdminDriversScreen() }
             composable(AdminScreen.Managers.route)    { AdminManagersScreen() }
+            composable(AdminScreen.Customers.route)   { AdminCustomersScreen(isAdmin = true) }
         }
     }
 }
