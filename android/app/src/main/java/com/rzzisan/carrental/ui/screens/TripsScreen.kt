@@ -1,10 +1,13 @@
 package com.rzzisan.carrental.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -566,12 +569,13 @@ private fun TripDetailSheet(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var rental        by remember { mutableStateOf<Rental?>(null) }
-    var expenses      by remember { mutableStateOf<List<TripExpense>>(emptyList()) }
-    var loading       by remember { mutableStateOf(true) }
-    var actionMsg     by remember { mutableStateOf("") }
-    var actionLoading by remember { mutableStateOf(false) }
-    var previewUrl    by remember { mutableStateOf<String?>(null) }
+    var rental               by remember { mutableStateOf<Rental?>(null) }
+    var expenses             by remember { mutableStateOf<List<TripExpense>>(emptyList()) }
+    var loading              by remember { mutableStateOf(true) }
+    var actionMsg            by remember { mutableStateOf("") }
+    var actionLoading        by remember { mutableStateOf(false) }
+    var previewUrl           by remember { mutableStateOf<String?>(null) }
+    var showBatteryOptDialog by remember { mutableStateOf(false) }
 
     fun reload() {
         scope.launch {
@@ -613,7 +617,13 @@ private fun TripDetailSheet(
                             actionMsg = res.message ?: s.success
                             if (res.success) {
                                 when (newStatus) {
-                                    "active"    -> LocationTrackingService.start(context, rentalId)
+                                    "active" -> {
+                                        LocationTrackingService.start(context, rentalId)
+                                        val pm = context.getSystemService(PowerManager::class.java)
+                                        if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                                            showBatteryOptDialog = true
+                                        }
+                                    }
                                     "completed" -> LocationTrackingService.stop(context)
                                 }
                                 reload(); onStatusChanged(res.message ?: s.success)
@@ -631,7 +641,13 @@ private fun TripDetailSheet(
                 actionMsg = res.message ?: if (res.success) s.success else s.error
                 if (res.success) {
                     when (newStatus) {
-                        "active"    -> LocationTrackingService.start(context, rentalId)
+                        "active" -> {
+                            LocationTrackingService.start(context, rentalId)
+                            val pm = context.getSystemService(PowerManager::class.java)
+                            if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                                showBatteryOptDialog = true
+                            }
+                        }
                         "completed" -> LocationTrackingService.stop(context)
                     }
                     reload(); onStatusChanged(res.message ?: s.success)
@@ -755,6 +771,36 @@ private fun TripDetailSheet(
                 }
             }
         }
+    }
+
+    // ── Battery optimization whitelist prompt ──────────────────────────
+    if (showBatteryOptDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatteryOptDialog = false },
+            title = { Text("ব্যাটারি সাশ্রয় বন্ধ করুন", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "মোবাইল লক বা অ্যাপ বন্ধ থাকলেও লোকেশন ট্র্যাকিং চালু রাখতে এই অ্যাপকে ব্যাটারি সাশ্রয় থেকে বাদ দিন।\n\n" +
+                    "পরের স্ক্রিনে \"অনুমতি দিন\" চাপুন।",
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showBatteryOptDialog = false
+                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                        }
+                        context.startActivity(intent)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) { Text("সেটিংসে যান") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatteryOptDialog = false }) { Text("পরে") }
+            }
+        )
     }
 
     // ── In-app receipt preview ─────────────────────────────────────────

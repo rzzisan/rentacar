@@ -23,6 +23,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- AlarmManager fallback — service restart when killed by battery optimizer -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:name=".CarRentalApp"
         android:allowBackup="true"
@@ -48,6 +52,11 @@
             android:name=".service.LocationTrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- AlarmManager fallback receiver — wakes the service if killed -->
+        <receiver
+            android:name=".service.LocationAlarmReceiver"
+            android:exported="false" />
 
         <!-- CameraX FileProvider -->
         <provider

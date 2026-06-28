@@ -1,6 +1,7 @@
 package com.rzzisan.carrental.service
 
 import android.Manifest
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -9,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
@@ -28,36 +30,67 @@ class LocationTrackingService : Service() {
     private var trackingJob: Job? = null
 
     companion object {
-        private const val CHANNEL_ID      = "location_tracking"
-        private const val NOTIFICATION_ID = 1001
-        const val  EXTRA_RENTAL_ID        = "rental_id"
-        private const val PREF_NAME       = "location_tracking_prefs"
-        private const val PREF_RENTAL_ID  = "active_rental_id"
+        private const val CHANNEL_ID        = "location_tracking"
+        private const val NOTIFICATION_ID   = 1001
+        private const val ALARM_REQUEST_CODE = 7001
+        const val  EXTRA_RENTAL_ID          = "rental_id"
+        const val  PREF_NAME                = "location_tracking_prefs"
+        const val  PREF_RENTAL_ID           = "active_rental_id"
+
+        /** Service চলছে কিনা — AlarmReceiver এই flag দেখে restart সিদ্ধান্ত নেয় */
+        @Volatile var isRunning = false
+            private set
 
         fun start(context: Context, rentalId: Int) {
-            // SharedPreferences-এ rentalId সংরক্ষণ (service restart-এ টিকে থাকবে)
             context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .edit().putInt(PREF_RENTAL_ID, rentalId).apply()
             val intent = Intent(context, LocationTrackingService::class.java)
                 .putExtra(EXTRA_RENTAL_ID, rentalId)
             ContextCompat.startForegroundService(context, intent)
+            scheduleAlarm(context)
         }
 
         fun stop(context: Context) {
             context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .edit().remove(PREF_RENTAL_ID).apply()
+            cancelAlarm(context)
             context.stopService(Intent(context, LocationTrackingService::class.java))
+        }
+
+        /** প্রতি ৫ মিনিটে AlarmManager LocationAlarmReceiver-কে জাগায় */
+        fun scheduleAlarm(context: Context) {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val pi = alarmPendingIntent(context)
+            val fiveMinutes = 5 * 60 * 1000L
+            am.setInexactRepeating(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + fiveMinutes,
+                fiveMinutes,
+                pi
+            )
+        }
+
+        fun cancelAlarm(context: Context) {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            am.cancel(alarmPendingIntent(context))
+        }
+
+        private fun alarmPendingIntent(context: Context): PendingIntent {
+            val intent = Intent(context, LocationAlarmReceiver::class.java)
+            return PendingIntent.getBroadcast(
+                context, ALARM_REQUEST_CODE, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
     }
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         createNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Intent থেকে rentalId পাও। null intent (START_STICKY restart) হলে
-        // SharedPreferences থেকে শেষবারের rentalId পুনরুদ্ধার করো।
         val rentalId = intent?.getIntExtra(EXTRA_RENTAL_ID, 0)
             ?.takeIf { it != 0 }
             ?: getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -156,6 +189,7 @@ class LocationTrackingService : Service() {
     }
 
     override fun onDestroy() {
+        isRunning = false
         trackingJob?.cancel()
         scope.cancel()
         super.onDestroy()
