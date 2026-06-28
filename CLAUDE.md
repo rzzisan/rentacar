@@ -235,6 +235,30 @@ npm run build    # → public/app/ (production)
 
 ---
 
+## Android Driver App
+
+- **অবস্থান:** `android/` — Jetpack Compose, Kotlin, Moshi, Retrofit
+- **APK serve directory:** `/var/www/car-apk/`
+- **APK index script:** `/var/www/car-apk/gen-index.sh` — চালালে `/apk/` page + `latest.apk` symlink আপডেট হয়
+- **Download page:** `https://car.zisan.me/apk/`
+- **Stable latest URL:** `https://car.zisan.me/apk/latest.apk`
+
+### APK নামকরণ নিয়ম (বাধ্যতামূলক)
+**প্রতিটি নতুন APK-এর নামে datetime stamp থাকবে — version number নয়।**
+
+```bash
+# Build করার পর:
+cp android/app/build/outputs/apk/debug/app-debug.apk \
+   /var/www/car-apk/car-rental-$(date +%Y%m%d-%H%M%S).apk
+bash /var/www/car-apk/gen-index.sh
+```
+
+- সঠিক নাম: `car-rental-20260628-133500.apk`
+- ভুল নাম: `car-rental-v17.apk`, `app-debug.apk`, `car-rental.apk`
+- `gen-index.sh` সর্বশেষ APK (mtime অনুযায়ী) থেকে `latest.apk` symlink বানায়
+
+---
+
 ## Known Issues
 - `DEBUG_MODE = true` — `config/config.php`-এ false করতে হবে production-এ
 - `includes/Vehicle.php` ডিলিট করা হয়েছে (SQL injection ছিল) — নতুন API তে direct prepared statements ব্যবহার হচ্ছে
