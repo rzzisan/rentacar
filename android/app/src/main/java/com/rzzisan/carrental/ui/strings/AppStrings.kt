@@ -323,6 +323,83 @@ abstract class AppStrings {
     abstract val pendingPayments: String
     abstract val firstName: String
     abstract val lastName: String
+
+    // Admin Reports
+    abstract val adminReportsTitle: String
+    abstract val navAdminReports: String
+    abstract val tabPL: String
+    abstract val tabAging: String
+    abstract val tabAdminCustomers: String
+    abstract val netProfitLabel: String
+    abstract val maintenanceCostLabel: String
+    abstract val utilizationRate: String
+    abstract val rentedDaysLabel: String
+    abstract val daysOverdue: String
+    abstract val bucket0_30: String
+    abstract val bucket31_60: String
+    abstract val bucket61_90: String
+    abstract val bucket90plus: String
+    abstract val yearTripsLabel: String
+    abstract val monthTripsLabel: String
+    abstract val avgTripValue: String
+    abstract val repeatCustomer: String
+    abstract val inactiveCustomer: String
+    abstract val uniqueCustomers: String
+    abstract val tripExpensesLabel: String
+    abstract val allVehicles: String
+
+    // Admin Maintenance
+    abstract val maintenanceTitle: String
+    abstract val navAdminMaintenance: String
+    abstract val tabServiceRecords: String
+    abstract val tabDocuments: String
+    abstract val addMaintenance: String
+    abstract val editMaintenance: String
+    abstract val maintTypeLabel: String
+    abstract val vendorLabel: String
+    abstract val kmReadingLabel: String
+    abstract val nextDueDateLabel: String
+    abstract val nextDueKmLabel: String
+    abstract val maintStatusLabel: String
+    abstract val noMaintenance: String
+    abstract val maintAdded: String
+    abstract val maintUpdated: String
+    abstract val maintDeleted: String
+    abstract val addDocument: String
+    abstract val editDocument: String
+    abstract val docTypeLabel: String
+    abstract val docNumberLabel: String
+    abstract val issueDateLabel: String
+    abstract val expiryDateLabel: String
+    abstract val daysRemainingLabel: String
+    abstract val expiredLabel: String
+    abstract val noDocuments: String
+    abstract val docSaved: String
+    abstract val docDeleted: String
+    abstract val expiringAlert: String
+    // Maintenance type labels
+    abstract val mtOilChange: String
+    abstract val mtTire: String
+    abstract val mtBrake: String
+    abstract val mtEngine: String
+    abstract val mtBattery: String
+    abstract val mtAc: String
+    abstract val mtBodyRepair: String
+    abstract val mtElectrical: String
+    abstract val mtInspection: String
+    abstract val mtOther: String
+    // Maintenance status labels
+    abstract val msCompleted: String
+    abstract val msInProgress: String
+    abstract val msPending: String
+    abstract val msCancelled: String
+    // Document type labels
+    abstract val dtFitness: String
+    abstract val dtInsurance: String
+    abstract val dtTaxToken: String
+    abstract val dtRoutePermit: String
+    abstract val dtRegistration: String
+    abstract val dtOther: String
 }
 
 object BanglaStrings : AppStrings() {
@@ -603,6 +680,80 @@ object BanglaStrings : AppStrings() {
     override val pendingPayments      = "বকেয়া পেমেন্ট"
     override val firstName            = "প্রথম নাম"
     override val lastName             = "শেষ নাম"
+
+    // Admin Reports
+    override val adminReportsTitle    = "বার্ষিক রিপোর্ট"
+    override val navAdminReports      = "রিপোর্ট"
+    override val tabPL                = "লাভ-ক্ষতি"
+    override val tabAging             = "বকেয়া"
+    override val tabAdminCustomers    = "গ্রাহক"
+    override val netProfitLabel       = "নিট লাভ"
+    override val maintenanceCostLabel = "রক্ষণাবেক্ষণ"
+    override val utilizationRate      = "ব্যবহার হার"
+    override val rentedDaysLabel      = "ভাড়ার দিন"
+    override val daysOverdue          = "বকেয়া দিন"
+    override val bucket0_30           = "০-৩০ দিন"
+    override val bucket31_60          = "৩১-৬০ দিন"
+    override val bucket61_90          = "৬১-৯০ দিন"
+    override val bucket90plus         = "৯০+ দিন"
+    override val yearTripsLabel       = "এ বছর"
+    override val monthTripsLabel      = "এ মাস"
+    override val avgTripValue         = "গড় ট্রিপ"
+    override val repeatCustomer       = "নিয়মিত"
+    override val inactiveCustomer     = "নিষ্ক্রিয়"
+    override val uniqueCustomers      = "মোট গ্রাহক"
+    override val tripExpensesLabel    = "ট্রিপ খরচ"
+    override val allVehicles          = "সব গাড়ি"
+
+    // Admin Maintenance
+    override val maintenanceTitle     = "রক্ষণাবেক্ষণ"
+    override val navAdminMaintenance  = "রক্ষণা."
+    override val tabServiceRecords    = "সার্ভিস রেকর্ড"
+    override val tabDocuments         = "ডকুমেন্ট"
+    override val addMaintenance       = "সার্ভিস যোগ"
+    override val editMaintenance      = "সার্ভিস সম্পাদনা"
+    override val maintTypeLabel       = "ধরন"
+    override val vendorLabel          = "ভেন্ডর"
+    override val kmReadingLabel       = "কি.মি. রিডিং"
+    override val nextDueDateLabel     = "পরবর্তী তারিখ"
+    override val nextDueKmLabel       = "পরবর্তী কি.মি."
+    override val maintStatusLabel     = "স্ট্যাটাস"
+    override val noMaintenance        = "কোনো রেকর্ড নেই"
+    override val maintAdded           = "রেকর্ড যোগ হয়েছে"
+    override val maintUpdated         = "রেকর্ড আপডেট হয়েছে"
+    override val maintDeleted         = "রেকর্ড মুছে ফেলা হয়েছে"
+    override val addDocument          = "ডকুমেন্ট যোগ"
+    override val editDocument         = "ডকুমেন্ট সম্পাদনা"
+    override val docTypeLabel         = "ডকুমেন্টের ধরন"
+    override val docNumberLabel       = "নম্বর"
+    override val issueDateLabel       = "ইস্যু তারিখ"
+    override val expiryDateLabel      = "মেয়াদ শেষ"
+    override val daysRemainingLabel   = "বাকি দিন"
+    override val expiredLabel         = "মেয়াদ শেষ!"
+    override val noDocuments          = "কোনো ডকুমেন্ট নেই"
+    override val docSaved             = "ডকুমেন্ট সংরক্ষিত হয়েছে"
+    override val docDeleted           = "ডকুমেন্ট মুছে ফেলা হয়েছে"
+    override val expiringAlert        = "মেয়াদ শেষ হওয়ার সতর্কতা"
+    override val mtOilChange          = "তেল পরিবর্তন"
+    override val mtTire               = "টায়ার"
+    override val mtBrake              = "ব্রেক"
+    override val mtEngine             = "ইঞ্জিন"
+    override val mtBattery            = "ব্যাটারি"
+    override val mtAc                 = "এসি"
+    override val mtBodyRepair         = "বডি রিপেয়ার"
+    override val mtElectrical         = "ইলেক্ট্রিক্যাল"
+    override val mtInspection         = "পরিদর্শন"
+    override val mtOther              = "অন্যান্য"
+    override val msCompleted          = "সম্পন্ন"
+    override val msInProgress         = "চলমান"
+    override val msPending            = "অপেক্ষমান"
+    override val msCancelled          = "বাতিল"
+    override val dtFitness            = "ফিটনেস"
+    override val dtInsurance          = "বীমা"
+    override val dtTaxToken           = "ট্যাক্স টোকেন"
+    override val dtRoutePermit        = "রুট পার্মিট"
+    override val dtRegistration       = "নিবন্ধন"
+    override val dtOther              = "অন্যান্য"
 }
 
 object EnglishStrings : AppStrings() {
@@ -883,4 +1034,78 @@ object EnglishStrings : AppStrings() {
     override val pendingPayments      = "Pending Payments"
     override val firstName            = "First Name"
     override val lastName             = "Last Name"
+
+    // Admin Reports
+    override val adminReportsTitle    = "Annual Reports"
+    override val navAdminReports      = "Reports"
+    override val tabPL                = "P&L"
+    override val tabAging             = "Aging"
+    override val tabAdminCustomers    = "Customers"
+    override val netProfitLabel       = "Net Profit"
+    override val maintenanceCostLabel = "Maintenance"
+    override val utilizationRate      = "Utilization"
+    override val rentedDaysLabel      = "Rented Days"
+    override val daysOverdue          = "Days Overdue"
+    override val bucket0_30           = "0-30 Days"
+    override val bucket31_60          = "31-60 Days"
+    override val bucket61_90          = "61-90 Days"
+    override val bucket90plus         = "90+ Days"
+    override val yearTripsLabel       = "This Year"
+    override val monthTripsLabel      = "This Month"
+    override val avgTripValue         = "Avg Trip"
+    override val repeatCustomer       = "Regular"
+    override val inactiveCustomer     = "Inactive"
+    override val uniqueCustomers      = "Customers"
+    override val tripExpensesLabel    = "Trip Expenses"
+    override val allVehicles          = "All Vehicles"
+
+    // Admin Maintenance
+    override val maintenanceTitle     = "Maintenance"
+    override val navAdminMaintenance  = "Maint."
+    override val tabServiceRecords    = "Service Records"
+    override val tabDocuments         = "Documents"
+    override val addMaintenance       = "Add Service"
+    override val editMaintenance      = "Edit Service"
+    override val maintTypeLabel       = "Type"
+    override val vendorLabel          = "Vendor"
+    override val kmReadingLabel       = "KM Reading"
+    override val nextDueDateLabel     = "Next Due Date"
+    override val nextDueKmLabel       = "Next Due KM"
+    override val maintStatusLabel     = "Status"
+    override val noMaintenance        = "No records found"
+    override val maintAdded           = "Record added"
+    override val maintUpdated         = "Record updated"
+    override val maintDeleted         = "Record deleted"
+    override val addDocument          = "Add Document"
+    override val editDocument         = "Edit Document"
+    override val docTypeLabel         = "Document Type"
+    override val docNumberLabel       = "Number"
+    override val issueDateLabel       = "Issue Date"
+    override val expiryDateLabel      = "Expiry Date"
+    override val daysRemainingLabel   = "Days Left"
+    override val expiredLabel         = "Expired!"
+    override val noDocuments          = "No documents found"
+    override val docSaved             = "Document saved"
+    override val docDeleted           = "Document deleted"
+    override val expiringAlert        = "Expiry Alert"
+    override val mtOilChange          = "Oil Change"
+    override val mtTire               = "Tire"
+    override val mtBrake              = "Brake"
+    override val mtEngine             = "Engine"
+    override val mtBattery            = "Battery"
+    override val mtAc                 = "A/C"
+    override val mtBodyRepair         = "Body Repair"
+    override val mtElectrical         = "Electrical"
+    override val mtInspection         = "Inspection"
+    override val mtOther              = "Other"
+    override val msCompleted          = "Completed"
+    override val msInProgress         = "In Progress"
+    override val msPending            = "Pending"
+    override val msCancelled          = "Cancelled"
+    override val dtFitness            = "Fitness Cert."
+    override val dtInsurance          = "Insurance"
+    override val dtTaxToken           = "Tax Token"
+    override val dtRoutePermit        = "Route Permit"
+    override val dtRegistration       = "Registration"
+    override val dtOther              = "Other"
 }

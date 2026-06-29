@@ -7,57 +7,70 @@ only_method('GET');
 require_role('admin');
 $conn = (new Database())->connect();
 
-// year filter (ডিফল্ট: চলতি বছর)
 $year = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
 
-// ── ১. মাসিক P&L (১২ মাস — নির্বাচিত বছর) ─────────────────────────────────
+// ── ১. মাসিক P&L ─────────────────────────────────────────────────────────────
+// rentals + trip_expenses + settlements (maintenance আলাদা query-তে)
 $plstmt = $conn->prepare(
     "SELECT DATE_FORMAT(r.start_date, '%Y-%m') as month,
             COUNT(r.id) as trip_count,
             COALESCE(SUM(CASE WHEN r.rental_status='completed' THEN r.agreed_amount ELSE 0 END), 0) as revenue,
             COALESCE(SUM(te.expense_total), 0) as trip_expenses,
-            COALESCE(SUM(CASE WHEN r.rental_status='completed' THEN s.driver_commission ELSE 0 END), 0) as commission,
-            COALESCE(SUM(m_cost.maint_total), 0) as maintenance_cost
+            COALESCE(SUM(CASE WHEN r.rental_status='completed' THEN s.driver_commission ELSE 0 END), 0) as commission
      FROM rentals r
      LEFT JOIN (
          SELECT rental_id, SUM(amount) as expense_total FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
      LEFT JOIN settlements s ON s.rental_id = r.id
-     LEFT JOIN (
-         SELECT vehicle_id,
-                DATE_FORMAT(start_date, '%Y-%m') as m,
-                SUM(cost) as maint_total
-         FROM maintenance
-         WHERE status='completed' AND YEAR(start_date) = ?
-         GROUP BY vehicle_id, m
-     ) m_cost ON m_cost.vehicle_id = r.vehicle_id AND m_cost.m = DATE_FORMAT(r.start_date, '%Y-%m')
      WHERE YEAR(r.start_date) = ? AND r.rental_status != 'cancelled'
      GROUP BY DATE_FORMAT(r.start_date, '%Y-%m')
      ORDER BY month ASC"
 );
-$plstmt->bind_param('ii', $year, $year);
+$plstmt->bind_param('i', $year);
 $plstmt->execute();
 $pl_rows = $plstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $plstmt->close();
 
-$monthly_pl = array_map(fn($r) => [
-    'month'            => $r['month'],
-    'trip_count'       => (int)$r['trip_count'],
-    'revenue'          => (float)$r['revenue'],
-    'trip_expenses'    => (float)$r['trip_expenses'],
-    'commission'       => (float)$r['commission'],
-    'maintenance_cost' => (float)$r['maintenance_cost'],
-    'net'              => (float)$r['revenue'] - (float)$r['trip_expenses'] - (float)$r['commission'] - (float)$r['maintenance_cost'],
-], $pl_rows);
+// রক্ষণাবেক্ষণ খরচ — আলাদাভাবে মাসভিত্তিক
+$mplstmt = $conn->prepare(
+    "SELECT DATE_FORMAT(start_date, '%Y-%m') as month, SUM(cost) as maint_total
+     FROM maintenance
+     WHERE status='completed' AND YEAR(start_date) = ?
+     GROUP BY DATE_FORMAT(start_date, '%Y-%m')"
+);
+$mplstmt->bind_param('i', $year);
+$mplstmt->execute();
+$mpl_rows = $mplstmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$mplstmt->close();
 
-// ── ২. গাড়িভিত্তিক লাভজনকতা + Utilization rate ──────────────────────────
+// month → maintenance_cost map
+$maint_by_month = [];
+foreach ($mpl_rows as $mr) {
+    $maint_by_month[$mr['month']] = (float)$mr['maint_total'];
+}
+
+$monthly_pl = array_map(function($r) use ($maint_by_month) {
+    $maint = $maint_by_month[$r['month']] ?? 0.0;
+    return [
+        'month'            => $r['month'],
+        'trip_count'       => (int)$r['trip_count'],
+        'revenue'          => (float)$r['revenue'],
+        'trip_expenses'    => (float)$r['trip_expenses'],
+        'commission'       => (float)$r['commission'],
+        'maintenance_cost' => $maint,
+        'net'              => (float)$r['revenue'] - (float)$r['trip_expenses'] - (float)$r['commission'] - $maint,
+    ];
+}, $pl_rows);
+
+// ── ২. গাড়িভিত্তিক লাভজনকতা + Utilization ─────────────────────────────────
+// maintenance আলাদা subquery দিয়ে pre-aggregate করা — cross-join এড়াতে
 $vstmt = $conn->prepare(
     "SELECT v.id, v.brand, v.model, v.registration_number, v.status, v.year,
             COUNT(DISTINCT r.id) as trip_count,
             COALESCE(SUM(CASE WHEN r.rental_status='completed' THEN r.agreed_amount ELSE 0 END), 0) as revenue,
             COALESCE(SUM(te.expense_total), 0) as trip_expenses,
             COALESCE(SUM(CASE WHEN r.rental_status='completed' THEN s.driver_commission ELSE 0 END), 0) as commission,
-            COALESCE(SUM(m.cost), 0) as maintenance_cost,
+            COALESCE(m_agg.maint_total, 0) as maintenance_cost,
             COALESCE(SUM(CASE WHEN r.rental_status='completed' THEN r.total_days ELSE 0 END), 0) as rented_days
      FROM vehicles v
      LEFT JOIN rentals r ON r.vehicle_id = v.id AND r.rental_status != 'cancelled' AND YEAR(r.start_date) = ?
@@ -65,8 +78,13 @@ $vstmt = $conn->prepare(
          SELECT rental_id, SUM(amount) as expense_total FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
      LEFT JOIN settlements s ON s.rental_id = r.id
-     LEFT JOIN maintenance m ON m.vehicle_id = v.id AND m.status = 'completed' AND YEAR(m.start_date) = ?
-     GROUP BY v.id
+     LEFT JOIN (
+         SELECT vehicle_id, SUM(cost) as maint_total
+         FROM maintenance
+         WHERE status = 'completed' AND YEAR(start_date) = ?
+         GROUP BY vehicle_id
+     ) m_agg ON m_agg.vehicle_id = v.id
+     GROUP BY v.id, v.brand, v.model, v.registration_number, v.status, v.year, m_agg.maint_total
      ORDER BY revenue DESC"
 );
 $vstmt->bind_param('ii', $year, $year);
@@ -74,15 +92,14 @@ $vstmt->execute();
 $v_rows = $vstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $vstmt->close();
 
-// বছরের দিন সংখ্যা (Jan 1 থেকে আজ বা Dec 31)
 $year_days = ($year == (int)date('Y'))
-    ? (int)date('z') + 1  // এ বছর: আজ পর্যন্ত
-    : (checkdate(2,29,$year) ? 366 : 365);
+    ? (int)date('z') + 1
+    : (checkdate(2, 29, $year) ? 366 : 365);
 
 $vehicle_profitability = array_map(function($r) use ($year_days) {
-    $revenue   = (float)$r['revenue'];
-    $expenses  = (float)$r['trip_expenses'] + (float)$r['commission'] + (float)$r['maintenance_cost'];
-    $rented    = (int)$r['rented_days'];
+    $revenue  = (float)$r['revenue'];
+    $expenses = (float)$r['trip_expenses'] + (float)$r['commission'] + (float)$r['maintenance_cost'];
+    $rented   = (int)$r['rented_days'];
     return [
         'id'                    => (int)$r['id'],
         'brand'                 => $r['brand'],
@@ -102,7 +119,7 @@ $vehicle_profitability = array_map(function($r) use ($year_days) {
     ];
 }, $v_rows);
 
-// ── ৩. বকেয়া Aging Report ─────────────────────────────────────────────────
+// ── ৩. বকেয়া Aging ─────────────────────────────────────────────────────────
 $agestmt = $conn->prepare(
     "SELECT
         s.id as settlement_id,
@@ -129,13 +146,7 @@ $agestmt->execute();
 $age_rows = $agestmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $agestmt->close();
 
-$dues_aging = [
-    'current'  => [],  // 0–30 দিন
-    'days30'   => [],  // 31–60 দিন
-    'days60'   => [],  // 61–90 দিন
-    'days90'   => [],  // 90+ দিন
-    'total_due'=> 0.0,
-];
+$dues_aging = ['current' => [], 'days30' => [], 'days60' => [], 'days90' => [], 'total_due' => 0.0];
 
 foreach ($age_rows as $r) {
     $item = [
@@ -163,7 +174,7 @@ foreach ($age_rows as $r) {
 }
 $dues_aging['total_due'] = round($dues_aging['total_due'], 2);
 
-// ── ৪. ড্রাইভার তুলনামূলক পারফরম্যান্স ─────────────────────────────────
+// ── ৪. ড্রাইভার পারফরম্যান্স ────────────────────────────────────────────────
 $dstmt = $conn->prepare(
     "SELECT d.id, d.name, d.mobile, d.commission_rate, d.status,
             COUNT(DISTINCT r.id) as total_trips,
@@ -256,16 +267,18 @@ $sumstmt->execute();
 $sum = $sumstmt->get_result()->fetch_assoc();
 $sumstmt->close();
 
-// মোট রক্ষণাবেক্ষণ খরচ (বছর)
-$msum = $conn->prepare("SELECT COALESCE(SUM(cost),0) as total FROM maintenance WHERE status='completed' AND YEAR(start_date)=?");
+// মোট রক্ষণাবেক্ষণ খরচ — আলাদা query, কোনো JOIN নেই
+$msum = $conn->prepare(
+    "SELECT COALESCE(SUM(cost), 0) as total FROM maintenance WHERE status='completed' AND YEAR(start_date)=?"
+);
 $msum->bind_param('i', $year);
 $msum->execute();
 $mc = $msum->get_result()->fetch_assoc();
 $msum->close();
 
-$total_rev    = (float)$sum['total_revenue'];
-$total_exp    = (float)$sum['total_trip_expenses'] + (float)$sum['total_commission'] + (float)$mc['total'];
-$net          = $total_rev - $total_exp;
+$total_rev  = (float)$sum['total_revenue'];
+$total_exp  = (float)$sum['total_trip_expenses'] + (float)$sum['total_commission'] + (float)$mc['total'];
+$net        = $total_rev - $total_exp;
 
 json_response([
     'success' => true,
@@ -277,16 +290,16 @@ json_response([
         'driver_performance'    => $driver_performance,
         'customer_analytics'    => $customer_analytics,
         'summary' => [
-            'total_trips'          => (int)$sum['total_trips'],
-            'completed_trips'      => (int)$sum['completed_trips'],
-            'unique_customers'     => (int)$sum['unique_customers'],
-            'total_revenue'        => $total_rev,
-            'total_trip_expenses'  => (float)$sum['total_trip_expenses'],
-            'total_commission'     => (float)$sum['total_commission'],
-            'total_maintenance'    => (float)$mc['total'],
-            'total_expenses'       => $total_exp,
-            'net_profit'           => $net,
-            'total_due'            => $dues_aging['total_due'],
+            'total_trips'         => (int)$sum['total_trips'],
+            'completed_trips'     => (int)$sum['completed_trips'],
+            'unique_customers'    => (int)$sum['unique_customers'],
+            'total_revenue'       => $total_rev,
+            'total_trip_expenses' => (float)$sum['total_trip_expenses'],
+            'total_commission'    => (float)$sum['total_commission'],
+            'total_maintenance'   => (float)$mc['total'],
+            'total_expenses'      => $total_exp,
+            'net_profit'          => $net,
+            'total_due'           => $dues_aging['total_due'],
         ],
     ],
 ]);

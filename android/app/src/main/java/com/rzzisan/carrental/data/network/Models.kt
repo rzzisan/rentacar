@@ -547,3 +547,181 @@ data class UpdateCustomerRequest(
 )
 
 data class CustomerStatusRequest(val status: String)
+
+// ── Admin Reports Models ──────────────────────────────────────────
+
+data class AdminMonthlyPL(
+    val month: String,
+    @Json(name = "trip_count") val tripCount: Int,
+    val revenue: Double,
+    @Json(name = "trip_expenses") val tripExpenses: Double,
+    val commission: Double,
+    @Json(name = "maintenance_cost") val maintenanceCost: Double,
+    val net: Double
+)
+
+data class AdminVehicleProfitability(
+    val id: Int,
+    val brand: String,
+    val model: String,
+    @Json(name = "registration_number") val registrationNumber: String,
+    val status: String,
+    val year: Int,
+    @Json(name = "trip_count") val tripCount: Int,
+    val revenue: Double,
+    @Json(name = "trip_expenses") val tripExpenses: Double,
+    val commission: Double,
+    @Json(name = "maintenance_cost") val maintenanceCost: Double,
+    @Json(name = "total_expenses") val totalExpenses: Double,
+    val net: Double,
+    @Json(name = "rented_days") val rentedDays: Int,
+    @Json(name = "utilization_rate") val utilizationRate: Double
+)
+
+data class AdminDuesAgingItem(
+    @Json(name = "settlement_id") val settlementId: Int,
+    @Json(name = "rental_id") val rentalId: Int,
+    @Json(name = "start_date") val startDate: String?,
+    @Json(name = "end_date") val endDate: String?,
+    @Json(name = "driver_name") val driverName: String?,
+    @Json(name = "driver_mobile") val driverMobile: String?,
+    val vehicle: String,
+    @Json(name = "registration_number") val registrationNumber: String,
+    @Json(name = "agreed_amount") val agreedAmount: Double,
+    @Json(name = "driver_commission") val driverCommission: Double,
+    @Json(name = "paid_amount") val paidAmount: Double,
+    @Json(name = "remaining_amount") val remainingAmount: Double,
+    @Json(name = "payment_status") val paymentStatus: String,
+    @Json(name = "days_overdue") val daysOverdue: Int
+)
+
+data class AdminDuesAging(
+    val current: List<AdminDuesAgingItem>,
+    val days30: List<AdminDuesAgingItem>,
+    val days60: List<AdminDuesAgingItem>,
+    val days90: List<AdminDuesAgingItem>,
+    @Json(name = "total_due") val totalDue: Double
+)
+
+data class AdminDriverPerf(
+    val id: Int,
+    val name: String,
+    val mobile: String? = null,
+    @Json(name = "commission_rate") val commissionRate: Double,
+    val status: String,
+    @Json(name = "total_trips") val totalTrips: Int,
+    @Json(name = "year_trips") val yearTrips: Int,
+    @Json(name = "month_trips") val monthTrips: Int,
+    @Json(name = "total_revenue") val totalRevenue: Double,
+    @Json(name = "total_commission") val totalCommission: Double,
+    @Json(name = "total_paid") val totalPaid: Double,
+    @Json(name = "total_due") val totalDue: Double,
+    @Json(name = "avg_trip_value") val avgTripValue: Double
+)
+
+data class AdminCustomerAnalytics(
+    val id: Int,
+    val name: String,
+    val phone: String,
+    @Json(name = "total_trips") val totalTrips: Int,
+    @Json(name = "completed_trips") val completedTrips: Int,
+    @Json(name = "total_spent") val totalSpent: Double,
+    @Json(name = "last_trip_date") val lastTripDate: String?,
+    @Json(name = "first_trip_date") val firstTripDate: String?,
+    @Json(name = "days_since_last") val daysSinceLast: Int,
+    @Json(name = "is_repeat") val isRepeat: Int,
+    @Json(name = "is_inactive") val isInactive: Int
+)
+
+data class AdminReportSummary(
+    @Json(name = "total_trips") val totalTrips: Int,
+    @Json(name = "completed_trips") val completedTrips: Int,
+    @Json(name = "unique_customers") val uniqueCustomers: Int,
+    @Json(name = "total_revenue") val totalRevenue: Double,
+    @Json(name = "total_trip_expenses") val totalTripExpenses: Double,
+    @Json(name = "total_commission") val totalCommission: Double,
+    @Json(name = "total_maintenance") val totalMaintenance: Double,
+    @Json(name = "total_expenses") val totalExpenses: Double,
+    @Json(name = "net_profit") val netProfit: Double,
+    @Json(name = "total_due") val totalDue: Double
+)
+
+data class AdminReport(
+    val year: Int,
+    @Json(name = "monthly_pl") val monthlyPL: List<AdminMonthlyPL>,
+    @Json(name = "vehicle_profitability") val vehicleProfitability: List<AdminVehicleProfitability>,
+    @Json(name = "dues_aging") val duesAging: AdminDuesAging,
+    @Json(name = "driver_performance") val driverPerformance: List<AdminDriverPerf>,
+    @Json(name = "customer_analytics") val customerAnalytics: List<AdminCustomerAnalytics>,
+    val summary: AdminReportSummary
+)
+
+// ── Maintenance Models ────────────────────────────────────────────
+
+data class MaintenanceRecord(
+    val id: Int,
+    @Json(name = "vehicle_id") val vehicleId: Int,
+    val vehicle: String,
+    @Json(name = "registration_number") val registrationNumber: String,
+    @Json(name = "maintenance_type") val maintenanceType: String,
+    val description: String?,
+    val vendor: String?,
+    @Json(name = "start_date") val startDate: String,
+    @Json(name = "end_date") val endDate: String?,
+    @Json(name = "km_reading") val kmReading: Int?,
+    @Json(name = "next_due_date") val nextDueDate: String?,
+    @Json(name = "next_due_km") val nextDueKm: Int?,
+    val cost: Double?,
+    val status: String,
+    @Json(name = "created_at") val createdAt: String
+)
+
+data class VehicleDocument(
+    val id: Int,
+    @Json(name = "vehicle_id") val vehicleId: Int,
+    val vehicle: String,
+    @Json(name = "registration_number") val registrationNumber: String,
+    @Json(name = "doc_type") val docType: String,
+    @Json(name = "doc_number") val docNumber: String?,
+    @Json(name = "issue_date") val issueDate: String,
+    @Json(name = "expiry_date") val expiryDate: String,
+    @Json(name = "days_remaining") val daysRemaining: Int,
+    val note: String?,
+    @Json(name = "created_at") val createdAt: String
+)
+
+data class CreateMaintenanceRequest(
+    @Json(name = "vehicle_id") val vehicleId: Int,
+    @Json(name = "maintenance_type") val maintenanceType: String,
+    val description: String? = null,
+    val vendor: String? = null,
+    @Json(name = "start_date") val startDate: String,
+    @Json(name = "end_date") val endDate: String? = null,
+    @Json(name = "km_reading") val kmReading: Int? = null,
+    @Json(name = "next_due_date") val nextDueDate: String? = null,
+    @Json(name = "next_due_km") val nextDueKm: Int? = null,
+    val cost: Double? = null,
+    val status: String = "pending"
+)
+
+data class UpdateMaintenanceRequest(
+    @Json(name = "maintenance_type") val maintenanceType: String,
+    val description: String? = null,
+    val vendor: String? = null,
+    @Json(name = "start_date") val startDate: String,
+    @Json(name = "end_date") val endDate: String? = null,
+    @Json(name = "km_reading") val kmReading: Int? = null,
+    @Json(name = "next_due_date") val nextDueDate: String? = null,
+    @Json(name = "next_due_km") val nextDueKm: Int? = null,
+    val cost: Double? = null,
+    val status: String = "pending"
+)
+
+data class CreateDocumentRequest(
+    @Json(name = "vehicle_id") val vehicleId: Int,
+    @Json(name = "doc_type") val docType: String,
+    @Json(name = "doc_number") val docNumber: String? = null,
+    @Json(name = "issue_date") val issueDate: String,
+    @Json(name = "expiry_date") val expiryDate: String,
+    val note: String? = null
+)

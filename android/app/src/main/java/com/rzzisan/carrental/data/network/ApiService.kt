@@ -327,4 +327,43 @@ interface ApiService {
 
     @GET("manager/customers/show.php")
     suspend fun getManagerCustomerDetail(@Query("id") id: Int): ApiResponse<CustomerDetailData>
+
+    // ── Admin Reports ─────────────────────────────────────────────
+
+    @GET("admin/reports.php")
+    suspend fun getAdminReports(@Query("year") year: Int): ApiResponse<AdminReport>
+
+    // ── Admin Maintenance ─────────────────────────────────────────
+
+    @GET("admin/maintenance/index.php")
+    suspend fun getAdminMaintenance(
+        @Query("vehicle_id") vehicleId: Int? = null,
+        @Query("status") status: String? = null
+    ): ApiResponse<List<MaintenanceRecord>>
+
+    @POST("admin/maintenance/index.php")
+    suspend fun createMaintenance(@Body request: CreateMaintenanceRequest): ApiResponse<Map<String, Int>>
+
+    @PUT("admin/maintenance/update.php")
+    suspend fun updateMaintenance(
+        @Query("id") id: Int,
+        @Body request: UpdateMaintenanceRequest
+    ): ApiResponse<Unit>
+
+    @DELETE("admin/maintenance/destroy.php")
+    suspend fun deleteMaintenance(@Query("id") id: Int): ApiResponse<Unit>
+
+    // ── Admin Documents ───────────────────────────────────────────
+
+    @GET("admin/documents/index.php")
+    suspend fun getAdminDocuments(
+        @Query("vehicle_id") vehicleId: Int? = null,
+        @Query("expiring_days") expiringDays: Int? = null
+    ): ApiResponse<List<VehicleDocument>>
+
+    @POST("admin/documents/index.php")
+    suspend fun saveDocument(@Body request: CreateDocumentRequest): ApiResponse<Map<String, Int>>
+
+    @DELETE("admin/documents/destroy.php")
+    suspend fun deleteDocument(@Query("id") id: Int): ApiResponse<Unit>
 }

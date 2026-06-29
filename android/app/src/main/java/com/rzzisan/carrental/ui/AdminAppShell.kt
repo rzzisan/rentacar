@@ -15,18 +15,21 @@ import androidx.navigation.compose.rememberNavController
 import com.rzzisan.carrental.data.auth.AuthTokenStore
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.ui.screens.admin.*
+import com.rzzisan.carrental.ui.strings.AppStrings
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.Primary
 import kotlinx.coroutines.launch
 
 sealed class AdminScreen(val route: String) {
-    object Dashboard   : AdminScreen("admin_dashboard")
-    object Vehicles    : AdminScreen("admin_vehicles")
-    object Rentals     : AdminScreen("admin_rentals")
-    object Settlements : AdminScreen("admin_settlements")
-    object Drivers     : AdminScreen("admin_drivers")
-    object Managers    : AdminScreen("admin_managers")
-    object Customers   : AdminScreen("admin_customers")
+    object Dashboard    : AdminScreen("admin_dashboard")
+    object Vehicles     : AdminScreen("admin_vehicles")
+    object Rentals      : AdminScreen("admin_rentals")
+    object Settlements  : AdminScreen("admin_settlements")
+    object Drivers      : AdminScreen("admin_drivers")
+    object Managers     : AdminScreen("admin_managers")
+    object Customers    : AdminScreen("admin_customers")
+    object Reports      : AdminScreen("admin_reports")
+    object Maintenance  : AdminScreen("admin_maintenance")
 }
 
 @Composable
@@ -43,6 +46,8 @@ fun AdminAppShell(onLogout: () -> Unit) {
         Triple(AdminScreen.Drivers,     Icons.Filled.People,            s.navDrivers),
         Triple(AdminScreen.Managers,    Icons.Filled.SupervisorAccount, s.navManagers),
         Triple(AdminScreen.Customers,   Icons.Filled.Group,             s.navCustomers),
+        Triple(AdminScreen.Reports,     Icons.Filled.BarChart,          s.navAdminReports),
+        Triple(AdminScreen.Maintenance, Icons.Filled.Build,             s.navAdminMaintenance),
     )
 
     Scaffold(
@@ -86,8 +91,10 @@ fun AdminAppShell(onLogout: () -> Unit) {
             composable(AdminScreen.Rentals.route)     { AdminRentalsScreen() }
             composable(AdminScreen.Settlements.route) { AdminSettlementsScreen() }
             composable(AdminScreen.Drivers.route)     { AdminDriversScreen() }
-            composable(AdminScreen.Managers.route)    { AdminManagersScreen() }
-            composable(AdminScreen.Customers.route)   { AdminCustomersScreen(isAdmin = true) }
+            composable(AdminScreen.Managers.route)     { AdminManagersScreen() }
+            composable(AdminScreen.Customers.route)    { AdminCustomersScreen(isAdmin = true) }
+            composable(AdminScreen.Reports.route)      { AdminReportsScreen() }
+            composable(AdminScreen.Maintenance.route)  { AdminMaintenanceScreen() }
         }
     }
 }
