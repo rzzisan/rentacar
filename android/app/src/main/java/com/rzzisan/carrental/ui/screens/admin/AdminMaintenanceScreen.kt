@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
+import com.rzzisan.carrental.ui.LocalAdminDrawerState
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
@@ -30,6 +32,7 @@ import kotlinx.coroutines.launch
 fun AdminMaintenanceScreen() {
     val s = LocalStrings.current
     val scope = rememberCoroutineScope()
+    val drawerState = LocalAdminDrawerState.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var snackMsg by remember { mutableStateOf("") }
     val snackHost = remember { SnackbarHostState() }
@@ -42,6 +45,11 @@ fun AdminMaintenanceScreen() {
         topBar = {
             TopAppBar(
                 title = { Text(s.maintenanceTitle, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState?.open() } }) {
+                        Icon(Icons.Filled.Menu, contentDescription = null)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },

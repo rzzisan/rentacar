@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
+import com.rzzisan.carrental.ui.LocalAdminDrawerState
 import com.rzzisan.carrental.ui.strings.AppStrings
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 fun AdminReportsScreen() {
     val s = LocalStrings.current
     val scope = rememberCoroutineScope()
+    val drawerState = LocalAdminDrawerState.current
     val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
     val years = (0..3).map { currentYear - it }
 
@@ -52,6 +55,11 @@ fun AdminReportsScreen() {
         topBar = {
             TopAppBar(
                 title = { Text(s.adminReportsTitle, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState?.open() } }) {
+                        Icon(Icons.Filled.Menu, contentDescription = null)
+                    }
+                },
                 actions = {
                     Box {
                         TextButton(onClick = { yearMenuOpen = true }) {

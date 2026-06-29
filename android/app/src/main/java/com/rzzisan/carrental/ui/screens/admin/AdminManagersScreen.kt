@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
+import com.rzzisan.carrental.ui.LocalAdminDrawerState
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
@@ -28,6 +29,7 @@ import retrofit2.HttpException
 fun AdminManagersScreen() {
     val s = LocalStrings.current
     val scope = rememberCoroutineScope()
+    val drawerState = LocalAdminDrawerState.current
     var managers by remember { mutableStateOf<List<AdminManager>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
@@ -52,6 +54,11 @@ fun AdminManagersScreen() {
         topBar = {
             TopAppBar(
                 title = { Text(s.managersTitle, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState?.open() } }) {
+                        Icon(Icons.Filled.Menu, contentDescription = null)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },

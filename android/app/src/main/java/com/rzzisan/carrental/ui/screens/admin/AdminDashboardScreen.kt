@@ -16,19 +16,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rzzisan.carrental.data.auth.AuthTokenStore
 import com.rzzisan.carrental.data.network.AdminStats
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.data.network.DashboardTrip
+import com.rzzisan.carrental.ui.LocalAdminDrawerState
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminDashboardScreen(onLogout: () -> Unit) {
+fun AdminDashboardScreen() {
     val s = LocalStrings.current
     val scope = rememberCoroutineScope()
+    val drawerState = LocalAdminDrawerState.current
     var stats by remember { mutableStateOf<AdminStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
@@ -49,8 +50,10 @@ fun AdminDashboardScreen(onLogout: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text(s.dashboardTitle, fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = onLogout) { Icon(Icons.Filled.Logout, s.logout) }
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState?.open() } }) {
+                        Icon(Icons.Filled.Menu, contentDescription = null)
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )

@@ -242,8 +242,8 @@ $customer_analytics = array_map(fn($r) => [
     'last_trip_date'  => $r['last_trip_date'],
     'first_trip_date' => $r['first_trip_date'],
     'days_since_last' => (int)$r['days_since_last'],
-    'is_repeat'       => (int)$r['total_trips'] >= 3,
-    'is_inactive'     => (int)$r['days_since_last'] >= 60,
+    'is_repeat'       => (int)($r['total_trips'] >= 3),
+    'is_inactive'     => (int)($r['days_since_last'] >= 60),
 ], $c_rows);
 
 // ── বার্ষিক সারসংক্ষেপ ─────────────────────────────────────────────────────

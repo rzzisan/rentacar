@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
+import com.rzzisan.carrental.ui.LocalAdminDrawerState
 import com.rzzisan.carrental.ui.strings.AppStrings
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
@@ -31,6 +32,7 @@ import kotlinx.coroutines.launch
 fun AdminCustomersScreen(isAdmin: Boolean = true) {
     val s     = LocalStrings.current
     val scope = rememberCoroutineScope()
+    val drawerState = LocalAdminDrawerState.current
 
     var customers   by remember { mutableStateOf<List<CustomerListItem>>(emptyList()) }
     var loading     by remember { mutableStateOf(true) }
@@ -96,6 +98,11 @@ fun AdminCustomersScreen(isAdmin: Boolean = true) {
         topBar = {
             TopAppBar(
                 title = { Text(s.customersTitle, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState?.open() } }) {
+                        Icon(Icons.Filled.Menu, contentDescription = null)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
