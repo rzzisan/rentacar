@@ -1,6 +1,26 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+// versionCode এখন থেকে git commit সংখ্যা থেকে automatic — versionCode = 3-এ ম্যানুয়ালি বাম্প করা
+// ভুলে যাওয়া হতো (build.gradle.kts-এ বহুদিন versionCode = 1 স্থির ছিল, দেখুন
+// saas_modiul_plan.md Phase 7)। commit সংখ্যা কখনো কমে না, তাই monotonic guarantee ফ্রি।
+// git না পাওয়া গেলে (যেমন .git ছাড়া zip থেকে build) fallback 105-এ — যেন কোনোভাবেই
+// আগের কোনো রিলিজের (সর্বোচ্চ manually-set versionCode 3 ছিল) চেয়ে ছোট versionCode তৈরি না হয়।
+fun gitCommitCount(): Int {
+    return try {
+        val stdout = ByteArrayOutputStream()
+        exec {
+            commandLine("git", "-C", rootDir.toString(), "rev-list", "--count", "HEAD")
+            standardOutput = stdout
+        }
+        stdout.toString().trim().toIntOrNull()?.takeIf { it > 0 } ?: 105
+    } catch (e: Exception) {
+        105
+    }
 }
 
 android {
@@ -11,8 +31,8 @@ android {
         applicationId = "com.rzzisan.carrental"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = gitCommitCount()
+        versionName = "1.1.1" // মানুষের পড়ার জন্য — semver স্টাইলে ম্যানুয়ালি বাম্প করবে, update-check এটার উপর নির্ভর করে না
         buildConfigField("String", "API_BASE_URL", "\"https://car.zisan.me/api/\"")
     }
 
