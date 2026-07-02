@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('GET');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $rental_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -23,9 +24,9 @@ $rstmt = $conn->prepare(
      FROM rentals r
      LEFT JOIN drivers d ON r.driver_id = d.id
      LEFT JOIN vehicles v ON r.vehicle_id = v.id
-     WHERE r.id = ?"
+     WHERE r.id = ? AND r.tenant_id = ?"
 );
-$rstmt->bind_param('i', $rental_id);
+$rstmt->bind_param('ii', $rental_id, $tid);
 $rstmt->execute();
 $rental = $rstmt->get_result()->fetch_assoc();
 $rstmt->close();

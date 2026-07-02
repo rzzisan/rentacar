@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('POST');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $data = input();
@@ -24,9 +25,9 @@ if ($amount <= 0) {
     json_response(['success' => false, 'message' => 'জমার পরিমান ০ থেকে বেশি হতে হবে'], 400);
 }
 
-// Verify driver exists
-$dstmt = $conn->prepare("SELECT id, name FROM drivers WHERE id = ?");
-$dstmt->bind_param('i', $driver_id);
+// Verify driver exists (এবং এই tenant-এর)
+$dstmt = $conn->prepare("SELECT id, name FROM drivers WHERE id = ? AND tenant_id = ?");
+$dstmt->bind_param('ii', $driver_id, $tid);
 $dstmt->execute();
 $driver = $dstmt->get_result()->fetch_assoc();
 $dstmt->close();

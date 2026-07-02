@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid        = get_tenant_id();
 $conn       = (new Database())->connect();
 $method     = $_SERVER['REQUEST_METHOD'];
 $rental_id  = isset($_GET['rental_id']) ? (int)$_GET['rental_id'] : 0;
@@ -16,9 +17,9 @@ $vids = get_manager_vehicle_ids($conn, $manager_id);
 $in   = manager_vehicle_in_clause($vids);
 
 // Verify rental belongs to this manager's vehicles
-$chkStmt = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND vehicle_id IN $in");
-$params  = array_merge([$rental_id], $vids);
-$types   = 'i' . str_repeat('i', count($vids));
+$chkStmt = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND vehicle_id IN $in AND tenant_id = ?");
+$params  = array_merge([$rental_id], $vids, [$tid]);
+$types   = 'i' . str_repeat('i', count($vids)) . 'i';
 $chkStmt->bind_param($types, ...$params);
 $chkStmt->execute();
 if ($chkStmt->get_result()->num_rows === 0) {

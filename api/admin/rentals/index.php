@@ -4,15 +4,16 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn   = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: list rentals ────────────────────────────────────────────
 if ($method === 'GET') {
-    $where  = ['1=1'];
-    $params = [];
-    $types  = '';
+    $where  = ['r.tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if (!empty($_GET['status'])) {
         $where[] = 'r.rental_status = ?';
@@ -98,9 +99,9 @@ if ($method === 'POST') {
         json_response(['success' => false, 'message' => 'সঠিক মোবাইল নম্বর দিন'], 400);
     }
 
-    // Validate vehicle exists
-    $vstmt = $conn->prepare("SELECT id FROM vehicles WHERE id = ?");
-    $vstmt->bind_param('i', $vehicle_id);
+    // Validate vehicle exists (এবং এই tenant-এর)
+    $vstmt = $conn->prepare("SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?");
+    $vstmt->bind_param('ii', $vehicle_id, $tid);
     $vstmt->execute();
     if ($vstmt->get_result()->num_rows === 0) {
         json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
@@ -112,10 +113,10 @@ if ($method === 'POST') {
         $astmt = $conn->prepare(
             "SELECT dv.driver_id FROM driver_vehicles dv
              JOIN drivers d ON d.id = dv.driver_id AND d.status = 'active'
-             WHERE dv.vehicle_id = ?
+             WHERE dv.vehicle_id = ? AND d.tenant_id = ?
              ORDER BY dv.assigned_at DESC LIMIT 1"
         );
-        $astmt->bind_param('i', $vehicle_id);
+        $astmt->bind_param('ii', $vehicle_id, $tid);
         $astmt->execute();
         $arow = $astmt->get_result()->fetch_assoc();
         $astmt->close();
@@ -124,10 +125,10 @@ if ($method === 'POST') {
         }
     }
 
-    // Validate driver if provided
+    // Validate driver if provided (এবং এই tenant-এর)
     if ($driver_id) {
-        $dstmt = $conn->prepare("SELECT id FROM drivers WHERE id = ?");
-        $dstmt->bind_param('i', $driver_id);
+        $dstmt = $conn->prepare("SELECT id FROM drivers WHERE id = ? AND tenant_id = ?");
+        $dstmt->bind_param('ii', $driver_id, $tid);
         $dstmt->execute();
         if ($dstmt->get_result()->num_rows === 0) {
             json_response(['success' => false, 'message' => 'চালক পাওয়া যায়নি'], 404);
@@ -135,10 +136,10 @@ if ($method === 'POST') {
         $dstmt->close();
     }
 
-    // Find or create customer
+    // Find or create customer (এই tenant-এর মধ্যে)
     $phone_clean = preg_replace('/[^\d]/', '', $passenger_mobile);
-    $cstmt = $conn->prepare("SELECT id FROM customers WHERE phone = ?");
-    $cstmt->bind_param('s', $phone_clean);
+    $cstmt = $conn->prepare("SELECT id FROM customers WHERE phone = ? AND tenant_id = ?");
+    $cstmt->bind_param('si', $phone_clean, $tid);
     $cstmt->execute();
     $cresult = $cstmt->get_result();
 
@@ -151,10 +152,10 @@ if ($method === 'POST') {
         $last_name = $names[1] ?? '';
 
         $istmt = $conn->prepare(
-            "INSERT INTO customers (first_name, last_name, phone, email)
-             VALUES (?, ?, ?, NULL)"
+            "INSERT INTO customers (tenant_id, first_name, last_name, phone, email)
+             VALUES (?, ?, ?, ?, NULL)"
         );
-        $istmt->bind_param('sss', $first_name, $last_name, $phone_clean);
+        $istmt->bind_param('isss', $tid, $first_name, $last_name, $phone_clean);
 
         if (!$istmt->execute()) {
             json_response(['success' => false, 'message' => 'যাত্রি তৈরি করতে ব্যর্থ: ' . $istmt->error], 500);
@@ -171,14 +172,15 @@ if ($method === 'POST') {
 
     $rstmt = $conn->prepare(
         "INSERT INTO rentals
-         (customer_id, vehicle_id, employee_id, driver_id, start_date,
+         (tenant_id, customer_id, vehicle_id, employee_id, driver_id, start_date,
           pickup_location, dropoff_location, trip_type, agreed_amount, rental_status,
           payment_status, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
     $rstmt->bind_param(
-        'iiiissssdsss',
+        'iiiiissssdsss',
+        $tid,
         $customer_id,
         $vehicle_id,
         $employee_id,

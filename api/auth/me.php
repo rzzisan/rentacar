@@ -13,10 +13,11 @@ if (isset($_SESSION['user_id'])) {
     json_response([
         'success' => true,
         'data' => [
-            'id'       => (int) $_SESSION['user_id'],
-            'username' => $_SESSION['username'],
-            'email'    => $_SESSION['email'],
-            'role'     => $_SESSION['role'],
+            'id'        => (int) $_SESSION['user_id'],
+            'tenant_id' => isset($_SESSION['tenant_id']) ? (int) $_SESSION['tenant_id'] : null,
+            'username'  => $_SESSION['username'],
+            'email'     => $_SESSION['email'],
+            'role'      => $_SESSION['role'],
         ],
     ]);
 }
@@ -24,7 +25,7 @@ if (isset($_SESSION['user_id'])) {
 // Handle driver session
 if (isset($_SESSION['driver_id'])) {
     $conn = (new Database())->connect();
-    $stmt = $conn->prepare("SELECT id, name, email, status FROM drivers WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, tenant_id, name, email, status FROM drivers WHERE id = ?");
     $stmt->bind_param('i', $_SESSION['driver_id']);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -36,10 +37,11 @@ if (isset($_SESSION['driver_id'])) {
         json_response([
             'success' => true,
             'data' => [
-                'id'       => (int) $driver['id'],
-                'username' => $driver['name'],
-                'email'    => $driver['email'],
-                'role'     => 'driver',
+                'id'        => (int) $driver['id'],
+                'tenant_id' => (int) $driver['tenant_id'],
+                'username'  => $driver['name'],
+                'email'     => $driver['email'],
+                'role'      => 'driver',
             ],
         ]);
     }
@@ -49,7 +51,7 @@ if (isset($_SESSION['driver_id'])) {
 // Handle manager session
 if (isset($_SESSION['manager_id'])) {
     $conn = (new Database())->connect();
-    $stmt = $conn->prepare("SELECT id, name, email, status FROM managers WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, tenant_id, name, email, status FROM managers WHERE id = ?");
     $stmt->bind_param('i', $_SESSION['manager_id']);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -61,10 +63,11 @@ if (isset($_SESSION['manager_id'])) {
         json_response([
             'success' => true,
             'data' => [
-                'id'       => (int) $manager['id'],
-                'username' => $manager['name'],
-                'email'    => $manager['email'],
-                'role'     => 'manager',
+                'id'        => (int) $manager['id'],
+                'tenant_id' => (int) $manager['tenant_id'],
+                'username'  => $manager['name'],
+                'email'     => $manager['email'],
+                'role'      => 'manager',
             ],
         ]);
     }

@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $settlement_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -12,9 +13,12 @@ if (!$settlement_id) {
     json_response(['success' => false, 'message' => 'সেটেলমেন্ট আইডি প্রয়োজন'], 400);
 }
 
-// Verify settlement exists
-$verify_stmt = $conn->prepare("SELECT id FROM settlements WHERE id = ?");
-$verify_stmt->bind_param('i', $settlement_id);
+// Verify settlement exists (settlements-এ tenant_id নেই — rentals জয়েন করে যাচাই)
+$verify_stmt = $conn->prepare(
+    "SELECT s.id FROM settlements s JOIN rentals r ON r.id = s.rental_id
+     WHERE s.id = ? AND r.tenant_id = ?"
+);
+$verify_stmt->bind_param('ii', $settlement_id, $tid);
 $verify_stmt->execute();
 if ($verify_stmt->get_result()->num_rows === 0) {
     json_response(['success' => false, 'message' => 'সেটেলমেন্ট পাওয়া যায়নি'], 404);

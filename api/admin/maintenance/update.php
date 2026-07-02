@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 only_method('PUT');
 require_role('admin');
+$tid = get_tenant_id();
 $conn = (new Database())->connect();
 
 $id   = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -29,10 +30,10 @@ $stmt = $conn->prepare(
     "UPDATE maintenance SET
         maintenance_type=?, description=?, vendor=?, start_date=?, end_date=?,
         km_reading=?, next_due_date=?, next_due_km=?, cost=?, status=?
-     WHERE id=?"
+     WHERE id=? AND tenant_id=?"
 );
-$stmt->bind_param('sssssisissi', $type, $desc, $vendor, $start, $end,
-    $km, $next_date, $next_km, $cost, $status, $id);
+$stmt->bind_param('sssssisissii', $type, $desc, $vendor, $start, $end,
+    $km, $next_date, $next_km, $cost, $status, $id, $tid);
 $stmt->execute();
 $stmt->close();
 

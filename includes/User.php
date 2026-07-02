@@ -38,8 +38,8 @@ class User {
      * Login user
      */
     public function login($email, $password) {
-        $query = "SELECT id, username, email, password, role, status FROM {$this->table} WHERE email = ? AND status = 'active'";
-        
+        $query = "SELECT id, tenant_id, username, email, password, role, status FROM {$this->table} WHERE email = ? AND status = 'active'";
+
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
             return ['success' => false, 'message' => 'Prepare failed: ' . $this->conn->error];
@@ -51,15 +51,16 @@ class User {
 
         if ($result->num_rows == 1) {
             $user = $result->fetch_assoc();
-            
+
             if (password_verify($password, $user['password'])) {
                 // Password is correct
                 $_SESSION['user_id'] = $user['id'];
+                $_SESSION['tenant_id'] = (int) $user['tenant_id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['email'] = $user['email'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['login_time'] = time();
-                
+
                 return ['success' => true, 'message' => 'Login successful', 'user' => $user];
             } else {
                 return ['success' => false, 'message' => 'Invalid password'];

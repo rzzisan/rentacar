@@ -4,6 +4,7 @@ require_once '../../config/Database.php';
 require_once '../_helpers.php';
 
 $driver_id = require_driver();
+$tid = get_tenant_id();
 only_method('POST');
 
 $conn = (new Database())->connect();
@@ -20,9 +21,9 @@ if (!$rental_id || $latitude === null || $longitude === null) {
 
 // ড্রাইভারের active ট্রিপ কিনা যাচাই
 $stmt = $conn->prepare(
-    "SELECT id FROM rentals WHERE id = ? AND driver_id = ? AND rental_status = 'active'"
+    "SELECT id FROM rentals WHERE id = ? AND driver_id = ? AND tenant_id = ? AND rental_status = 'active'"
 );
-$stmt->bind_param('ii', $rental_id, $driver_id);
+$stmt->bind_param('iii', $rental_id, $driver_id, $tid);
 $stmt->execute();
 $found = $stmt->get_result()->num_rows > 0;
 $stmt->close();

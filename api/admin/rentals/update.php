@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('POST');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $rental_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -14,9 +15,9 @@ if (!$rental_id) {
     json_response(['success' => false, 'message' => 'রেন্টাল আইডি প্রয়োজন'], 400);
 }
 
-// Get current rental
-$stmt = $conn->prepare("SELECT id, rental_status, vehicle_id, driver_id FROM rentals WHERE id = ?");
-$stmt->bind_param('i', $rental_id);
+// Get current rental (এবং tenant-এর অন্তর্গত কিনা যাচাই)
+$stmt = $conn->prepare("SELECT id, rental_status, vehicle_id, driver_id FROM rentals WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('ii', $rental_id, $tid);
 $stmt->execute();
 $rental = $stmt->get_result()->fetch_assoc();
 $stmt->close();
@@ -34,9 +35,9 @@ $vehicle_id = isset($data['vehicle_id']) && $data['vehicle_id'] ? (int)$data['ve
 $driver_given = array_key_exists('driver_id', $data);
 $driver_id = $driver_given && $data['driver_id'] ? (int)$data['driver_id'] : null;
 
-// Validate vehicle
-$vstmt = $conn->prepare("SELECT id FROM vehicles WHERE id = ?");
-$vstmt->bind_param('i', $vehicle_id);
+// Validate vehicle (এই tenant-এর)
+$vstmt = $conn->prepare("SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?");
+$vstmt->bind_param('ii', $vehicle_id, $tid);
 $vstmt->execute();
 if ($vstmt->get_result()->num_rows === 0) {
     json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
@@ -48,10 +49,10 @@ if (!$driver_given && $vehicle_id !== (int)$rental['vehicle_id']) {
     $astmt = $conn->prepare(
         "SELECT dv.driver_id FROM driver_vehicles dv
          JOIN drivers d ON d.id = dv.driver_id AND d.status = 'active'
-         WHERE dv.vehicle_id = ?
+         WHERE dv.vehicle_id = ? AND d.tenant_id = ?
          ORDER BY dv.assigned_at DESC LIMIT 1"
     );
-    $astmt->bind_param('i', $vehicle_id);
+    $astmt->bind_param('ii', $vehicle_id, $tid);
     $astmt->execute();
     $arow = $astmt->get_result()->fetch_assoc();
     $astmt->close();
@@ -60,10 +61,10 @@ if (!$driver_given && $vehicle_id !== (int)$rental['vehicle_id']) {
     $driver_id = $rental['driver_id'] ? (int)$rental['driver_id'] : null;
 }
 
-// Validate driver if set
+// Validate driver if set (এই tenant-এর)
 if ($driver_id) {
-    $dstmt = $conn->prepare("SELECT id FROM drivers WHERE id = ?");
-    $dstmt->bind_param('i', $driver_id);
+    $dstmt = $conn->prepare("SELECT id FROM drivers WHERE id = ? AND tenant_id = ?");
+    $dstmt->bind_param('ii', $driver_id, $tid);
     $dstmt->execute();
     if ($dstmt->get_result()->num_rows === 0) {
         json_response(['success' => false, 'message' => 'চালক পাওয়া যায়নি'], 404);
@@ -71,8 +72,8 @@ if ($driver_id) {
     $dstmt->close();
 }
 
-$ustmt = $conn->prepare("UPDATE rentals SET vehicle_id = ?, driver_id = ? WHERE id = ?");
-$ustmt->bind_param('iii', $vehicle_id, $driver_id, $rental_id);
+$ustmt = $conn->prepare("UPDATE rentals SET vehicle_id = ?, driver_id = ? WHERE id = ? AND tenant_id = ?");
+$ustmt->bind_param('iiii', $vehicle_id, $driver_id, $rental_id, $tid);
 if (!$ustmt->execute()) {
     json_response(['success' => false, 'message' => 'আপডেট ব্যর্থ: ' . $ustmt->error], 500);
 }

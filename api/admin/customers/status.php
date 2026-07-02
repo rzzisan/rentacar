@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('PUT');
+$tid = get_tenant_id();
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) json_response(['success' => false, 'message' => 'id আবশ্যক'], 422);
@@ -18,8 +19,8 @@ if (!in_array($status, ['active', 'inactive'], true)) {
 
 $conn = (new Database())->connect();
 
-$stmt = $conn->prepare("UPDATE customers SET status = ? WHERE id = ?");
-$stmt->bind_param('si', $status, $id);
+$stmt = $conn->prepare("UPDATE customers SET status = ? WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('sii', $status, $id, $tid);
 
 if (!$stmt->execute() || $stmt->affected_rows === 0) {
     $stmt->close();

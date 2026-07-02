@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid = get_tenant_id();
 only_method('GET');
 $conn = (new Database())->connect();
 
@@ -20,9 +21,9 @@ $driver_id_param = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if ($driver_id_param) {
     // Verify driver is assigned to manager's vehicles
-    $dchk = $conn->prepare("SELECT id FROM driver_vehicles WHERE driver_id = ? AND vehicle_id IN $in LIMIT 1");
-    $p    = array_merge([$driver_id_param], $vids);
-    $tp   = 'i' . $t;
+    $dchk = $conn->prepare("SELECT dv.id FROM driver_vehicles dv JOIN drivers d ON d.id = dv.driver_id WHERE dv.driver_id = ? AND dv.vehicle_id IN $in AND d.tenant_id = ? LIMIT 1");
+    $p    = array_merge([$driver_id_param], $vids, [$tid]);
+    $tp   = 'i' . $t . 'i';
     $dchk->bind_param($tp, ...$p);
     $dchk->execute();
     if ($dchk->get_result()->num_rows === 0) {
@@ -30,8 +31,8 @@ if ($driver_id_param) {
     }
     $dchk->close();
 
-    $dstmt = $conn->prepare("SELECT id, name, mobile, status, commission_rate FROM drivers WHERE id = ?");
-    $dstmt->bind_param('i', $driver_id_param);
+    $dstmt = $conn->prepare("SELECT id, name, mobile, status, commission_rate FROM drivers WHERE id = ? AND tenant_id = ?");
+    $dstmt->bind_param('ii', $driver_id_param, $tid);
     $dstmt->execute();
     $driver = $dstmt->get_result()->fetch_assoc();
     $dstmt->close();
@@ -123,11 +124,13 @@ $sql = "SELECT d.id, d.name, d.mobile, d.status, d.commission_rate,
         FROM drivers d
         JOIN driver_vehicles dv ON d.id = dv.driver_id AND dv.vehicle_id IN $in
         LEFT JOIN settlements s ON s.driver_id = d.id
+        WHERE d.tenant_id = ?
         GROUP BY d.id, d.name, d.mobile, d.status, d.commission_rate
         ORDER BY total_due DESC, d.name ASC";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param($t, ...$vids);
+$stmt_params = array_merge($vids, [$tid]);
+$stmt->bind_param($t . 'i', ...$stmt_params);
 $stmt->execute();
 $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();

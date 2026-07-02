@@ -12,6 +12,7 @@ if (!isset($_SESSION['driver_id'])) {
 
 $conn = (new Database())->connect();
 $driver_id = (int)$_SESSION['driver_id'];
+$tid = get_tenant_id();
 
 // ── settlements with expense breakdown ───────────────────────────
 $stmt = $conn->prepare(
@@ -40,10 +41,10 @@ $stmt = $conn->prepare(
      LEFT JOIN rentals r ON s.rental_id = r.id
      LEFT JOIN customers c ON r.customer_id = c.id
      LEFT JOIN vehicles v ON r.vehicle_id = v.id
-     WHERE s.driver_id = ?
+     WHERE s.driver_id = ? AND r.tenant_id = ?
      ORDER BY r.start_date DESC"
 );
-$stmt->bind_param('i', $driver_id);
+$stmt->bind_param('ii', $driver_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 $settlements = $result->fetch_all(MYSQLI_ASSOC);
@@ -115,12 +116,12 @@ $mstmt = $conn->prepare(
         COALESCE(SUM(s.remaining_amount), 0)  as pending
      FROM settlements s
      JOIN rentals r ON s.rental_id = r.id
-     WHERE s.driver_id = ?
+     WHERE s.driver_id = ? AND r.tenant_id = ?
        AND r.start_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
      GROUP BY DATE_FORMAT(r.start_date, '%Y-%m')
      ORDER BY month DESC"
 );
-$mstmt->bind_param('i', $driver_id);
+$mstmt->bind_param('ii', $driver_id, $tid);
 $mstmt->execute();
 $monthly_rows = $mstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $mstmt->close();

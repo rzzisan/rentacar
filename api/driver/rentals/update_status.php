@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $driver_id = require_driver();
+$tid = get_tenant_id();
 only_method('POST');
 
 $conn = (new Database())->connect();
@@ -25,8 +26,8 @@ if (!in_array($new_status, $valid_statuses)) {
 }
 
 // নিজের ট্রিপ কিনা যাচাই করে বর্তমান স্ট্যাটাস আনা
-$stmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ? AND driver_id = ?");
-$stmt->bind_param('ii', $rental_id, $driver_id);
+$stmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ? AND driver_id = ? AND tenant_id = ?");
+$stmt->bind_param('iii', $rental_id, $driver_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -59,16 +60,16 @@ if ($new_status === 'active') {
         "UPDATE rentals SET rental_status = ?,
          actual_start_time = COALESCE(actual_start_time, NOW()),
          start_location_name = ?, start_latitude = ?, start_longitude = ?
-         WHERE id = ?"
+         WHERE id = ? AND driver_id = ? AND tenant_id = ?"
     );
-    $ustmt->bind_param('ssddi', $new_status, $location_name, $latitude, $longitude, $rental_id);
+    $ustmt->bind_param('ssddiii', $new_status, $location_name, $latitude, $longitude, $rental_id, $driver_id, $tid);
 } else {
     $ustmt = $conn->prepare(
         "UPDATE rentals SET rental_status = ?, end_date = NOW(), actual_end_time = NOW(),
          end_location_name = ?, end_latitude = ?, end_longitude = ?
-         WHERE id = ?"
+         WHERE id = ? AND driver_id = ? AND tenant_id = ?"
     );
-    $ustmt->bind_param('ssddi', $new_status, $location_name, $latitude, $longitude, $rental_id);
+    $ustmt->bind_param('ssddiii', $new_status, $location_name, $latitude, $longitude, $rental_id, $driver_id, $tid);
 }
 
 if (!$ustmt->execute()) {

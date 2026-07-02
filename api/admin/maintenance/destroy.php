@@ -5,13 +5,14 @@ require_once '../../_helpers.php';
 
 only_method('DELETE');
 require_role('admin');
+$tid = get_tenant_id();
 $conn = (new Database())->connect();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if (!$id) json_response(['success' => false, 'message' => 'ID আবশ্যক'], 422);
 
-$stmt = $conn->prepare("DELETE FROM maintenance WHERE id=?");
-$stmt->bind_param('i', $id);
+$stmt = $conn->prepare("DELETE FROM maintenance WHERE id=? AND tenant_id=?");
+$stmt->bind_param('ii', $id, $tid);
 $stmt->execute();
 $stmt->close();
 

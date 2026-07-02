@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('POST');
+$tid = get_tenant_id();
 
 $conn       = (new Database())->connect();
 $manager_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -13,8 +14,8 @@ if (!$manager_id) {
     json_response(['success' => false, 'message' => 'ম্যানেজার আইডি প্রয়োজন'], 400);
 }
 
-$chk = $conn->prepare("SELECT id FROM managers WHERE id = ?");
-$chk->bind_param('i', $manager_id);
+$chk = $conn->prepare("SELECT id FROM managers WHERE id = ? AND tenant_id = ?");
+$chk->bind_param('ii', $manager_id, $tid);
 $chk->execute();
 if ($chk->get_result()->num_rows === 0) {
     json_response(['success' => false, 'message' => 'ম্যানেজার পাওয়া যায়নি'], 404);
@@ -86,8 +87,9 @@ if (!empty($_FILES['profile_picture']['name'])) {
 }
 
 $params[] = $manager_id;
-$types   .= 'i';
-$sql = 'UPDATE managers SET ' . implode(', ', $sets) . ' WHERE id = ?';
+$params[] = $tid;
+$types   .= 'ii';
+$sql = 'UPDATE managers SET ' . implode(', ', $sets) . ' WHERE id = ? AND tenant_id = ?';
 $stmt = $conn->prepare($sql);
 $stmt->bind_param($types, ...$params);
 if (!$stmt->execute()) {
@@ -104,6 +106,15 @@ if ($vehicle_id !== false) {
     $del->close();
 
     if ($vehicle_id) {
+        // গাড়ি এই tenant-এর কিনা যাচাই — IDOR প্রতিরোধ
+        $vown = $conn->prepare("SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?");
+        $vown->bind_param('ii', $vehicle_id, $tid);
+        $vown->execute();
+        if ($vown->get_result()->num_rows === 0) {
+            json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
+        }
+        $vown->close();
+
         // Check uniqueness
         $vchk = $conn->prepare("SELECT id FROM manager_vehicles WHERE vehicle_id = ?");
         $vchk->bind_param('i', $vehicle_id);

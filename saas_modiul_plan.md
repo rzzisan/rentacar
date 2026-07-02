@@ -343,24 +343,31 @@ Trial শেষ হলে (Cron):
 ---
 
 ### Phase 1: মাল্টি-টেনেন্সি ভিত্তি
-**Status: ⬜ বাকি**
+**Status: ✅ সম্পন্ন (2026-07-02)**
 
 **লক্ষ্য:** বিদ্যমান সব data-কে tenant-aware করা
 
 **কাজের তালিকা:**
-- [ ] `tenants` টেবিল তৈরি
-- [ ] `super_admins` টেবিল তৈরি
-- [ ] বিদ্যমান সব টেবিলে `tenant_id` column যোগ
-- [ ] বিদ্যমান data-এ tenant_id সেট (migration: একটি default tenant তৈরি করে সব পুরানো data সেই tenant-এ assign)
-- [ ] `api/auth/login.php` — superadmin check যোগ + tenant_id session
-- [ ] `api/_helpers.php` — `get_tenant_id()`, `require_superadmin()`, `require_active_tenant()` functions
-- [ ] সব `api/admin/*` endpoint-এ tenant_id filter
-- [ ] সব `api/vehicles/*` endpoint-এ tenant_id filter
-- [ ] সব `api/manager/*` endpoint-এ tenant_id filter (manager-এর tenant inherit)
-- [ ] সব `api/driver/*` endpoint-এ tenant_id filter (driver-এর tenant inherit)
-- [ ] `api/admin/reports.php` — সব ৫টি section-এ tenant_id
-- [ ] প্রথম superadmin account তৈরি (DB-তে manually insert)
-- [ ] Test: দুটি tenant তৈরি করে data isolation verify
+- [x] `tenants` টেবিল তৈরি
+- [x] `super_admins` টেবিল তৈরি
+- [x] বিদ্যমান সব টেবিলে `tenant_id` column যোগ (users, vehicles, drivers, managers, rentals, maintenance, customers — NOT NULL, no default, FK+index; api_tokens-এও nullable tenant_id)
+- [x] বিদ্যমান data-এ tenant_id সেট (default tenant id=1 তৈরি করে সব পুরানো data সেখানে backfill)
+- [x] `api/auth/login.php` — superadmin check সবার আগে যোগ + tenant_id session (users/drivers/managers তিন fallback-এই)
+- [x] `api/_helpers.php` — `get_tenant_id()`, `require_superadmin()`, `require_active_tenant()` functions
+- [x] সব `api/admin/*` endpoint-এ tenant_id filter (rentals, settlements, drivers, managers, customers, maintenance, documents, reports, stats)
+- [x] সব `api/vehicles/*` endpoint-এ tenant_id filter
+- [x] সব `api/manager/*` endpoint-এ tenant_id filter (manager-এর tenant inherit)
+- [x] সব `api/driver/*` endpoint-এ tenant_id filter (driver-এর tenant inherit)
+- [x] `api/admin/reports.php` — সব ৫টি section-এ tenant_id
+- [x] প্রথম superadmin account তৈরি (rzzisan@gmail.com, DB-তে manually insert)
+- [x] Test: দুটি tenant তৈরি করে data isolation + IDOR protection verify (read ও write দুটোতেই), টেস্ট tenant পরে মুছে ফেলা হয়েছে
+
+**Implementation নোট:**
+- DB migration: `db/migrations/001_multi_tenancy.sql` (আগে `db/backups/`-এ mysqldump backup নেওয়া হয়েছে)
+- ~60টি API ফাইল আপডেট হয়েছে একই প্যাটার্নে (`$tid = get_tenant_id();` + WHERE/INSERT-এ tenant_id) — 4টি সমান্তরাল সাব-এজেন্ট দিয়ে (admin rentals/settlements/reports/documents, admin drivers/managers/customers/maintenance, manager panel, driver panel), তারপর manual lint+grep+curl দিয়ে verify করা হয়েছে
+- Verification-এর সময় ২টি **পুরনো (migration-অসম্পর্কিত) bug** ধরা পড়েছে ও ঠিক করা হয়েছে: `api/manager/drivers/index.php` ও `api/manager/customers/index.php`-এ `$in` (vehicle placeholder list) একই SQL-এ একাধিকবার ব্যবহৃত হচ্ছিল কিন্তু params array-তে একবারই দেওয়া ছিল — `bind_param()` ArgumentCountError দিয়ে fatal করত। এই bug production-এ live ছিল (manager panel-এর ড্রাইভার/গ্রাহক তালিকা কখনো কাজ করেনি) — এখন ঠিক হয়েছে।
+- `trip_expenses`, `settlements`, `driver_vehicles`, `manager_vehicles`, `vehicle_documents`-এ tenant_id column নেই — parent (`rentals`/`vehicles`) join করে tenant verify করা হয়
+- IDOR প্রতিরোধ সর্বত্র প্রাধান্য পেয়েছে: client-supplied ID দিয়ে যেকোনো lookup/update/delete/assign-এ tenant ownership check বাধ্যতামূলক করা হয়েছে
 
 **Migration Script:**
 ```sql
@@ -541,7 +548,7 @@ Invoice তৈরির সময় সেই মুহূর্তের `pric
 
 | Phase | নাম | Status | সম্পন্নের তারিখ |
 |---|---|---|---|
-| 1 | মাল্টি-টেনেন্সি ভিত্তি | ⬜ বাকি | — |
+| 1 | মাল্টি-টেনেন্সি ভিত্তি | ✅ সম্পন্ন | 2026-07-02 |
 | 2 | Subscription & Billing | ⬜ বাকি | — |
 | 3 | SuperAdmin Panel | ⬜ বাকি | — |
 | 4 | Tenant Onboarding | ⬜ বাকি | — |

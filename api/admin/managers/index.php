@@ -4,15 +4,16 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn   = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: list managers ────────────────────────────────────────────
 if ($method === 'GET') {
-    $where  = ['1=1'];
-    $params = [];
-    $types  = '';
+    $where  = ['m.tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if (!empty($_GET['search'])) {
         $s       = '%' . $_GET['search'] . '%';
@@ -98,6 +99,17 @@ if ($method === 'POST') {
     }
     $chk->close();
 
+    // গাড়ি এই tenant-এর কিনা যাচাই — IDOR প্রতিরোধ
+    if ($vehicle_id) {
+        $vown = $conn->prepare("SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?");
+        $vown->bind_param('ii', $vehicle_id, $tid);
+        $vown->execute();
+        if ($vown->get_result()->num_rows === 0) {
+            json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
+        }
+        $vown->close();
+    }
+
     // Vehicle uniqueness check
     if ($vehicle_id) {
         $vchk = $conn->prepare("SELECT id FROM manager_vehicles WHERE vehicle_id = ?");
@@ -129,10 +141,10 @@ if ($method === 'POST') {
 
     $hashed = password_hash($password, PASSWORD_BCRYPT);
     $stmt   = $conn->prepare(
-        "INSERT INTO managers (name, mobile, profile_picture, email, password, status)
-         VALUES (?, ?, ?, ?, ?, ?)"
+        "INSERT INTO managers (tenant_id, name, mobile, profile_picture, email, password, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
-    $stmt->bind_param('ssssss', $name, $mobile, $picture, $email, $hashed, $status);
+    $stmt->bind_param('issssss', $tid, $name, $mobile, $picture, $email, $hashed, $status);
 
     if (!$stmt->execute()) {
         json_response(['success' => false, 'message' => 'ম্যানেজার যোগ করতে ব্যর্থ: ' . $stmt->error], 500);

@@ -1,7 +1,9 @@
 # car.zisan.me — Rent-A-Car Management System
 
 ## প্রজেক্ট পরিচিতি
-বাংলাদেশ-ভিত্তিক কার রেন্টাল ম্যানেজমেন্ট সিস্টেম। UI সম্পূর্ণ বাংলায়। চারটি role: `admin`, `employee`, `customer`, `driver`।
+বাংলাদেশ-ভিত্তিক কার রেন্টাল ম্যানেজমেন্ট সিস্টেম। UI সম্পূর্ণ বাংলায়। Role: `superadmin` (SaaS-ব্যাপী, tenant-agnostic), `admin`, `manager`, `employee`, `customer`, `driver` (সব tenant-scoped)।
+
+**মাল্টি-টেনেন্ট SaaS (2026-07-02 থেকে):** সিস্টেমটি একাধিক আলাদা রেন্ট-এ-কার ব্যবসা (tenant) হোস্ট করে — প্রতিটির ডেটা সম্পূর্ণ isolated। বিস্তারিত পরিকল্পনা ও phase tracking: `saas_modiul_plan.md`। এই ফাইলে multi-tenancy-সংক্রান্ত conventions নিচে "Multi-Tenancy" সেকশনে।
 
 ---
 
@@ -159,19 +161,41 @@ includes/                          — ভবিষ্যতের API-তে �
 
 1. `App.tsx` mount → `GET /api/auth/me.php`
 2. 401 response → redirect to `/login`
-3. Login form → `POST /api/auth/login.php` → PHP session set
-4. Role অনুযায়ী redirect: admin→`/admin`, manager→`/manager`, employee→`/employee`, customer→`/customer`, driver→`/driver`
+3. Login form → `POST /api/auth/login.php` → PHP session set (৪-স্তর fallback: `super_admins` → `users` → `drivers` → `managers`)
+4. Role অনুযায়ী redirect: admin→`/admin`, manager→`/manager`, employee→`/employee`, customer→`/customer`, driver→`/driver` (superadmin panel এখনো তৈরি হয়নি — Phase 3)
 5. Logout → `POST /api/auth/logout.php` → session destroy → redirect to `/login`
 6. `ProtectedRoute` component role-check করে, ভুল role হলে নিজের dashboard-এ redirect
 
 ---
 
+## Multi-Tenancy (SaaS)
+
+- **`$_SESSION['tenant_id']`**: প্রতিটি admin/manager/driver session-এ থাকে (login-এই সেট হয়)। `superadmin`-এর tenant_id নেই (tenant-agnostic — সব tenant দেখতে পারে, কিন্তু এখনো সেই panel/endpoint তৈরি হয়নি)।
+- **`get_tenant_id()`** (`api/_helpers.php`) — session থেকে tenant_id রিটার্ন করে, না থাকলে 403। **প্রতিটি tenant-scoped endpoint-এ `require_role()`/`require_manager()`/`require_driver()`-এর ঠিক পরেই কল করতে হবে** (`$tid = get_tenant_id();`)।
+- **`require_superadmin()`**, **`require_active_tenant()`** — superadmin guard ও suspended/cancelled tenant block (আপাতত শুধু login-এ ব্যবহৃত)।
+- **tenant_id column আছে:** `users`, `vehicles`, `drivers`, `managers`, `rentals`, `maintenance`, `customers` (সব NOT NULL, কোনো DEFAULT নেই — tenant_id ছাড়া INSERT করলে সশব্দে ব্যর্থ হবে, চুপচাপ ভুল tenant-এ leak হবে না)। `api_tokens`-এও আছে (nullable, mobile bearer-token flow-এর জন্য)।
+- **tenant_id column নেই:** `trip_expenses`, `settlements`, `driver_vehicles`, `manager_vehicles`, `vehicle_documents` — এগুলো parent (`rentals`/`vehicles`) join করে tenant verify করতে হয়।
+- **নতুন endpoint লেখার নিয়ম (বাধ্যতামূলক):**
+  1. Auth guard-এর পর `$tid = get_tenant_id();`
+  2. tenant_id-ওয়ালা টেবিলের প্রতিটি SELECT/UPDATE/DELETE-এ `tenant_id = ?` (বা aliased `x.tenant_id = ?`) WHERE-এ যোগ করো
+  3. প্রতিটি INSERT-এ `tenant_id` column + bind
+  4. **IDOR সতর্কতা:** client-supplied ID (`$_GET['id']`, body-তে আসা vehicle_id/driver_id/rental_id ইত্যাদি) দিয়ে যেকোনো lookup/update/delete/assign-এ tenant ownership যাচাই বাধ্যতামূলক — নাহলে এক tenant-এর user অন্য tenant-এর ডেটা ID guess করে access/মুছতে/পরিবর্তন করতে পারবে
+- **Manager/Driver panel:** এরা ইতিমধ্যে `manager_id`/`driver_id` দিয়ে scoped (via `get_manager_vehicle_ids()`/`driver_vehicles`), tenant_id filter সেখানে **defense-in-depth** হিসেবে অতিরিক্ত যোগ হয়েছে।
+- **`$in` (manager_vehicle_in_clause) সতর্কতা:** কোনো একটি SQL-এ `$in` একাধিকবার ব্যবহার করলে (যেমন SELECT-এর subquery + WHERE-এ) প্রতিটি ব্যবহারের জন্য `$vids` আলাদাভাবে params array-তে **SQL টেক্সটে placeholder-এর ক্রম অনুযায়ী** যোগ করতে হবে — নাহলে `bind_param()` ArgumentCountError দিয়ে fatal করবে (`api/manager/drivers/index.php`, `api/manager/customers/index.php`-এ এই বাগ পাওয়া গিয়েছিল, ঠিক করা হয়েছে)।
+- **DB migration ফাইল:** `db/migrations/001_multi_tenancy.sql` (backup রাখা হয় `db/backups/`-এ, mysqldump দিয়ে, যেকোনো schema change-এর আগে)
+- **প্রথম SuperAdmin:** `super_admins` টেবিলে manual insert, email `rzzisan@gmail.com`
+- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1 সম্পন্ন 2026-07-02; Phase 2+ = billing, SuperAdmin panel, registration, payment gateway, Android)
+
 ## Database Schema
+
+### tenants / super_admins (SaaS)
+- **tenants**: id, name, email (UNI), phone, address, logo_path, status (enum: trial/active/suspended/cancelled), trial_ends_at
+- **super_admins**: id, email (UNI), password (bcrypt), name — `users` থেকে সম্পূর্ণ আলাদা টেবিল, tenant-agnostic
 
 ### vehicles
 | column | type |
 |---|---|
-| id, registration_number (UNI), brand, model | — |
+| id, tenant_id (FK), registration_number (UNI), brand, model | — |
 | year | YEAR |
 | vehicle_type | enum: sedan, suv, van, truck, premium |
 | color, fuel_type | enum: petrol, diesel, hybrid, electric |
@@ -182,7 +206,7 @@ includes/                          — ভবিষ্যতের API-তে �
 ### rentals
 | column | type |
 |---|---|
-| id, customer_id, vehicle_id, employee_id, driver_id | FK |
+| id, tenant_id, customer_id, vehicle_id, employee_id, driver_id | FK |
 | start_date, end_date, pickup_location, dropoff_location | — |
 | trip_type | enum: one_way, round_trip |
 | agreed_amount | decimal — চুক্তির টাকা |

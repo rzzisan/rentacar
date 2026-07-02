@@ -5,6 +5,7 @@ require_once '../_helpers.php';
 
 only_method('GET');
 require_auth();
+$tid = get_tenant_id();
 
 $id = (int) ($_GET['id'] ?? 0);
 if (!$id) {
@@ -12,8 +13,8 @@ if (!$id) {
 }
 
 $conn = (new Database())->connect();
-$stmt = $conn->prepare('SELECT * FROM vehicles WHERE id = ?');
-$stmt->bind_param('i', $id);
+$stmt = $conn->prepare('SELECT * FROM vehicles WHERE id = ? AND tenant_id = ?');
+$stmt->bind_param('ii', $id, $tid);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
 

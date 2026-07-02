@@ -5,14 +5,15 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('GET');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $driver_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // ── GET ?id=N: single driver detail (outstanding settlements + collection history) ──
 if ($driver_id) {
-    $dstmt = $conn->prepare("SELECT id, name, mobile, status, commission_rate FROM drivers WHERE id = ?");
-    $dstmt->bind_param('i', $driver_id);
+    $dstmt = $conn->prepare("SELECT id, name, mobile, status, commission_rate FROM drivers WHERE id = ? AND tenant_id = ?");
+    $dstmt->bind_param('ii', $driver_id, $tid);
     $dstmt->execute();
     $driver = $dstmt->get_result()->fetch_assoc();
     $dstmt->close();
@@ -116,11 +117,15 @@ $sql = "SELECT d.id, d.name, d.mobile, d.status, d.commission_rate,
         (SELECT MAX(sp.payment_date) FROM settlement_payments sp WHERE sp.paid_by_driver_id = d.id) AS last_payment_date
         FROM drivers d
         LEFT JOIN settlements s ON s.driver_id = d.id
+        WHERE d.tenant_id = ?
         GROUP BY d.id, d.name, d.mobile, d.status, d.commission_rate
         ORDER BY total_due DESC, d.name ASC";
 
-$result = $conn->query($sql);
-$rows = $result->fetch_all(MYSQLI_ASSOC);
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('i', $tid);
+$stmt->execute();
+$rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 $grand_total_due = 0;
 $grand_total_paid = 0;

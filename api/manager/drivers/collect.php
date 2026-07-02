@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid = get_tenant_id();
 only_method('POST');
 $conn = (new Database())->connect();
 $data = input();
@@ -27,9 +28,9 @@ $in   = manager_vehicle_in_clause($vids);
 $t    = str_repeat('i', count($vids));
 
 // Verify driver is assigned to manager's vehicles
-$dchk = $conn->prepare("SELECT d.id, d.name FROM drivers d JOIN driver_vehicles dv ON d.id = dv.driver_id WHERE d.id = ? AND dv.vehicle_id IN $in LIMIT 1");
-$p    = array_merge([$driver_id], $vids);
-$tp   = 'i' . $t;
+$dchk = $conn->prepare("SELECT d.id, d.name FROM drivers d JOIN driver_vehicles dv ON d.id = dv.driver_id WHERE d.id = ? AND dv.vehicle_id IN $in AND d.tenant_id = ? LIMIT 1");
+$p    = array_merge([$driver_id], $vids, [$tid]);
+$tp   = 'i' . $t . 'i';
 $dchk->bind_param($tp, ...$p);
 $dchk->execute();
 $driver = $dchk->get_result()->fetch_assoc();

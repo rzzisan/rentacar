@@ -5,6 +5,7 @@ require_once '../_helpers.php';
 
 only_method('GET');
 require_role('admin');
+$tid = get_tenant_id();
 $conn = (new Database())->connect();
 
 $year = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
@@ -22,11 +23,11 @@ $plstmt = $conn->prepare(
          SELECT rental_id, SUM(amount) as expense_total FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
      LEFT JOIN settlements s ON s.rental_id = r.id
-     WHERE YEAR(r.start_date) = ? AND r.rental_status != 'cancelled'
+     WHERE YEAR(r.start_date) = ? AND r.tenant_id = ? AND r.rental_status != 'cancelled'
      GROUP BY DATE_FORMAT(r.start_date, '%Y-%m')
      ORDER BY month ASC"
 );
-$plstmt->bind_param('i', $year);
+$plstmt->bind_param('ii', $year, $tid);
 $plstmt->execute();
 $pl_rows = $plstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $plstmt->close();
@@ -35,10 +36,10 @@ $plstmt->close();
 $mplstmt = $conn->prepare(
     "SELECT DATE_FORMAT(start_date, '%Y-%m') as month, SUM(cost) as maint_total
      FROM maintenance
-     WHERE status='completed' AND YEAR(start_date) = ?
+     WHERE status='completed' AND YEAR(start_date) = ? AND tenant_id = ?
      GROUP BY DATE_FORMAT(start_date, '%Y-%m')"
 );
-$mplstmt->bind_param('i', $year);
+$mplstmt->bind_param('ii', $year, $tid);
 $mplstmt->execute();
 $mpl_rows = $mplstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $mplstmt->close();
@@ -73,7 +74,7 @@ $vstmt = $conn->prepare(
             COALESCE(m_agg.maint_total, 0) as maintenance_cost,
             COALESCE(SUM(CASE WHEN r.rental_status='completed' THEN r.total_days ELSE 0 END), 0) as rented_days
      FROM vehicles v
-     LEFT JOIN rentals r ON r.vehicle_id = v.id AND r.rental_status != 'cancelled' AND YEAR(r.start_date) = ?
+     LEFT JOIN rentals r ON r.vehicle_id = v.id AND r.tenant_id = ? AND r.rental_status != 'cancelled' AND YEAR(r.start_date) = ?
      LEFT JOIN (
          SELECT rental_id, SUM(amount) as expense_total FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
@@ -81,13 +82,14 @@ $vstmt = $conn->prepare(
      LEFT JOIN (
          SELECT vehicle_id, SUM(cost) as maint_total
          FROM maintenance
-         WHERE status = 'completed' AND YEAR(start_date) = ?
+         WHERE status = 'completed' AND YEAR(start_date) = ? AND tenant_id = ?
          GROUP BY vehicle_id
      ) m_agg ON m_agg.vehicle_id = v.id
+     WHERE v.tenant_id = ?
      GROUP BY v.id, v.brand, v.model, v.registration_number, v.status, v.year, m_agg.maint_total
      ORDER BY revenue DESC"
 );
-$vstmt->bind_param('ii', $year, $year);
+$vstmt->bind_param('iiiii', $tid, $year, $year, $tid, $tid);
 $vstmt->execute();
 $v_rows = $vstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $vstmt->close();
@@ -139,9 +141,10 @@ $agestmt = $conn->prepare(
      JOIN rentals r ON r.id = s.rental_id
      JOIN vehicles v ON v.id = r.vehicle_id
      LEFT JOIN drivers d ON d.id = s.driver_id
-     WHERE s.remaining_amount > 0
+     WHERE s.remaining_amount > 0 AND r.tenant_id = ?
      ORDER BY days_overdue DESC"
 );
+$agestmt->bind_param('i', $tid);
 $agestmt->execute();
 $age_rows = $agestmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $agestmt->close();
@@ -185,13 +188,13 @@ $dstmt = $conn->prepare(
             COALESCE(SUM(s.paid_amount), 0) as total_paid,
             COALESCE(SUM(s.remaining_amount), 0) as total_due
      FROM drivers d
-     LEFT JOIN rentals r ON r.driver_id = d.id AND r.rental_status = 'completed'
+     LEFT JOIN rentals r ON r.driver_id = d.id AND r.rental_status = 'completed' AND r.tenant_id = ?
      LEFT JOIN settlements s ON s.rental_id = r.id
-     WHERE d.status = 'active'
+     WHERE d.status = 'active' AND d.tenant_id = ?
      GROUP BY d.id
      ORDER BY total_revenue DESC"
 );
-$dstmt->bind_param('i', $year);
+$dstmt->bind_param('iii', $year, $tid, $tid);
 $dstmt->execute();
 $d_rows = $dstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $dstmt->close();
@@ -222,12 +225,14 @@ $cstmt = $conn->prepare(
             MIN(r.start_date) as first_trip_date,
             DATEDIFF(CURDATE(), MAX(r.start_date)) as days_since_last
      FROM customers c
-     JOIN rentals r ON r.customer_id = c.id AND r.rental_status != 'cancelled'
+     JOIN rentals r ON r.customer_id = c.id AND r.rental_status != 'cancelled' AND r.tenant_id = ?
+     WHERE c.tenant_id = ?
      GROUP BY c.id
      HAVING total_trips >= 1
      ORDER BY total_spent DESC
      LIMIT 50"
 );
+$cstmt->bind_param('ii', $tid, $tid);
 $cstmt->execute();
 $c_rows = $cstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $cstmt->close();
@@ -260,18 +265,18 @@ $sumstmt = $conn->prepare(
          SELECT rental_id, SUM(amount) as expense_total FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
      LEFT JOIN settlements s ON s.rental_id = r.id
-     WHERE YEAR(r.start_date) = ? AND r.rental_status != 'cancelled'"
+     WHERE YEAR(r.start_date) = ? AND r.tenant_id = ? AND r.rental_status != 'cancelled'"
 );
-$sumstmt->bind_param('i', $year);
+$sumstmt->bind_param('ii', $year, $tid);
 $sumstmt->execute();
 $sum = $sumstmt->get_result()->fetch_assoc();
 $sumstmt->close();
 
 // মোট রক্ষণাবেক্ষণ খরচ — আলাদা query, কোনো JOIN নেই
 $msum = $conn->prepare(
-    "SELECT COALESCE(SUM(cost), 0) as total FROM maintenance WHERE status='completed' AND YEAR(start_date)=?"
+    "SELECT COALESCE(SUM(cost), 0) as total FROM maintenance WHERE status='completed' AND YEAR(start_date)=? AND tenant_id=?"
 );
-$msum->bind_param('i', $year);
+$msum->bind_param('ii', $year, $tid);
 $msum->execute();
 $mc = $msum->get_result()->fetch_assoc();
 $msum->close();

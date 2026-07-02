@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('POST');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $rental_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -20,9 +21,9 @@ if (!in_array($new_status, $valid_statuses)) {
     json_response(['success' => false, 'message' => 'অবৈধ স্ট্যাটাস'], 400);
 }
 
-// Get current status
-$stmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ?");
-$stmt->bind_param('i', $rental_id);
+// Get current status (এবং tenant-এর অন্তর্গত কিনা যাচাই)
+$stmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('ii', $rental_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -53,20 +54,20 @@ if (!in_array($new_status, $allowed_transitions[$current_status] ?? [])) {
 if ($new_status === 'active') {
     // ট্রিপ শুরু — প্রকৃত শুরুর সময় রেকর্ড (আগে সেট থাকলে অপরিবর্তিত)
     $ustmt = $conn->prepare(
-        "UPDATE rentals SET rental_status = ?, actual_start_time = COALESCE(actual_start_time, NOW()) WHERE id = ?"
+        "UPDATE rentals SET rental_status = ?, actual_start_time = COALESCE(actual_start_time, NOW()) WHERE id = ? AND tenant_id = ?"
     );
-    $ustmt->bind_param('si', $new_status, $rental_id);
+    $ustmt->bind_param('sii', $new_status, $rental_id, $tid);
 } elseif ($new_status === 'completed') {
     // ট্রিপ সম্পন্ন — প্রকৃত শেষের সময় রেকর্ড
     $ustmt = $conn->prepare(
-        "UPDATE rentals SET rental_status = ?, end_date = NOW(), actual_end_time = NOW() WHERE id = ?"
+        "UPDATE rentals SET rental_status = ?, end_date = NOW(), actual_end_time = NOW() WHERE id = ? AND tenant_id = ?"
     );
-    $ustmt->bind_param('si', $new_status, $rental_id);
+    $ustmt->bind_param('sii', $new_status, $rental_id, $tid);
 } else {
     $ustmt = $conn->prepare(
-        "UPDATE rentals SET rental_status = ? WHERE id = ?"
+        "UPDATE rentals SET rental_status = ? WHERE id = ? AND tenant_id = ?"
     );
-    $ustmt->bind_param('si', $new_status, $rental_id);
+    $ustmt->bind_param('sii', $new_status, $rental_id, $tid);
 }
 
 if (!$ustmt->execute()) {

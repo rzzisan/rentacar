@@ -4,29 +4,40 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid = get_tenant_id();
 only_method('GET');
 
 $conn = (new Database())->connect();
 $vids = get_manager_vehicle_ids($conn, $manager_id);
 $in   = manager_vehicle_in_clause($vids);
+$t    = str_repeat('i', count($vids));
 
 // Manager শুধু তার assigned গাড়িতে ট্রিপ করা গ্রাহকদের দেখতে পারবে
-$where  = ["c.id IN (SELECT DISTINCT customer_id FROM rentals WHERE vehicle_id IN $in)"];
-$params = $vids;
-$types  = str_repeat('i', count($vids));
+$where  = ["c.tenant_id = ?", "c.id IN (SELECT DISTINCT customer_id FROM rentals WHERE vehicle_id IN $in)"];
+$extra_where  = [];
+$extra_params = [];
+$extra_types  = '';
 
 if (!empty($_GET['search'])) {
-    $s       = '%' . $_GET['search'] . '%';
-    $where[] = '(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ?)';
-    $params  = array_merge($params, [$s, $s, $s]);
-    $types  .= 'sss';
+    $s               = '%' . $_GET['search'] . '%';
+    $extra_where[]   = '(c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ?)';
+    $extra_params    = array_merge($extra_params, [$s, $s, $s]);
+    $extra_types    .= 'sss';
 }
 
 if (!empty($_GET['status'])) {
-    $where[] = 'c.status = ?';
-    $params[] = $_GET['status'];
-    $types   .= 's';
+    $extra_where[]   = 'c.status = ?';
+    $extra_params[]  = $_GET['status'];
+    $extra_types    .= 's';
 }
+
+$where = array_merge($where, $extra_where);
+
+// $in একই কোয়েরিতে ২ বার ব্যবহৃত হয় (SELECT-এর SUM CASE + WHERE-এর সাবকোয়েরি) —
+// bind_param-এ params SQL টেক্সটে placeholder-এর ক্রম অনুযায়ী দিতে হবে:
+// প্রথমে SELECT-list-এর $in, তারপর tenant_id, তারপর WHERE-এর $in, তারপর extra filters
+$params = array_merge($vids, [$tid], $vids, $extra_params);
+$types  = $t . 'i' . $t . $extra_types;
 
 $sql = "SELECT c.id, c.first_name, c.last_name, c.phone, c.email,
                c.nid, c.address, c.city, c.license_number, c.license_expiry,

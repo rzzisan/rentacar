@@ -4,15 +4,16 @@ require_once '../../config/Database.php';
 require_once '../_helpers.php';
 
 require_auth();
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // GET  /api/vehicles/index.php  — list (admin/employee)
 if ($method === 'GET') {
-    $where  = ['1=1'];
-    $params = [];
-    $types  = '';
+    $where  = ['tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if (!empty($_GET['status'])) {
         $where[] = 'status = ?';
@@ -62,9 +63,9 @@ if ($method === 'POST') {
 
     $stmt = $conn->prepare(
         'INSERT INTO vehicles
-         (registration_number, brand, model, year, vehicle_type, color, fuel_type,
+         (tenant_id, registration_number, brand, model, year, vehicle_type, color, fuel_type,
           seating_capacity, daily_rent_price, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
 
     $reg   = trim($b['registration_number']);
@@ -78,8 +79,8 @@ if ($method === 'POST') {
     $price = (float) $b['daily_rent_price'];
     $status= trim($b['status'] ?? 'available');
 
-    $stmt->bind_param('sssississs',
-        $reg, $brand, $model, $year, $type, $color, $fuel, $seats, $price, $status
+    $stmt->bind_param('isssississs',
+        $tid, $reg, $brand, $model, $year, $type, $color, $fuel, $seats, $price, $status
     );
 
     if ($stmt->execute()) {

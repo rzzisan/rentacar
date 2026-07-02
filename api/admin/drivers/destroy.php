@@ -5,22 +5,23 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('DELETE');
+$tid = get_tenant_id();
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) json_response(['success' => false, 'message' => 'ড্রাইভার ID দিন'], 400);
 
 $conn = (new Database())->connect();
 
-$stmt = $conn->prepare("SELECT profile_picture FROM drivers WHERE id = ?");
-$stmt->bind_param('i', $id);
+$stmt = $conn->prepare("SELECT profile_picture FROM drivers WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('ii', $id, $tid);
 $stmt->execute();
 $driver = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$driver) json_response(['success' => false, 'message' => 'ড্রাইভার পাওয়া যায়নি'], 404);
 
-$stmt = $conn->prepare("DELETE FROM drivers WHERE id = ?");
-$stmt->bind_param('i', $id);
+$stmt = $conn->prepare("DELETE FROM drivers WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('ii', $id, $tid);
 if (!$stmt->execute()) {
     json_response(['success' => false, 'message' => 'মুছতে ব্যর্থ: ' . $stmt->error], 500);
 }

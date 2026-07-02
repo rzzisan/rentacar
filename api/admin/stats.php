@@ -5,35 +5,37 @@ require_once '../_helpers.php';
 
 only_method('GET');
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 
 $q = fn(string $sql) => $conn->query($sql)->fetch_assoc();
 
 $stats = [
-    'total_vehicles'    => (int) $q("SELECT COUNT(*) c FROM vehicles")['c'],
-    'available_vehicles'=> (int) $q("SELECT COUNT(*) c FROM vehicles WHERE status='available'")['c'],
-    'active_rentals'    => (int) $q("SELECT COUNT(*) c FROM rentals WHERE rental_status='active'")['c'],
-    'pending_rentals'   => (int) $q("SELECT COUNT(*) c FROM rentals WHERE rental_status='pending'")['c'],
-    'total_customers'   => (int) $q("SELECT COUNT(*) c FROM customers")['c'],
+    'total_vehicles'    => (int) $q("SELECT COUNT(*) c FROM vehicles WHERE tenant_id = $tid")['c'],
+    'available_vehicles'=> (int) $q("SELECT COUNT(*) c FROM vehicles WHERE tenant_id = $tid AND status='available'")['c'],
+    'active_rentals'    => (int) $q("SELECT COUNT(*) c FROM rentals WHERE tenant_id = $tid AND rental_status='active'")['c'],
+    'pending_rentals'   => (int) $q("SELECT COUNT(*) c FROM rentals WHERE tenant_id = $tid AND rental_status='pending'")['c'],
+    'total_customers'   => (int) $q("SELECT COUNT(*) c FROM customers WHERE tenant_id = $tid")['c'],
     // ট্রিপ-ভিত্তিক রেন্টালে agreed_amount-ই মূল অঙ্ক; পুরনো রেন্টালে total_amount
     'monthly_revenue'   => (float) $q(
         "SELECT COALESCE(SUM(CASE WHEN agreed_amount > 0 THEN agreed_amount
                                   ELSE COALESCE(total_amount, 0) END), 0) r
          FROM rentals
-         WHERE rental_status != 'cancelled'
+         WHERE tenant_id = $tid AND rental_status != 'cancelled'
            AND MONTH(created_at)=MONTH(CURDATE())
            AND YEAR(created_at)=YEAR(CURDATE())"
     )['r'],
-    // অসংগৃহীত সেটেলমেন্ট বকেয়া
+    // অসংগৃহীত সেটেলমেন্ট বকেয়া (settlements-এ tenant_id নেই, rentals জয়েন করে ফিল্টার)
     'total_dues'        => (float) $q(
-        "SELECT COALESCE(SUM(remaining_amount), 0) d FROM settlements
-         WHERE payment_status != 'paid'"
+        "SELECT COALESCE(SUM(s.remaining_amount), 0) d FROM settlements s
+         JOIN rentals r ON r.id = s.rental_id
+         WHERE r.tenant_id = $tid AND s.payment_status != 'paid'"
     )['d'],
     // আজ শুরু হওয়ার কথা এমন ট্রিপ
     'today_trips'       => (int) $q(
         "SELECT COUNT(*) c FROM rentals
-         WHERE DATE(start_date) = CURDATE() AND rental_status != 'cancelled'"
+         WHERE tenant_id = $tid AND DATE(start_date) = CURDATE() AND rental_status != 'cancelled'"
     )['c'],
 ];
 
@@ -65,12 +67,12 @@ $cast_trips = function (array $rows): array {
 };
 
 $active_trips = $conn->query(
-    "$trip_fields WHERE r.rental_status = 'active'
+    "$trip_fields WHERE r.tenant_id = $tid AND r.rental_status = 'active'
      ORDER BY COALESCE(r.actual_start_time, r.start_date) ASC"
 )->fetch_all(MYSQLI_ASSOC);
 
 $upcoming_trips = $conn->query(
-    "$trip_fields WHERE r.rental_status = 'pending'
+    "$trip_fields WHERE r.tenant_id = $tid AND r.rental_status = 'pending'
      ORDER BY r.start_date ASC"
 )->fetch_all(MYSQLI_ASSOC);
 

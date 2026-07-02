@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid = get_tenant_id();
 only_method('GET');
 
 $id = (int)($_GET['id'] ?? 0);
@@ -15,10 +16,10 @@ $in   = manager_vehicle_in_clause($vids);
 
 // গ্রাহক এই ম্যানেজারের vehicle-এ trip করেছে কিনা নিশ্চিত করো
 $authStmt = $conn->prepare(
-    "SELECT COUNT(*) AS cnt FROM rentals WHERE customer_id = ? AND vehicle_id IN $in"
+    "SELECT COUNT(*) AS cnt FROM rentals WHERE customer_id = ? AND vehicle_id IN $in AND tenant_id = ?"
 );
-$authParams = array_merge([$id], $vids);
-$authTypes  = 'i' . str_repeat('i', count($vids));
+$authParams = array_merge([$id], $vids, [$tid]);
+$authTypes  = 'i' . str_repeat('i', count($vids)) . 'i';
 $authStmt->bind_param($authTypes, ...$authParams);
 $authStmt->execute();
 $authRow = $authStmt->get_result()->fetch_assoc();
@@ -36,11 +37,11 @@ $stmt = $conn->prepare(
             SUM(CASE WHEN r.payment_status IN ('pending','partial') THEN 1 ELSE 0 END)   AS pending_payment_trips
      FROM customers c
      LEFT JOIN rentals r ON r.customer_id = c.id AND r.vehicle_id IN $in
-     WHERE c.id = ?
+     WHERE c.id = ? AND c.tenant_id = ?
      GROUP BY c.id"
 );
-$p = array_merge($vids, [$id]);
-$t = str_repeat('i', count($vids)) . 'i';
+$p = array_merge($vids, [$id, $tid]);
+$t = str_repeat('i', count($vids)) . 'ii';
 $stmt->bind_param($t, ...$p);
 $stmt->execute();
 $c = $stmt->get_result()->fetch_assoc();
@@ -59,12 +60,12 @@ $rstmt = $conn->prepare(
      FROM rentals r
      LEFT JOIN vehicles v ON r.vehicle_id = v.id
      LEFT JOIN drivers d ON r.driver_id = d.id
-     WHERE r.customer_id = ? AND r.vehicle_id IN $in
+     WHERE r.customer_id = ? AND r.vehicle_id IN $in AND r.tenant_id = ?
      ORDER BY r.start_date DESC
      LIMIT 20"
 );
-$rp = array_merge([$id], $vids);
-$rt = 'i' . str_repeat('i', count($vids));
+$rp = array_merge([$id], $vids, [$tid]);
+$rt = 'i' . str_repeat('i', count($vids)) . 'i';
 $rstmt->bind_param($rt, ...$rp);
 $rstmt->execute();
 $rentals_raw = $rstmt->get_result()->fetch_all(MYSQLI_ASSOC);

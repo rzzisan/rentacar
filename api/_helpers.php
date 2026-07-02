@@ -27,7 +27,7 @@ function _validate_bearer_token(): void {
     $token = $m[1];
     $conn  = _helpers_db();
     $stmt  = $conn->prepare(
-        "SELECT role, user_id, driver_id, manager_id, username, email
+        "SELECT role, tenant_id, user_id, driver_id, manager_id, username, email
          FROM api_tokens
          WHERE token = ? AND (expires_at IS NULL OR expires_at > NOW())"
     );
@@ -44,6 +44,7 @@ function _validate_bearer_token(): void {
     $_SESSION['role']     = $row['role'];
     $_SESSION['username'] = $row['username'];
     $_SESSION['email']    = $row['email'];
+    if ($row['tenant_id'] !== null)  $_SESSION['tenant_id']  = (int)$row['tenant_id'];
     if ((int)$row['driver_id']  > 0) $_SESSION['driver_id']  = (int)$row['driver_id'];
     if ((int)$row['manager_id'] > 0) $_SESSION['manager_id'] = (int)$row['manager_id'];
     if ((int)$row['user_id']    > 0) $_SESSION['user_id']    = (int)$row['user_id'];
@@ -103,6 +104,36 @@ function get_manager_vehicle_ids(mysqli $conn, int $manager_id): array {
 function manager_vehicle_in_clause(array $vids): string {
     if (!$vids) return '(0)';
     return '(' . implode(',', array_fill(0, count($vids), '?')) . ')';
+}
+
+// বর্তমান সেশনের tenant_id — superadmin-এর tenant_id নেই, তাই 403 দেয়
+function get_tenant_id(): int {
+    if (!isset($_SESSION['tenant_id'])) {
+        json_response(['success' => false, 'message' => 'Tenant পাওয়া যায়নি'], 403);
+    }
+    return (int)$_SESSION['tenant_id'];
+}
+
+function require_superadmin(): void {
+    require_auth();
+    if (($_SESSION['role'] ?? '') !== 'superadmin') {
+        json_response(['success' => false, 'message' => 'এই কাজের অনুমতি নেই'], 403);
+    }
+}
+
+// tenant suspended/cancelled হলে block করে — login-এর সময় ব্যবহার হয়
+function require_active_tenant(): void {
+    $tid  = get_tenant_id();
+    $conn = _helpers_db();
+    $stmt = $conn->prepare("SELECT status FROM tenants WHERE id = ?");
+    $stmt->bind_param('i', $tid);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row || in_array($row['status'], ['suspended', 'cancelled'], true)) {
+        json_response(['success' => false, 'message' => 'আপনার অ্যাকাউন্ট সাময়িকভাবে স্থগিত করা হয়েছে — যোগাযোগ করুন'], 403);
+    }
 }
 
 function input(): array {

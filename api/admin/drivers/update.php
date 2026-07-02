@@ -6,14 +6,15 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('POST');
+$tid = get_tenant_id();
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) json_response(['success' => false, 'message' => 'ড্রাইভার ID দিন'], 400);
 
 $conn = (new Database())->connect();
 
-$stmt = $conn->prepare("SELECT * FROM drivers WHERE id = ?");
-$stmt->bind_param('i', $id);
+$stmt = $conn->prepare("SELECT * FROM drivers WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('ii', $id, $tid);
 $stmt->execute();
 $driver = $stmt->get_result()->fetch_assoc();
 $stmt->close();
@@ -76,15 +77,15 @@ if ($new_password) {
     $hashed = password_hash($new_password, PASSWORD_BCRYPT);
     $stmt   = $conn->prepare(
         "UPDATE drivers SET name=?, mobile=?, profile_picture=?, email=?, password=?,
-         commission_rate=?, status=?, updated_at=NOW() WHERE id=?"
+         commission_rate=?, status=?, updated_at=NOW() WHERE id=? AND tenant_id=?"
     );
-    $stmt->bind_param('sssssdsi', $name, $mobile, $picture, $email, $hashed, $commission_rate, $status, $id);
+    $stmt->bind_param('sssssdsii', $name, $mobile, $picture, $email, $hashed, $commission_rate, $status, $id, $tid);
 } else {
     $stmt = $conn->prepare(
         "UPDATE drivers SET name=?, mobile=?, profile_picture=?, email=?,
-         commission_rate=?, status=?, updated_at=NOW() WHERE id=?"
+         commission_rate=?, status=?, updated_at=NOW() WHERE id=? AND tenant_id=?"
     );
-    $stmt->bind_param('ssssdsi', $name, $mobile, $picture, $email, $commission_rate, $status, $id);
+    $stmt->bind_param('ssssdsii', $name, $mobile, $picture, $email, $commission_rate, $status, $id, $tid);
 }
 
 if (!$stmt->execute()) {
@@ -100,13 +101,25 @@ if ($vehicle_ids !== null) {
     $del->close();
 
     if (count($vehicle_ids) > 0) {
-        $vstmt = $conn->prepare("INSERT IGNORE INTO driver_vehicles (driver_id, vehicle_id) VALUES (?, ?)");
-        foreach ($vehicle_ids as $vid) {
-            $vid = (int)$vid;
-            $vstmt->bind_param('ii', $id, $vid);
-            $vstmt->execute();
+        // শুধু এই tenant-এর গাড়ি অ্যাসাইন করা যাবে — IDOR প্রতিরোধ
+        $vin  = implode(',', array_fill(0, count($vehicle_ids), '?'));
+        $vchk = $conn->prepare("SELECT id FROM vehicles WHERE tenant_id = ? AND id IN ($vin)");
+        $vtypes  = 'i' . str_repeat('i', count($vehicle_ids));
+        $vparams = array_merge([$tid], array_map('intval', $vehicle_ids));
+        $vchk->bind_param($vtypes, ...$vparams);
+        $vchk->execute();
+        $validVehicleIds = array_column($vchk->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
+        $vchk->close();
+
+        if ($validVehicleIds) {
+            $vstmt = $conn->prepare("INSERT IGNORE INTO driver_vehicles (driver_id, vehicle_id) VALUES (?, ?)");
+            foreach ($validVehicleIds as $vid) {
+                $vid = (int)$vid;
+                $vstmt->bind_param('ii', $id, $vid);
+                $vstmt->execute();
+            }
+            $vstmt->close();
         }
-        $vstmt->close();
     }
 }
 

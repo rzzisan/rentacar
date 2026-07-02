@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -13,9 +14,9 @@ if (!$rental_id) {
     json_response(['success' => false, 'message' => 'রেন্টাল আইডি প্রয়োজন'], 400);
 }
 
-// Verify rental exists
-$stmt = $conn->prepare("SELECT id FROM rentals WHERE id = ?");
-$stmt->bind_param('i', $rental_id);
+// Verify rental exists (এবং tenant-এর অন্তর্গত)
+$stmt = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('ii', $rental_id, $tid);
 $stmt->execute();
 if ($stmt->get_result()->num_rows === 0) {
     json_response(['success' => false, 'message' => 'রেন্টাল পাওয়া যায়নি'], 404);

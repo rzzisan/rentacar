@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('DELETE');
+$tid = get_tenant_id();
 
 $conn       = (new Database())->connect();
 $manager_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -13,16 +14,16 @@ if (!$manager_id) {
     json_response(['success' => false, 'message' => 'ম্যানেজার আইডি প্রয়োজন'], 400);
 }
 
-$chk = $conn->prepare("SELECT id FROM managers WHERE id = ?");
-$chk->bind_param('i', $manager_id);
+$chk = $conn->prepare("SELECT id FROM managers WHERE id = ? AND tenant_id = ?");
+$chk->bind_param('ii', $manager_id, $tid);
 $chk->execute();
 if ($chk->get_result()->num_rows === 0) {
     json_response(['success' => false, 'message' => 'ম্যানেজার পাওয়া যায়নি'], 404);
 }
 $chk->close();
 
-$stmt = $conn->prepare("DELETE FROM managers WHERE id = ?");
-$stmt->bind_param('i', $manager_id);
+$stmt = $conn->prepare("DELETE FROM managers WHERE id = ? AND tenant_id = ?");
+$stmt->bind_param('ii', $manager_id, $tid);
 if (!$stmt->execute()) {
     json_response(['success' => false, 'message' => 'মুছতে ব্যর্থ: ' . $stmt->error], 500);
 }

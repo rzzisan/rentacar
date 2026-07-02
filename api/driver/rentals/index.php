@@ -4,15 +4,16 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $driver_id = require_driver();
+$tid = get_tenant_id();
 
 $conn   = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: নিজের ট্রিপের তালিকা ─────────────────────────────────────
 if ($method === 'GET') {
-    $where  = ['r.driver_id = ?'];
-    $params = [$driver_id];
-    $types  = 'i';
+    $where  = ['r.driver_id = ?', 'r.tenant_id = ?'];
+    $params = [$driver_id, $tid];
+    $types  = 'ii';
 
     if (!empty($_GET['status'])) {
         $where[] = 'r.rental_status = ?';
@@ -111,9 +112,9 @@ if ($method === 'POST') {
     $vstmt = $conn->prepare(
         "SELECT v.id FROM driver_vehicles dv
          JOIN vehicles v ON v.id = dv.vehicle_id
-         WHERE dv.driver_id = ? AND dv.vehicle_id = ?"
+         WHERE dv.driver_id = ? AND dv.vehicle_id = ? AND v.tenant_id = ?"
     );
-    $vstmt->bind_param('ii', $driver_id, $vehicle_id);
+    $vstmt->bind_param('iii', $driver_id, $vehicle_id, $tid);
     $vstmt->execute();
     if ($vstmt->get_result()->num_rows === 0) {
         json_response(['success' => false, 'message' => 'এই গাড়িটি আপনাকে অ্যাসাইন করা নয়'], 403);
@@ -122,8 +123,8 @@ if ($method === 'POST') {
 
     // Find or create customer
     $phone_clean = preg_replace('/[^\d]/', '', $passenger_mobile);
-    $cstmt = $conn->prepare("SELECT id FROM customers WHERE phone = ?");
-    $cstmt->bind_param('s', $phone_clean);
+    $cstmt = $conn->prepare("SELECT id FROM customers WHERE phone = ? AND tenant_id = ?");
+    $cstmt->bind_param('si', $phone_clean, $tid);
     $cstmt->execute();
     $cresult = $cstmt->get_result();
 
@@ -135,10 +136,10 @@ if ($method === 'POST') {
         $last_name = $names[1] ?? '';
 
         $istmt = $conn->prepare(
-            "INSERT INTO customers (first_name, last_name, phone, email)
-             VALUES (?, ?, ?, NULL)"
+            "INSERT INTO customers (tenant_id, first_name, last_name, phone, email)
+             VALUES (?, ?, ?, ?, NULL)"
         );
-        $istmt->bind_param('sss', $first_name, $last_name, $phone_clean);
+        $istmt->bind_param('isss', $tid, $first_name, $last_name, $phone_clean);
 
         if (!$istmt->execute()) {
             json_response(['success' => false, 'message' => 'যাত্রি তৈরি করতে ব্যর্থ: ' . $istmt->error], 500);
@@ -154,14 +155,15 @@ if ($method === 'POST') {
 
     $rstmt = $conn->prepare(
         "INSERT INTO rentals
-         (customer_id, vehicle_id, driver_id, start_date,
+         (tenant_id, customer_id, vehicle_id, driver_id, start_date,
           pickup_location, dropoff_location, trip_type, agreed_amount, rental_status,
           payment_status, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
     $rstmt->bind_param(
-        'iiissssdsss',
+        'iiiissssdsss',
+        $tid,
         $customer_id,
         $vehicle_id,
         $driver_id,

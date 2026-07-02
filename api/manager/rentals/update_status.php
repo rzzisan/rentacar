@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid = get_tenant_id();
 only_method('POST');
 $conn      = (new Database())->connect();
 $rental_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -22,9 +23,9 @@ if (!in_array($new_status, $valid_statuses)) {
 $vids = get_manager_vehicle_ids($conn, $manager_id);
 $in   = manager_vehicle_in_clause($vids);
 
-$chkStmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ? AND vehicle_id IN $in");
-$params  = array_merge([$rental_id], $vids);
-$types   = 'i' . str_repeat('i', count($vids));
+$chkStmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ? AND vehicle_id IN $in AND tenant_id = ?");
+$params  = array_merge([$rental_id], $vids, [$tid]);
+$types   = 'i' . str_repeat('i', count($vids)) . 'i';
 $chkStmt->bind_param($types, ...$params);
 $chkStmt->execute();
 $result = $chkStmt->get_result();

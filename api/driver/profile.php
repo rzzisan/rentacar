@@ -4,6 +4,7 @@ require_once '../../config/Database.php';
 require_once '../_helpers.php';
 
 $driver_id = require_driver();
+$tid       = get_tenant_id();
 $conn      = (new Database())->connect();
 $method    = $_SERVER['REQUEST_METHOD'];
 
@@ -11,9 +12,9 @@ $method    = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     $stmt = $conn->prepare(
         "SELECT id, name, mobile, email, commission_rate, profile_picture, status, created_at
-         FROM drivers WHERE id = ?"
+         FROM drivers WHERE id = ? AND tenant_id = ?"
     );
-    $stmt->bind_param('i', $driver_id);
+    $stmt->bind_param('ii', $driver_id, $tid);
     $stmt->execute();
     $driver = $stmt->get_result()->fetch_assoc();
     $stmt->close();
@@ -31,9 +32,9 @@ if ($method === 'GET') {
         "SELECT v.id, v.brand, v.model, v.registration_number, v.status as vehicle_status, v.vehicle_type
          FROM driver_vehicles dv
          JOIN vehicles v ON v.id = dv.vehicle_id
-         WHERE dv.driver_id = ?"
+         WHERE dv.driver_id = ? AND v.tenant_id = ?"
     );
-    $vstmt->bind_param('i', $driver_id);
+    $vstmt->bind_param('ii', $driver_id, $tid);
     $vstmt->execute();
     $vehicles = $vstmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $vstmt->close();
@@ -49,9 +50,9 @@ if ($method === 'GET') {
             COUNT(CASE WHEN rental_status = 'completed' THEN 1 END) as completed_trips,
             COUNT(CASE WHEN rental_status = 'active' THEN 1 END) as active_trips,
             COUNT(CASE WHEN rental_status = 'pending' THEN 1 END) as pending_trips
-         FROM rentals WHERE driver_id = ?"
+         FROM rentals WHERE driver_id = ? AND tenant_id = ?"
     );
-    $sstmt->bind_param('i', $driver_id);
+    $sstmt->bind_param('ii', $driver_id, $tid);
     $sstmt->execute();
     $stats = $sstmt->get_result()->fetch_assoc();
     $sstmt->close();
@@ -92,8 +93,8 @@ if ($method === 'POST') {
             json_response(['success' => false, 'message' => 'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে'], 400);
         }
 
-        $pstmt = $conn->prepare("SELECT password FROM drivers WHERE id = ?");
-        $pstmt->bind_param('i', $driver_id);
+        $pstmt = $conn->prepare("SELECT password FROM drivers WHERE id = ? AND tenant_id = ?");
+        $pstmt->bind_param('ii', $driver_id, $tid);
         $pstmt->execute();
         $row = $pstmt->get_result()->fetch_assoc();
         $pstmt->close();
@@ -124,17 +125,17 @@ if ($method === 'POST') {
     }
 
     if ($new_password_hash && $picture) {
-        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=?, profile_picture=?, password=? WHERE id=?");
-        $ustmt->bind_param('ssssi', $name, $mobile, $picture, $new_password_hash, $driver_id);
+        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=?, profile_picture=?, password=? WHERE id=? AND tenant_id=?");
+        $ustmt->bind_param('ssssii', $name, $mobile, $picture, $new_password_hash, $driver_id, $tid);
     } elseif ($new_password_hash) {
-        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=?, password=? WHERE id=?");
-        $ustmt->bind_param('sssi', $name, $mobile, $new_password_hash, $driver_id);
+        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=?, password=? WHERE id=? AND tenant_id=?");
+        $ustmt->bind_param('sssii', $name, $mobile, $new_password_hash, $driver_id, $tid);
     } elseif ($picture) {
-        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=?, profile_picture=? WHERE id=?");
-        $ustmt->bind_param('sssi', $name, $mobile, $picture, $driver_id);
+        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=?, profile_picture=? WHERE id=? AND tenant_id=?");
+        $ustmt->bind_param('sssii', $name, $mobile, $picture, $driver_id, $tid);
     } else {
-        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=? WHERE id=?");
-        $ustmt->bind_param('ssi', $name, $mobile, $driver_id);
+        $ustmt = $conn->prepare("UPDATE drivers SET name=?, mobile=? WHERE id=? AND tenant_id=?");
+        $ustmt->bind_param('ssii', $name, $mobile, $driver_id, $tid);
     }
 
     if (!$ustmt->execute()) {

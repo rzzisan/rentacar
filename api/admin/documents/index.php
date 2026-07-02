@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 $conn = (new Database())->connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -12,9 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // expiring_days: এত দিনের মধ্যে মেয়াদ শেষ হবে — dashboard alert-এ ব্যবহার
     $expiring = isset($_GET['expiring_days']) ? (int)$_GET['expiring_days'] : 0;
 
-    $where  = [];
-    $params = [];
-    $types  = '';
+    // vehicle_documents-এ tenant_id নেই — vehicles জয়েন করে ফিল্টার
+    $where  = ['v.tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if ($vehicle_id) {
         $where[] = 'd.vehicle_id = ?';
@@ -69,6 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$vehicle_id || !$doc_type || !$issue_date || !$expiry_date)
         json_response(['success' => false, 'message' => 'গাড়ি, ধরন ও তারিখ আবশ্যক'], 422);
+
+    // গাড়িটি এই tenant-এর কিনা যাচাই (IDOR প্রতিরোধ)
+    $vchk = $conn->prepare("SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?");
+    $vchk->bind_param('ii', $vehicle_id, $tid);
+    $vchk->execute();
+    if ($vchk->get_result()->num_rows === 0) {
+        json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
+    }
+    $vchk->close();
 
     // একই গাড়িতে একই ধরনের ডকুমেন্ট — পুরনোটা update করব
     $chk = $conn->prepare("SELECT id FROM vehicle_documents WHERE vehicle_id=? AND doc_type=?");

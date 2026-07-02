@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid        = get_tenant_id();
 $conn       = (new Database())->connect();
 $method     = $_SERVER['REQUEST_METHOD'];
 
@@ -16,9 +17,9 @@ if ($method === 'GET') {
         json_response(['success' => true, 'data' => []]);
     }
 
-    $where  = ["r.vehicle_id IN $in"];
-    $params = $vids;
-    $types  = $t;
+    $where  = ["r.vehicle_id IN $in", "r.tenant_id = ?"];
+    $params = array_merge($vids, [$tid]);
+    $types  = $t . 'i';
 
     if (!empty($_GET['status'])) {
         $where[] = 's.payment_status = ?';
@@ -79,9 +80,9 @@ if ($method === 'POST') {
 
     // Verify rental belongs to manager's vehicles
     if ($vids) {
-        $vchk = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND vehicle_id IN $in");
-        $p = array_merge([$rental_id], $vids);
-        $tp = 'i' . $t;
+        $vchk = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND vehicle_id IN $in AND tenant_id = ?");
+        $p = array_merge([$rental_id], $vids, [$tid]);
+        $tp = 'i' . $t . 'i';
         $vchk->bind_param($tp, ...$p);
         $vchk->execute();
         if ($vchk->get_result()->num_rows === 0) {

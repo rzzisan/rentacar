@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('GET');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $rental_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -26,10 +27,10 @@ $sql = "SELECT r.*,
         LEFT JOIN customers c ON r.customer_id = c.id
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         LEFT JOIN drivers d ON r.driver_id = d.id
-        WHERE r.id = ?";
+        WHERE r.id = ? AND r.tenant_id = ?";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param('i', $rental_id);
+$stmt->bind_param('ii', $rental_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 

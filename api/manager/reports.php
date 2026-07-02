@@ -5,6 +5,7 @@ require_once '../_helpers.php';
 
 only_method('GET');
 $manager_id = require_manager();
+$tid = get_tenant_id();
 $conn = (new Database())->connect();
 
 $vids = get_manager_vehicle_ids($conn, $manager_id);
@@ -33,12 +34,14 @@ $mstmt = $conn->prepare(
          FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
      WHERE r.vehicle_id IN $in
+       AND r.tenant_id = ?
        AND r.rental_status != 'cancelled'
        AND r.start_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
      GROUP BY DATE_FORMAT(r.start_date, '%Y-%m')
      ORDER BY month DESC"
 );
-$mstmt->bind_param($t, ...$vids);
+$mparams = array_merge($vids, [$tid]);
+$mstmt->bind_param($t . 'i', ...$mparams);
 $mstmt->execute();
 $monthly_rows = $mstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $mstmt->close();
@@ -63,11 +66,12 @@ $vstmt = $conn->prepare(
          SELECT rental_id, SUM(amount) as expense_total
          FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
-     WHERE v.id IN $in
+     WHERE v.id IN $in AND v.tenant_id = ?
      GROUP BY v.id
      ORDER BY revenue DESC"
 );
-$vstmt->bind_param($t, ...$vids);
+$vparams = array_merge($vids, [$tid]);
+$vstmt->bind_param($t . 'i', ...$vparams);
 $vstmt->execute();
 $vehicle_rows = $vstmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $vstmt->close();
@@ -89,11 +93,12 @@ $estmt = $conn->prepare(
     "SELECT te.expense_type, SUM(te.amount) as total
      FROM trip_expenses te
      JOIN rentals r ON r.id = te.rental_id
-     WHERE r.vehicle_id IN $in
+     WHERE r.vehicle_id IN $in AND r.tenant_id = ?
      GROUP BY te.expense_type
      ORDER BY total DESC"
 );
-$estmt->bind_param($t, ...$vids);
+$eparams = array_merge($vids, [$tid]);
+$estmt->bind_param($t . 'i', ...$eparams);
 $estmt->execute();
 $expense_rows = $estmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $estmt->close();
@@ -115,12 +120,12 @@ $dstmt = $conn->prepare(
      JOIN driver_vehicles dv ON d.id = dv.driver_id
      LEFT JOIN rentals r ON r.driver_id = d.id AND r.vehicle_id IN $in AND r.rental_status = 'completed'
      LEFT JOIN settlements s ON s.rental_id = r.id
-     WHERE dv.vehicle_id IN $in
+     WHERE dv.vehicle_id IN $in AND d.tenant_id = ?
      GROUP BY d.id
      ORDER BY total_trips DESC"
 );
-$params_d = array_merge($vids, $vids);
-$types_d  = $t . $t;
+$params_d = array_merge($vids, $vids, [$tid]);
+$types_d  = $t . $t . 'i';
 $dstmt->bind_param($types_d, ...$params_d);
 $dstmt->execute();
 $driver_rows = $dstmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -152,9 +157,10 @@ $sumstmt = $conn->prepare(
          FROM trip_expenses GROUP BY rental_id
      ) te ON te.rental_id = r.id
      LEFT JOIN settlements s ON s.rental_id = r.id AND s.payment_status != 'paid'
-     WHERE r.vehicle_id IN $in AND r.rental_status != 'cancelled'"
+     WHERE r.vehicle_id IN $in AND r.tenant_id = ? AND r.rental_status != 'cancelled'"
 );
-$sumstmt->bind_param($t, ...$vids);
+$sumparams = array_merge($vids, [$tid]);
+$sumstmt->bind_param($t . 'i', ...$sumparams);
 $sumstmt->execute();
 $sum = $sumstmt->get_result()->fetch_assoc();
 $sumstmt->close();

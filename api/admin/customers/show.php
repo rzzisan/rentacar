@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('GET');
+$tid = get_tenant_id();
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) json_response(['success' => false, 'message' => 'id আবশ্যক'], 422);
@@ -21,10 +22,10 @@ $stmt = $conn->prepare(
             SUM(CASE WHEN r.payment_status IN ('pending','partial') THEN 1 ELSE 0 END) AS pending_payment_trips
      FROM customers c
      LEFT JOIN rentals r ON r.customer_id = c.id
-     WHERE c.id = ?
+     WHERE c.id = ? AND c.tenant_id = ?
      GROUP BY c.id"
 );
-$stmt->bind_param('i', $id);
+$stmt->bind_param('ii', $id, $tid);
 $stmt->execute();
 $c = $stmt->get_result()->fetch_assoc();
 $stmt->close();

@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid = get_tenant_id();
 only_method('GET');
 
 $conn = (new Database())->connect();
@@ -29,11 +30,12 @@ $sql = "SELECT r.id, r.pickup_location, r.dropoff_location,
         FROM rentals r
         LEFT JOIN drivers d ON r.driver_id = d.id
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
-        WHERE r.id = ? AND r.vehicle_id IN $in";
+        WHERE r.id = ? AND r.vehicle_id IN $in AND r.tenant_id = ?";
 
 $stmt = $conn->prepare($sql);
-$types = 'i' . str_repeat('i', count($vids));
-$stmt->bind_param($types, $rental_id, ...$vids);
+$types = 'i' . str_repeat('i', count($vids)) . 'i';
+$params = array_merge([$rental_id], $vids, [$tid]);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $rental = $stmt->get_result()->fetch_assoc();
 $stmt->close();

@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid        = get_tenant_id();
 $conn       = (new Database())->connect();
 $method     = $_SERVER['REQUEST_METHOD'];
 
@@ -17,9 +18,9 @@ if ($method === 'GET') {
         json_response(['success' => true, 'data' => []]);
     }
 
-    $where  = ["r.vehicle_id IN $in"];
-    $params = $vids;
-    $types  = $t;
+    $where  = ["r.vehicle_id IN $in", "r.tenant_id = ?"];
+    $params = array_merge($vids, [$tid]);
+    $types  = $t . 'i';
 
     if (!empty($_GET['status'])) {
         $where[] = 'r.rental_status = ?';
@@ -113,8 +114,8 @@ if ($method === 'POST') {
 
     // Find or create customer
     $phone_clean = preg_replace('/[^\d]/', '', $passenger_mobile);
-    $cstmt = $conn->prepare("SELECT id FROM customers WHERE phone = ?");
-    $cstmt->bind_param('s', $phone_clean);
+    $cstmt = $conn->prepare("SELECT id FROM customers WHERE phone = ? AND tenant_id = ?");
+    $cstmt->bind_param('si', $phone_clean, $tid);
     $cstmt->execute();
     $cresult = $cstmt->get_result();
 
@@ -124,8 +125,8 @@ if ($method === 'POST') {
         $names       = explode(' ', $passenger_name, 2);
         $first_name  = $names[0];
         $last_name   = $names[1] ?? '';
-        $istmt = $conn->prepare("INSERT INTO customers (first_name, last_name, phone, email) VALUES (?, ?, ?, NULL)");
-        $istmt->bind_param('sss', $first_name, $last_name, $phone_clean);
+        $istmt = $conn->prepare("INSERT INTO customers (tenant_id, first_name, last_name, phone, email) VALUES (?, ?, ?, ?, NULL)");
+        $istmt->bind_param('isss', $tid, $first_name, $last_name, $phone_clean);
         if (!$istmt->execute()) {
             json_response(['success' => false, 'message' => 'যাত্রি তৈরি করতে ব্যর্থ'], 500);
         }
@@ -140,13 +141,13 @@ if ($method === 'POST') {
 
     $rstmt = $conn->prepare(
         "INSERT INTO rentals
-         (customer_id, vehicle_id, employee_id, driver_id, start_date,
+         (tenant_id, customer_id, vehicle_id, employee_id, driver_id, start_date,
           pickup_location, dropoff_location, trip_type, agreed_amount, rental_status, payment_status, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     $rstmt->bind_param(
-        'iiiissssdsss',
-        $customer_id, $vehicle_id, $employee_id, $driver_id, $start_datetime,
+        'iiiiissssdsss',
+        $tid, $customer_id, $vehicle_id, $employee_id, $driver_id, $start_datetime,
         $pickup_location, $dropoff_location, $trip_type, $agreed_amount,
         $rental_status, $payment_status, $notes
     );

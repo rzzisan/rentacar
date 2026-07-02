@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $settlement_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -12,7 +13,7 @@ if (!$settlement_id) {
     json_response(['success' => false, 'message' => 'সেটেলমেন্ট আইডি প্রয়োজন'], 400);
 }
 
-// Get settlement with all related data
+// Get settlement with all related data (settlements-এ tenant_id নেই — rentals জয়েন করে ফিল্টার)
 $stmt = $conn->prepare(
     "SELECT s.*,
             c.first_name as customer_first_name,
@@ -29,9 +30,9 @@ $stmt = $conn->prepare(
             LEFT JOIN customers c ON r.customer_id = c.id
             LEFT JOIN vehicles v ON r.vehicle_id = v.id
             LEFT JOIN drivers d ON s.driver_id = d.id
-            WHERE s.id = ?"
+            WHERE s.id = ? AND r.tenant_id = ?"
 );
-$stmt->bind_param('i', $settlement_id);
+$stmt->bind_param('ii', $settlement_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 

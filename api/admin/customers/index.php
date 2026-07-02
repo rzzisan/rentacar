@@ -4,15 +4,16 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn   = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: গ্রাহক তালিকা ──────────────────────────────────────────
 if ($method === 'GET') {
-    $where  = ['1=1'];
-    $params = [];
-    $types  = '';
+    $where  = ['c.tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if (!empty($_GET['search'])) {
         $s       = '%' . $_GET['search'] . '%';
@@ -85,9 +86,9 @@ if ($method === 'POST') {
         json_response(['success' => false, 'message' => 'নাম ও মোবাইল নম্বর আবশ্যক'], 422);
     }
 
-    // ফোন নম্বর ইতিমধ্যে আছে কিনা
-    $chk = $conn->prepare("SELECT id FROM customers WHERE phone = ?");
-    $chk->bind_param('s', $phone);
+    // ফোন নম্বর ইতিমধ্যে আছে কিনা (এই tenant-এর মধ্যে)
+    $chk = $conn->prepare("SELECT id FROM customers WHERE phone = ? AND tenant_id = ?");
+    $chk->bind_param('si', $phone, $tid);
     $chk->execute();
     if ($chk->get_result()->num_rows > 0) {
         $chk->close();
@@ -104,11 +105,11 @@ if ($method === 'POST') {
 
     $stmt = $conn->prepare(
         "INSERT INTO customers
-         (first_name, last_name, phone, email, nid, address, city, license_number, license_expiry)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         (tenant_id, first_name, last_name, phone, email, nid, address, city, license_number, license_expiry)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
-    $stmt->bind_param('sssssssss',
-        $first, $last, $phone, $email, $nid, $address, $city, $license, $expiry
+    $stmt->bind_param('isssssssss',
+        $tid, $first, $last, $phone, $email, $nid, $address, $city, $license, $expiry
     );
 
     if (!$stmt->execute()) {

@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('PUT');
+$tid = get_tenant_id();
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) json_response(['success' => false, 'message' => 'id আবশ্যক'], 422);
@@ -12,8 +13,8 @@ if (!$id) json_response(['success' => false, 'message' => 'id আবশ্যক
 $conn = (new Database())->connect();
 
 // গ্রাহক আছে কিনা
-$chk = $conn->prepare("SELECT id FROM customers WHERE id = ?");
-$chk->bind_param('i', $id);
+$chk = $conn->prepare("SELECT id FROM customers WHERE id = ? AND tenant_id = ?");
+$chk->bind_param('ii', $id, $tid);
 $chk->execute();
 if ($chk->get_result()->num_rows === 0) {
     $chk->close();
@@ -37,9 +38,9 @@ if (!$first || !$phone) {
     json_response(['success' => false, 'message' => 'নাম ও মোবাইল নম্বর আবশ্যক'], 422);
 }
 
-// অন্য গ্রাহকের ফোন নম্বরের সাথে conflict
-$conflict = $conn->prepare("SELECT id FROM customers WHERE phone = ? AND id != ?");
-$conflict->bind_param('si', $phone, $id);
+// অন্য গ্রাহকের ফোন নম্বরের সাথে conflict (এই tenant-এর মধ্যে)
+$conflict = $conn->prepare("SELECT id FROM customers WHERE phone = ? AND id != ? AND tenant_id = ?");
+$conflict->bind_param('sii', $phone, $id, $tid);
 $conflict->execute();
 if ($conflict->get_result()->num_rows > 0) {
     $conflict->close();
@@ -51,10 +52,10 @@ $stmt = $conn->prepare(
     "UPDATE customers
      SET first_name = ?, last_name = ?, phone = ?, email = ?,
          nid = ?, address = ?, city = ?, license_number = ?, license_expiry = ?
-     WHERE id = ?"
+     WHERE id = ? AND tenant_id = ?"
 );
-$stmt->bind_param('sssssssssi',
-    $first, $last, $phone, $email, $nid, $address, $city, $license, $expiry, $id
+$stmt->bind_param('sssssssssii',
+    $first, $last, $phone, $email, $nid, $address, $city, $license, $expiry, $id, $tid
 );
 
 if (!$stmt->execute()) {

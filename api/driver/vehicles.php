@@ -4,6 +4,7 @@ require_once '../../config/Database.php';
 require_once '../_helpers.php';
 
 $driver_id = require_driver();
+$tid = get_tenant_id();
 only_method('GET');
 
 $conn = (new Database())->connect();
@@ -15,10 +16,10 @@ $stmt = $conn->prepare(
             v.daily_rent_price, v.status AS vehicle_status
      FROM driver_vehicles dv
      JOIN vehicles v ON v.id = dv.vehicle_id
-     WHERE dv.driver_id = ?
+     WHERE dv.driver_id = ? AND v.tenant_id = ?
      ORDER BY dv.assigned_at DESC"
 );
-$stmt->bind_param('i', $driver_id);
+$stmt->bind_param('ii', $driver_id, $tid);
 $stmt->execute();
 $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();

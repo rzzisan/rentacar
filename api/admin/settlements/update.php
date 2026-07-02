@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('POST');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $data = input();
@@ -14,9 +15,12 @@ if (!$settlement_id) {
     json_response(['success' => false, 'message' => 'সেটেলমেন্ট আইডি প্রয়োজন'], 400);
 }
 
-// Verify settlement exists
-$stmt = $conn->prepare("SELECT id, rental_id FROM settlements WHERE id = ?");
-$stmt->bind_param('i', $settlement_id);
+// Verify settlement exists (settlements-এ tenant_id নেই — rentals জয়েন করে যাচাই)
+$stmt = $conn->prepare(
+    "SELECT s.id, s.rental_id FROM settlements s JOIN rentals r ON r.id = s.rental_id
+     WHERE s.id = ? AND r.tenant_id = ?"
+);
+$stmt->bind_param('ii', $settlement_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 if ($result->num_rows === 0) {
@@ -74,8 +78,8 @@ if (isset($data['agreed_amount'])) {
     $ustmt->close();
 
     // Also update rental's agreed_amount to keep them in sync
-    $rstmt = $conn->prepare("UPDATE rentals SET agreed_amount = ? WHERE id = ?");
-    $rstmt->bind_param('di', $agreed_amount, $rental_id);
+    $rstmt = $conn->prepare("UPDATE rentals SET agreed_amount = ? WHERE id = ? AND tenant_id = ?");
+    $rstmt->bind_param('dii', $agreed_amount, $rental_id, $tid);
     if (!$rstmt->execute()) {
         json_response(['success' => false, 'message' => 'রেন্টাল আপডেট ব্যর্থ: ' . $rstmt->error], 500);
     }

@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $driver_id = require_driver();
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -14,8 +15,8 @@ if (!$rental_id) {
 }
 
 // নিজের ট্রিপ কিনা যাচাই
-$stmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ? AND driver_id = ?");
-$stmt->bind_param('ii', $rental_id, $driver_id);
+$stmt = $conn->prepare("SELECT rental_status FROM rentals WHERE id = ? AND driver_id = ? AND tenant_id = ?");
+$stmt->bind_param('iii', $rental_id, $driver_id, $tid);
 $stmt->execute();
 $rresult = $stmt->get_result();
 if ($rresult->num_rows === 0) {

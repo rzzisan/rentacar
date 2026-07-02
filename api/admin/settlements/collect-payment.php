@@ -5,6 +5,7 @@ require_once '../../_helpers.php';
 
 require_role('admin');
 only_method('POST');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $data = input();
@@ -22,13 +23,14 @@ if (!$payment_amount || $payment_amount <= 0) {
     json_response(['success' => false, 'message' => 'পেমেন্ট পরিমান ০ থেকে বেশি হতে হবে'], 400);
 }
 
-// Get settlement details with driver_id
+// Get settlement details with driver_id (settlements-এ tenant_id নেই — rentals জয়েন করে যাচাই)
 $stmt = $conn->prepare(
     "SELECT s.id, s.driver_id, s.amount_to_collect, s.paid_amount, s.remaining_amount, s.payment_status
      FROM settlements s
-     WHERE s.id = ?"
+     JOIN rentals r ON r.id = s.rental_id
+     WHERE s.id = ? AND r.tenant_id = ?"
 );
-$stmt->bind_param('i', $settlement_id);
+$stmt->bind_param('ii', $settlement_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 

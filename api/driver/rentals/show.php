@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $driver_id = require_driver();
+$tid = get_tenant_id();
 only_method('GET');
 
 $conn = (new Database())->connect();
@@ -26,10 +27,10 @@ $sql = "SELECT r.*,
         LEFT JOIN customers c ON r.customer_id = c.id
         LEFT JOIN vehicles v ON r.vehicle_id = v.id
         LEFT JOIN drivers d ON r.driver_id = d.id
-        WHERE r.id = ? AND r.driver_id = ?";
+        WHERE r.id = ? AND r.driver_id = ? AND r.tenant_id = ?";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param('ii', $rental_id, $driver_id);
+$stmt->bind_param('iii', $rental_id, $driver_id, $tid);
 $stmt->execute();
 $result = $stmt->get_result();
 

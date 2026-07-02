@@ -4,15 +4,16 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn   = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: list drivers ────────────────────────────────────────────
 if ($method === 'GET') {
-    $where  = ['1=1'];
-    $params = [];
-    $types  = '';
+    $where  = ['d.tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if (!empty($_GET['search'])) {
         $s       = '%' . $_GET['search'] . '%';
@@ -117,10 +118,10 @@ if ($method === 'POST') {
 
     $hashed = password_hash($password, PASSWORD_BCRYPT);
     $stmt   = $conn->prepare(
-        "INSERT INTO drivers (name, mobile, profile_picture, email, password, commission_rate, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO drivers (tenant_id, name, mobile, profile_picture, email, password, commission_rate, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     );
-    $stmt->bind_param('sssssds', $name, $mobile, $picture, $email, $hashed, $commission_rate, $status);
+    $stmt->bind_param('isssssds', $tid, $name, $mobile, $picture, $email, $hashed, $commission_rate, $status);
 
     if (!$stmt->execute()) {
         json_response(['success' => false, 'message' => 'ড্রাইভার যোগ করতে ব্যর্থ: ' . $stmt->error], 500);
@@ -128,15 +129,26 @@ if ($method === 'POST') {
     $driver_id = $conn->insert_id;
     $stmt->close();
 
-    // Assign vehicles
+    // Assign vehicles (শুধু এই tenant-এর গাড়ি অ্যাসাইন করা যাবে — IDOR প্রতিরোধ)
     if ($vehicle_ids) {
-        $vstmt = $conn->prepare("INSERT IGNORE INTO driver_vehicles (driver_id, vehicle_id) VALUES (?, ?)");
-        foreach ($vehicle_ids as $vid) {
-            $vid = (int)$vid;
-            $vstmt->bind_param('ii', $driver_id, $vid);
-            $vstmt->execute();
+        $vin  = implode(',', array_fill(0, count($vehicle_ids), '?'));
+        $vchk = $conn->prepare("SELECT id FROM vehicles WHERE tenant_id = ? AND id IN ($vin)");
+        $vtypes  = 'i' . str_repeat('i', count($vehicle_ids));
+        $vparams = array_merge([$tid], array_map('intval', $vehicle_ids));
+        $vchk->bind_param($vtypes, ...$vparams);
+        $vchk->execute();
+        $validVehicleIds = array_column($vchk->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
+        $vchk->close();
+
+        if ($validVehicleIds) {
+            $vstmt = $conn->prepare("INSERT IGNORE INTO driver_vehicles (driver_id, vehicle_id) VALUES (?, ?)");
+            foreach ($validVehicleIds as $vid) {
+                $vid = (int)$vid;
+                $vstmt->bind_param('ii', $driver_id, $vid);
+                $vstmt->execute();
+            }
+            $vstmt->close();
         }
-        $vstmt->close();
     }
 
     json_response([

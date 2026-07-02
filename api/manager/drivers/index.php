@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid        = get_tenant_id();
 $conn       = (new Database())->connect();
 $method     = $_SERVER['REQUEST_METHOD'];
 
@@ -18,21 +19,29 @@ if ($method === 'GET') {
     $t  = str_repeat('i', count($vids));
 
     // Drivers assigned to manager's vehicles (via driver_vehicles)
-    $where  = ["dv.vehicle_id IN $in"];
-    $params = $vids;
-    $types  = $t;
+    $where  = ["dv.vehicle_id IN $in", "d.tenant_id = ?"];
+    // $in একই কোয়েরিতে ৪ বার ব্যবহৃত হয় (৩টি সাবকোয়েরি + মূল WHERE) —
+    // bind_param-এ params SQL টেক্সটে placeholder-এর ক্রম অনুযায়ী দিতে হবে
+    $params = array_merge($vids, $vids, $vids, $vids, [$tid]);
+    $types  = $t . $t . $t . $t . 'i';
 
+    $extra_where  = [];
+    $extra_params = [];
+    $extra_types  = '';
     if (!empty($_GET['search'])) {
-        $s       = '%' . $_GET['search'] . '%';
-        $where[] = '(d.name LIKE ? OR d.mobile LIKE ? OR d.email LIKE ?)';
-        $params  = array_merge($params, [$s, $s, $s]);
-        $types  .= 'sss';
+        $s              = '%' . $_GET['search'] . '%';
+        $extra_where[]  = '(d.name LIKE ? OR d.mobile LIKE ? OR d.email LIKE ?)';
+        $extra_params   = array_merge($extra_params, [$s, $s, $s]);
+        $extra_types   .= 'sss';
     }
     if (!empty($_GET['status'])) {
-        $where[] = 'd.status = ?';
-        $params[] = $_GET['status'];
-        $types   .= 's';
+        $extra_where[]  = 'd.status = ?';
+        $extra_params[] = $_GET['status'];
+        $extra_types   .= 's';
     }
+    $where  = array_merge($where, $extra_where);
+    $params = array_merge($params, $extra_params);
+    $types .= $extra_types;
 
     $sql = "SELECT DISTINCT d.*,
             (SELECT COUNT(*) FROM rentals r WHERE r.driver_id = d.id AND r.vehicle_id IN $in AND r.rental_status = 'completed') as total_trips,

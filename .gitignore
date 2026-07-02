@@ -18,3 +18,4 @@ session/*
 .vscode/
 .idea/
 node_modules/
+db/backups/*.sql

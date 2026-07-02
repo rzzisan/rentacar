@@ -5,6 +5,7 @@ require_once '../_helpers.php';
 
 only_method('DELETE');
 require_role('admin');
+$tid = get_tenant_id();
 
 $id = (int) ($_GET['id'] ?? 0);
 if (!$id) {
@@ -12,6 +13,15 @@ if (!$id) {
 }
 
 $conn = (new Database())->connect();
+
+// vehicle এই tenant-এর কিনা যাচাই
+$chk = $conn->prepare('SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?');
+$chk->bind_param('ii', $id, $tid);
+$chk->execute();
+if ($chk->get_result()->num_rows === 0) {
+    json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
+}
+$chk->close();
 
 // Prevent deletion if vehicle has active/pending rentals
 $stmt = $conn->prepare(
@@ -26,8 +36,8 @@ if ($count > 0) {
     json_response(['success' => false, 'message' => 'এই গাড়িতে সক্রিয় রেন্টাল আছে, মুছতে পারবেন না']);
 }
 
-$stmt = $conn->prepare('DELETE FROM vehicles WHERE id = ?');
-$stmt->bind_param('i', $id);
+$stmt = $conn->prepare('DELETE FROM vehicles WHERE id = ? AND tenant_id = ?');
+$stmt->bind_param('ii', $id, $tid);
 
 if ($stmt->execute() && $stmt->affected_rows > 0) {
     json_response(['success' => true, 'message' => 'গাড়ি মুছে ফেলা হয়েছে']);

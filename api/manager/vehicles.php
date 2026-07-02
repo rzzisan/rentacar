@@ -5,6 +5,7 @@ require_once '../_helpers.php';
 
 only_method('GET', 'PUT');
 $manager_id = require_manager();
+$tid = get_tenant_id();
 $conn = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -18,8 +19,9 @@ if ($method === 'GET') {
     $in = manager_vehicle_in_clause($vids);
     $t  = str_repeat('i', count($vids));
 
-    $stmt = $conn->prepare("SELECT * FROM vehicles WHERE id IN $in ORDER BY brand, model");
-    $stmt->bind_param($t, ...$vids);
+    $stmt = $conn->prepare("SELECT * FROM vehicles WHERE id IN $in AND tenant_id = ? ORDER BY brand, model");
+    $params = array_merge($vids, [$tid]);
+    $stmt->bind_param($t . 'i', ...$params);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
@@ -55,8 +57,8 @@ if ($method === 'PUT') {
     }
 
     // rented গাড়ি maintenance/inactive করা যাবে না
-    $cstmt = $conn->prepare("SELECT status FROM vehicles WHERE id = ?");
-    $cstmt->bind_param('i', $vehicle_id);
+    $cstmt = $conn->prepare("SELECT status FROM vehicles WHERE id = ? AND tenant_id = ?");
+    $cstmt->bind_param('ii', $vehicle_id, $tid);
     $cstmt->execute();
     $current = $cstmt->get_result()->fetch_assoc();
     $cstmt->close();
@@ -69,8 +71,8 @@ if ($method === 'PUT') {
         json_response(['success' => false, 'message' => 'চলমান ভাড়া থাকাকালীন স্ট্যাটাস পরিবর্তন করা যাবে না'], 400);
     }
 
-    $ustmt = $conn->prepare("UPDATE vehicles SET status = ?, updated_at = NOW() WHERE id = ?");
-    $ustmt->bind_param('si', $status, $vehicle_id);
+    $ustmt = $conn->prepare("UPDATE vehicles SET status = ?, updated_at = NOW() WHERE id = ? AND tenant_id = ?");
+    $ustmt->bind_param('sii', $status, $vehicle_id, $tid);
     if (!$ustmt->execute()) {
         json_response(['success' => false, 'message' => 'আপডেট ব্যর্থ হয়েছে'], 500);
     }

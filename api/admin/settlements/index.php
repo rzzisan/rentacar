@@ -4,15 +4,17 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 
 $conn = (new Database())->connect();
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: list settlements ────────────────────────────────────────
 if ($method === 'GET') {
-    $where  = ['1=1'];
-    $params = [];
-    $types  = '';
+    // settlements-এ tenant_id নেই — rentals জয়েন করে ফিল্টার করা হয়
+    $where  = ['r.tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if (!empty($_GET['status'])) {
         $where[] = 's.payment_status = ?';
@@ -82,6 +84,15 @@ if ($method === 'POST') {
     if (!$rental_id) {
         json_response(['success' => false, 'message' => 'রেন্টাল আইডি প্রয়োজন'], 400);
     }
+
+    // রেন্টালটি এই tenant-এর কিনা যাচাই (IDOR প্রতিরোধ)
+    $rvstmt = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND tenant_id = ?");
+    $rvstmt->bind_param('ii', $rental_id, $tid);
+    $rvstmt->execute();
+    if ($rvstmt->get_result()->num_rows === 0) {
+        json_response(['success' => false, 'message' => 'সম্পন্ন রেন্টাল পাওয়া যায়নি'], 404);
+    }
+    $rvstmt->close();
 
     // হিসাব ও insert — shared helper (ট্রিপ completed হলে এখন স্বয়ংক্রিয়ভাবেই তৈরি হয়;
     // এটি পুরনো সম্পন্ন ট্রিপের জন্য fallback)

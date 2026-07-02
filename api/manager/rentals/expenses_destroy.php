@@ -4,6 +4,7 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 $manager_id = require_manager();
+$tid        = get_tenant_id();
 only_method('DELETE');
 $conn       = (new Database())->connect();
 $expense_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -19,10 +20,10 @@ $in   = manager_vehicle_in_clause($vids);
 $stmt = $conn->prepare(
     "SELECT te.receipt_image FROM trip_expenses te
      JOIN rentals r ON te.rental_id = r.id
-     WHERE te.id = ? AND r.vehicle_id IN $in"
+     WHERE te.id = ? AND r.vehicle_id IN $in AND r.tenant_id = ?"
 );
-$params = array_merge([$expense_id], $vids);
-$types  = 'i' . str_repeat('i', count($vids));
+$params = array_merge([$expense_id], $vids, [$tid]);
+$types  = 'i' . str_repeat('i', count($vids)) . 'i';
 $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();

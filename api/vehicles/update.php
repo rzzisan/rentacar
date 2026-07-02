@@ -5,6 +5,7 @@ require_once '../_helpers.php';
 
 only_method('PUT');
 require_role('admin');
+$tid = get_tenant_id();
 
 $id = (int) ($_GET['id'] ?? 0);
 if (!$id) {
@@ -32,10 +33,20 @@ if (!$sets) {
 }
 
 $params[] = $id;
-$types   .= 'i';
+$params[] = $tid;
+$types   .= 'ii';
 
 $conn = (new Database())->connect();
-$stmt = $conn->prepare('UPDATE vehicles SET ' . implode(', ', $sets) . ' WHERE id = ?');
+
+$chk = $conn->prepare('SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?');
+$chk->bind_param('ii', $id, $tid);
+$chk->execute();
+if ($chk->get_result()->num_rows === 0) {
+    json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
+}
+$chk->close();
+
+$stmt = $conn->prepare('UPDATE vehicles SET ' . implode(', ', $sets) . ' WHERE id = ? AND tenant_id = ?');
 $stmt->bind_param($types, ...$params);
 
 if ($stmt->execute()) {

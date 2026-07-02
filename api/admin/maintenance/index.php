@@ -4,15 +4,16 @@ require_once '../../../config/Database.php';
 require_once '../../_helpers.php';
 
 require_role('admin');
+$tid = get_tenant_id();
 $conn = (new Database())->connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $vehicle_id = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     $status     = $_GET['status'] ?? '';
 
-    $where = [];
-    $params = [];
-    $types  = '';
+    $where  = ['m.tenant_id = ?'];
+    $params = [$tid];
+    $types  = 'i';
 
     if ($vehicle_id) {
         $where[] = 'm.vehicle_id = ?';
@@ -76,13 +77,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$vehicle_id || !$type || !$start_date)
         json_response(['success' => false, 'message' => 'গাড়ি, ধরন ও তারিখ আবশ্যক'], 422);
 
+    // গাড়ি এই tenant-এর কিনা যাচাই — IDOR প্রতিরোধ
+    $vchk = $conn->prepare("SELECT id FROM vehicles WHERE id = ? AND tenant_id = ?");
+    $vchk->bind_param('ii', $vehicle_id, $tid);
+    $vchk->execute();
+    if ($vchk->get_result()->num_rows === 0) {
+        json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
+    }
+    $vchk->close();
+
     $stmt = $conn->prepare(
         "INSERT INTO maintenance
-            (vehicle_id, maintenance_type, description, vendor, start_date, end_date,
+            (tenant_id, vehicle_id, maintenance_type, description, vendor, start_date, end_date,
              km_reading, next_due_date, next_due_km, cost, status)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
     );
-    $stmt->bind_param('isssssisiss', $vehicle_id, $type, $desc, $vendor, $start_date,
+    $stmt->bind_param('iisssssisiss', $tid, $vehicle_id, $type, $desc, $vendor, $start_date,
         $end_date, $km, $next_date, $next_km, $cost, $status);
     $stmt->execute();
     $new_id = $stmt->insert_id;
