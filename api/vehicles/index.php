@@ -79,7 +79,7 @@ if ($method === 'POST') {
     $price = (float) $b['daily_rent_price'];
     $status= trim($b['status'] ?? 'available');
 
-    $stmt->bind_param('isssississs',
+    $stmt->bind_param('isssisssids',
         $tid, $reg, $brand, $model, $year, $type, $color, $fuel, $seats, $price, $status
     );
 
