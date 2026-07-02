@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
+import com.rzzisan.carrental.ui.components.DateTimePickerField
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
@@ -277,10 +278,7 @@ private fun MgrCreateRentalSheet(
                 }
             }
             item {
-                OutlinedTextField(startDatetime, { startDatetime = it },
-                    label = { Text(s.startDatetime) },
-                    placeholder = { Text("YYYY-MM-DD HH:MM", color = InkMuted) },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(10.dp))
+                DateTimePickerField(onValueChange = { startDatetime = it }, modifier = Modifier.fillMaxWidth())
             }
             item {
                 OutlinedTextField(agreedAmount, { agreedAmount = it },
