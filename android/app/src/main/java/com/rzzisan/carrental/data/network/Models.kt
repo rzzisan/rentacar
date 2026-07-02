@@ -740,3 +740,14 @@ data class CreateDocumentRequest(
     @Json(name = "expiry_date") val expiryDate: String,
     val note: String? = null
 )
+
+// ── App Update Check (Play Store-এ নেই, নিজস্ব version-check) ─────
+// /var/www/car-apk/version.json — Apache সরাসরি serve করে, প্লেইন static ফাইল
+// (ApiResponse<T> wrapper নেই, তাই এই একটা কলের জন্য আলাদা parse করা হয়)
+data class VersionInfo(
+    @Json(name = "version_code") val versionCode: Int,
+    @Json(name = "version_name") val versionName: String,
+    @Json(name = "apk_url") val apkUrl: String,
+    val changelog: String? = null,
+    @Json(name = "force_update") val forceUpdate: Boolean = false
+)

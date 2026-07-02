@@ -296,23 +296,24 @@ npm run build    # → public/app/ (production)
 - **Multi-tenant (Phase 6, 2026-07-02):** `LoginData.tenantId` (`data/network/Models.kt`) → `AuthTokenStore.saveUserInfo(..., tenantId=...)` (`data/auth/AuthStorage.kt`, `SharedPreferences`-এ `-1` sentinel দিয়ে nullable Int)। tenant context বাকি সব API call-এ **automatic** — Bearer token নিজেই tenant_id বহন করে (`api_tokens.tenant_id`), সার্ভার-সাইডে `require_active_tenant()` (`api/_helpers.php`) প্রতিটি রিকোয়েস্টে চেক করে, Android-এ আলাদা কোনো param/হেডার লাগে না
 - **⚠️ `LoginScreen.kt`-এ `HttpException` catch করার সময় সবসময় response body থেকে JSON parse করে `message` দেখাতে হবে** (শুধু `BuildConfig.DEBUG`-এ না) — নাহলে suspended-tenant-এর মতো গুরুত্বপূর্ণ backend error message release build-এ কখনো দেখা যাবে না (এই বাগ Phase 6-এ পাওয়া গিয়েছিল, ঠিক করা হয়েছে)
 - **APK serve directory:** `/var/www/car-apk/`
-- **APK index script:** `/var/www/car-apk/gen-index.sh` — চালালে `/apk/` page + `latest.apk` symlink আপডেট হয়
+- **APK index script:** `/var/www/car-apk/gen-index.sh` — চালালে `/apk/` page + `latest.apk` symlink + `version.json` আপডেট হয়
 - **Download page:** `https://car.zisan.me/apk/`
 - **Stable latest URL:** `https://car.zisan.me/apk/latest.apk`
+- **In-app update check (Phase 7, 2026-07-02):** Play Store-এ নেই বলে নিজস্ব version-check — app চালু হলে `https://car.zisan.me/apk/version.json` (static ফাইল, `/api/` এর বাইরে, `ApiService.getAppVersion()` `@Url` দিয়ে) ফেচ করে `BuildConfig.VERSION_CODE`-এর সাথে তুলনা করে (`MainActivity.kt`-এর `UpdateCheckDialog`), নতুন থাকলে ডায়ালগ দেখায় ("ডাউনলোড করুন" → ব্রাউজারে `apk_url` খোলে, ইউজার নিজে ইনস্টল করে — silent/automatic install না)। **প্রতিটি রিলিজে `android/app/build.gradle.kts`-এ `versionCode` বাড়াতে হবে** — নাহলে update-check কাজ করবে না।
 
 ### APK নামকরণ নিয়ম (বাধ্যতামূলক)
 **প্রতিটি নতুন APK-এর নামে datetime stamp থাকবে — version number নয়।**
 
 ```bash
-# Build করার পর:
+# Build করার পর — প্রথমে android/app/build.gradle.kts-এ versionCode/versionName বাড়াও, তারপর:
 cp android/app/build/outputs/apk/debug/app-debug.apk \
    /var/www/car-apk/car-rental-$(date +%Y%m%d-%H%M%S).apk
-bash /var/www/car-apk/gen-index.sh
+bash /var/www/car-apk/gen-index.sh "এই রিলিজের changelog লিখো এখানে" false
 ```
 
 - সঠিক নাম: `car-rental-20260628-133500.apk`
 - ভুল নাম: `car-rental-v17.apk`, `app-debug.apk`, `car-rental.apk`
-- `gen-index.sh` সর্বশেষ APK (mtime অনুযায়ী) থেকে `latest.apk` symlink বানায়
+- `gen-index.sh` সর্বশেষ APK (mtime অনুযায়ী) থেকে `latest.apk` symlink বানায়, এবং `build.gradle.kts` থেকে versionCode/versionName পড়ে `version.json` লেখে (২য় আর্গুমেন্ট `true` দিলে `force_update` — ডায়ালগ dismiss করা যাবে না, শুধু critical fix-এর জন্য)
 
 ---
 

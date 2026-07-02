@@ -17,6 +17,10 @@ interface ApiService {
     @POST("auth/logout.php")
     suspend fun logout(): ApiResponse<Unit>
 
+    // App version check — /api/-এর বাইরে (apk/ ডিরেক্টরি, static ফাইল), তাই পূর্ণ URL + ApiResponse wrapper ছাড়া
+    @GET
+    suspend fun getAppVersion(@Url url: String = "https://car.zisan.me/apk/version.json"): VersionInfo
+
     // Driver Profile
     @GET("driver/profile.php")
     suspend fun getProfile(): ApiResponse<ProfileData>

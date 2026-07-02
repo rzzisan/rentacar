@@ -520,6 +520,30 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 
 ---
 
+### Phase 7: Android In-App Update Notification
+**Status: ✅ সম্পন্ন (2026-07-02)**
+
+**লক্ষ্য:** APK Play Store-এ যাচ্ছে না (আপাতত সাইডলোড দিয়ে বিতরণ), তাই Play Store-এর automatic update notification পাওয়া যাবে না। নিজস্ব version-check মেকানিজম বানাতে হবে যাতে পুরনো APK ব্যবহারকারীরা নতুন ভার্সন আছে জানতে পারে এবং সহজে আপডেট করতে পারে।
+
+**সিদ্ধান্ত:** সম্পূর্ণ automatic/silent install না — ব্যবহারকারীকে ডায়ালগ দেখিয়ে ট্যাপ করে ডাউনলোড+ইনস্টল করতে হবে (Android নিজেই "unknown source" অনুমতি চাইবে)। Silent background install করতে `REQUEST_INSTALL_PACKAGES` + `FileProvider` লাগত, এই স্কেলের internal business app-এর জন্য অতিরিক্ত জটিলতা মনে হয়েছে।
+
+**কাজের তালিকা:**
+- [x] `android/app/build.gradle.kts`-এ প্রকৃত version bump প্রথা চালু করা (versionCode/versionName এখন পর্যন্ত সবসময় `1`/`1.0.0` স্থির ছিল — কখনো বাড়েনি; এখন `2`/`1.1.0`-এ বাম্প করা হয়েছে, প্রতিটি ভবিষ্যৎ রিলিজে বাড়াতে হবে)
+- [x] `/var/www/car-apk/version.json` (static ফাইল, সরাসরি Apache সার্ভ করে — নতুন PHP endpoint লাগেনি) — `{version_code, version_name, apk_url, changelog, force_update}`
+- [x] `gen-index.sh` স্ক্রিপ্ট আপডেট: `build.gradle.kts` থেকে versionCode/versionName পড়ে `version.json` অটো-জেনারেট করে (ঐচ্ছিক আর্গুমেন্ট: changelog, force_update)
+- [x] Android: app চালু হলে `https://car.zisan.me/apk/version.json` ফেচ করে `BuildConfig.VERSION_CODE`-এর সাথে তুলনা (`MainActivity.kt`-এর `UpdateCheckDialog`)
+- [x] নতুন ভার্সন থাকলে ডায়ালগ: changelog টেক্সট + "ডাউনলোড করুন" বাটন → `apk_url` ব্রাউজারে খোলে (Intent.ACTION_VIEW)
+- [x] `force_update = true` হলে ডায়ালগ dismiss করা যাবে না (ভবিষ্যতে critical security fix-এর জন্য সংরক্ষিত)
+- [x] CLAUDE.md-এ APK deploy রুটিনে version.json আপডেটের ধাপ যোগ করা
+
+**Implementation নোট:**
+- `ApiService.getAppVersion()` `@GET` + `@Url` (fixed default) ব্যবহার করে যেহেতু endpoint `/api/` prefix-এর বাইরে (`/apk/version.json`) এবং response `ApiResponse<T>` wrapper-এ না (plain static JSON) — বাকি সব endpoint থেকে ভিন্ন প্যাটার্ন, তাই আলাদাভাবে handle করা হয়েছে
+- Network/parse ব্যর্থ হলে (version.json এখনো নেই এমন পুরনো deploy, বা connectivity সমস্যা) নীরবে উপেক্ষা করে — silent catch, কোনো error UI দেখায় না, যাতে এই non-critical ফিচার মূল app flow-কে ব্লক না করে
+- Verified: gradle build সফল, `version.json` সঠিক শেপে generate হয় (`python3 -m json.tool` দিয়ে valid JSON যাচাই), Apache-এ সরাসরি serve হচ্ছে (curl দিয়ে HTTP 200 + বাংলা changelog UTF-8 ঠিকভাবে দেখা যাচ্ছে) confirm করা হয়েছে। **সীমাবদ্ধতা:** এই সার্ভারে Android emulator নেই, তাই dialog-টা device-এ visually চালিয়ে দেখা যায়নি — শুধু compile + backend/JSON-shape যাচাই করা হয়েছে।
+- এই ফিচারটা মূল SaaS multi-tenancy রূপান্তরের অংশ না, কিন্তু Android app maintenance-এর সাথে সরাসরি সম্পর্কিত (Phase 6-এর ধারাবাহিকতায়), তাই এই ডকুমেন্টেই ট্র্যাক করা হয়েছে
+
+---
+
 ## গুরুত্বপূর্ণ সিদ্ধান্ত ও কারণ
 
 ### কেন `super_admins` আলাদা টেবিল?
@@ -592,6 +616,7 @@ Invoice তৈরির সময় সেই মুহূর্তের `pric
 | 4 | Tenant Onboarding | ✅ সম্পন্ন | 2026-07-02 |
 | 5 | Payment Gateway | ⬜ বাকি | — |
 | 6 | Android Support | ✅ সম্পন্ন | 2026-07-02 |
+| 7 | Android Update Notification | ✅ সম্পন্ন | 2026-07-02 |
 
 ---
 
