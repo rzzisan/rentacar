@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/client';
+import { roleHome } from '@/lib/roleHome';
 import type { User } from '@/types';
 
 interface Props {
@@ -24,13 +25,7 @@ export default function Login({ onLogin }: Props) {
       const res = await api.post<User>('/auth/login.php', { email, password, remember_me: rememberMe });
       if (res.success && res.data) {
         onLogin(res.data);
-        const role = res.data.role;
-        const dest = role === 'admin' ? '/admin'
-                   : role === 'manager' ? '/manager'
-                   : role === 'driver' ? '/driver'
-                   : role === 'employee' ? '/employee'
-                   : '/customer';
-        navigate(dest, { replace: true });
+        navigate(roleHome(res.data.role), { replace: true });
       } else {
         setError(res.message ?? 'লগইন ব্যর্থ হয়েছে');
       }

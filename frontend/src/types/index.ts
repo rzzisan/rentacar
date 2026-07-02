@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'manager' | 'employee' | 'customer' | 'driver';
+export type Role = 'superadmin' | 'admin' | 'manager' | 'employee' | 'customer' | 'driver';
 
 export interface Manager {
   id: number;
@@ -17,6 +17,7 @@ export interface User {
   email: string;
   role: Role;
   phone?: string;
+  tenant_id?: number | null;
 }
 
 export interface Vehicle {
@@ -270,4 +271,70 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
+}
+
+// ── SaaS: SuperAdmin ────────────────────────────────────────────────
+export interface Tenant {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  status: 'trial' | 'active' | 'suspended' | 'cancelled';
+  trial_ends_at: string;
+  subscription_status?: 'trialing' | 'active' | 'past_due' | 'cancelled';
+  vehicle_count: number;
+  admin_count: number;
+  latest_invoice_status?: 'pending' | 'paid' | 'overdue' | 'waived' | null;
+  latest_invoice_amount?: number | null;
+  latest_invoice_due_date?: string | null;
+  created_at?: string;
+}
+
+export interface SubscriptionInvoice {
+  id: number;
+  tenant_id: number;
+  tenant_name: string;
+  tenant_email: string;
+  subscription_id: number;
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string;
+  vehicle_count: number;
+  price_per_vehicle: number;
+  total_amount: number;
+  status: 'pending' | 'paid' | 'overdue' | 'waived';
+  paid_at?: string | null;
+  payment_method?: string | null;
+  payment_ref?: string | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
+export interface SaasSettings {
+  price_per_vehicle: { value: string; description?: string };
+  trial_days: { value: string; description?: string };
+  invoice_due_days: { value: string; description?: string };
+}
+
+export interface SuperAdminStats {
+  total_tenants: number;
+  trial_tenants: number;
+  active_tenants: number;
+  suspended_tenants: number;
+  cancelled_tenants: number;
+  this_month_total: number;
+  this_month_paid: number;
+  pending_amount: number;
+  overdue_count: number;
+  overdue_amount: number;
+  monthly_trend: { month: string; total: number }[];
+  recent_invoices: {
+    id: number;
+    invoice_number: string;
+    total_amount: number;
+    status: string;
+    invoice_date: string;
+    tenant_name: string;
+  }[];
 }

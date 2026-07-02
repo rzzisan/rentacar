@@ -21,8 +21,13 @@ import ManagerReports from '@/pages/manager/Reports';
 import AdminCustomers from '@/pages/admin/Customers';
 import AdminReports from '@/pages/admin/Reports';
 import AdminMaintenance from '@/pages/admin/Maintenance';
+import SuperAdminDashboard from '@/pages/superadmin/Dashboard';
+import SuperAdminTenants from '@/pages/superadmin/Tenants';
+import SuperAdminBilling from '@/pages/superadmin/Billing';
+import SuperAdminSettings from '@/pages/superadmin/Settings';
 import Login from '@/pages/Login';
 import { api } from '@/api/client';
+import { roleHome } from '@/lib/roleHome';
 import type { User } from '@/types';
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -50,12 +55,7 @@ function ProtectedRoute({
 }) {
   if (!user) return <Navigate to="/login" replace />;
   if (role && user.role !== role) {
-    const dest = user.role === 'admin' ? '/admin'
-               : user.role === 'manager' ? '/manager'
-               : user.role === 'employee' ? '/employee'
-               : user.role === 'driver' ? '/driver'
-               : '/customer';
-    return <Navigate to={dest} replace />;
+    return <Navigate to={roleHome(user.role)} replace />;
   }
   return <>{children}</>;
 }
@@ -101,10 +101,25 @@ export default function App() {
           path="/login"
           element={
             user
-              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'manager' ? '/manager' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
+              ? <Navigate to={roleHome(user.role)} replace />
               : <Login onLogin={handleLogin} />
           }
         />
+
+        {/* SuperAdmin */}
+        <Route
+          path="/superadmin"
+          element={
+            <ProtectedRoute user={user} role="superadmin">
+              <AppLayout user={user!} onLogout={handleLogout} onUserUpdate={setUser} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<SuperAdminDashboard />} />
+          <Route path="tenants"  element={<SuperAdminTenants />} />
+          <Route path="billing"  element={<SuperAdminBilling />} />
+          <Route path="settings" element={<SuperAdminSettings />} />
+        </Route>
 
         {/* Admin */}
         <Route
@@ -197,7 +212,7 @@ export default function App() {
           path="/"
           element={
             user
-              ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'manager' ? '/manager' : user.role === 'employee' ? '/employee' : user.role === 'driver' ? '/driver' : '/customer'} replace />
+              ? <Navigate to={roleHome(user.role)} replace />
               : <Navigate to="/login" replace />
           }
         />

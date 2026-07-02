@@ -420,21 +420,30 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 ---
 
 ### Phase 3: SuperAdmin Panel
-**Status: ⬜ বাকি**
+**Status: ✅ সম্পন্ন (2026-07-02)**
 
 **লক্ষ্য:** আমরা (rzzisan) সব tenant পরিচালনা করতে পারব
 
 **কাজের তালিকা:**
-- [ ] `api/superadmin/tenants/` — CRUD endpoints
-- [ ] `api/superadmin/billing/invoices.php` — invoice তালিকা + mark-paid (manual)
-- [ ] `api/superadmin/billing/stats.php` — revenue stats
-- [ ] `api/superadmin/settings/index.php` — GET/PUT saas_settings (price, trial_days, due_days)
-- [ ] Frontend: `SuperAdminDashboard.tsx`
-- [ ] Frontend: `SuperAdminTenants.tsx` — tenant list, edit, suspend/activate
-- [ ] Frontend: `SuperAdminBilling.tsx` — invoice list, manual mark-paid (bKash ref লেখার field)
-- [ ] Frontend: `SuperAdminSettings.tsx` — price/trial/due_days পরিবর্তন
-- [ ] App.tsx-এ superadmin routes
-- [ ] Login redirect: superadmin → `/superadmin/dashboard`
+- [x] `api/superadmin/tenants/` — CRUD endpoints (index GET/POST, update PUT, status PUT)
+- [x] `api/superadmin/billing/invoices.php` — invoice তালিকা + mark-paid (manual)
+- [x] `api/superadmin/billing/stats.php` — revenue stats
+- [x] `api/superadmin/settings/index.php` — GET/PUT saas_settings (price, trial_days, due_days)
+- [x] Frontend: `SuperAdminDashboard.tsx` — stat cards, ৬ মাসের আয় ট্রেন্ড bar chart, সাম্প্রতিক invoice তালিকা
+- [x] Frontend: `SuperAdminTenants.tsx` — tenant list, নতুন tenant তৈরি (+ প্রথম admin একসাথে), edit, status পরিবর্তন (trial/active/suspended/cancelled)
+- [x] Frontend: `SuperAdminBilling.tsx` — invoice list (tenant/status/month filter), manual mark-paid (bKash ref field)
+- [x] Frontend: `SuperAdminSettings.tsx` — price/trial/due_days পরিবর্তন
+- [x] App.tsx-এ superadmin routes (`roleHome()` helper দিয়ে redirect ternary-গুলো centralize করা হয়েছে, `frontend/src/lib/roleHome.ts`)
+- [x] Login redirect: superadmin → `/superadmin`
+
+**Scope note:** Impersonate ফিচার (tenant-এর admin হিসেবে login) এই phase-এ নেই — checklist-এ ছিল না, আলাদা নিরাপত্তা বিবেচনা দরকার।
+
+**Implementation নোট:**
+- Tenant তৈরির সাথেই প্রথম admin user + subscription row (status='trialing') একসাথে তৈরি হয় (transaction-এ) — trial_ends_at সেই মুহূর্তের `saas_settings.trial_days` থেকে গণনা হয়
+- Mark-paid করলে, tenant সেই মুহূর্তে suspended থাকলে **স্বয়ংক্রিয়ভাবে active-এ ফিরে যায়** (tenant + subscriptions দুটোই) — manual bKash payment confirm করার মূল উদ্দেশ্য এটাই
+- **আবিষ্কৃত ও ঠিক করা বাগ:** `saas_settings.description`-এর বাংলা টেক্সট Phase 2 migration-এ (`mysql ... < file.sql`, charset flag ছাড়া CLI import) double-encoded হয়ে গিয়েছিল — mysqli (charset utf8mb4 সেট করা) দিয়ে সরাসরি UPDATE করে ঠিক করা হয়েছে
+- **আবিষ্কৃত ও ঠিক করা বাগ:** `api/auth/update_profile.php` কোনো role-check ছাড়াই `$_SESSION['user_id']` দিয়ে `users` টেবিল আপডেট করত — superadmin session-এর `user_id` আসলে `super_admins.id` (আলাদা টেবিল), তাই superadmin প্রোফাইল বদলাতে গেলে **ভুলবশত একই numeric id-ওয়ালা কোনো tenant-এর admin-এর ডেটা বদলে যেতে পারত**। এখন superadmin-কে explicit block করা হয়েছে (backend + Header.tsx-এ "অ্যাকাউন্ট সেটিংস" মেনু আইটেমও লুকানো)।
+- Frontend যাচাই: `npm run build` (tsc + vite, ত্রুটিমুক্ত) + Playwright দিয়ে লাইভ প্রোডাকশনে (https://car.zisan.me) পূর্ণ flow টেস্ট — login→dashboard→tenants→billing→settings→logout, সব পেজে সঠিক ডেটা রেন্ডার + কোনো real console error নেই
 
 **এই phase সম্পন্ন হলে:** web থেকে সব tenant ও billing পরিচালনা করা যাবে।
 
@@ -560,7 +569,7 @@ Invoice তৈরির সময় সেই মুহূর্তের `pric
 |---|---|---|---|
 | 1 | মাল্টি-টেনেন্সি ভিত্তি | ✅ সম্পন্ন | 2026-07-02 |
 | 2 | Subscription & Billing | ✅ সম্পন্ন | 2026-07-02 |
-| 3 | SuperAdmin Panel | ⬜ বাকি | — |
+| 3 | SuperAdmin Panel | ✅ সম্পন্ন | 2026-07-02 |
 | 4 | Tenant Onboarding | ⬜ বাকি | — |
 | 5 | Payment Gateway | ⬜ বাকি | — |
 | 6 | Android Support | ⬜ বাকি | — |

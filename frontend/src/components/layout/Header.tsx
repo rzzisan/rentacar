@@ -11,9 +11,12 @@ interface Props {
 }
 
 const roleLabel: Record<string, string> = {
+  superadmin: 'সুপার অ্যাডমিন',
   admin: 'এডমিন',
+  manager: 'ম্যানেজার',
   employee: 'কর্মচারী',
   customer: 'গ্রাহক',
+  driver: 'চালক',
 };
 
 export default function Header({ user, pageTitle, onToggleSidebar, onLogout, onUserUpdate }: Props) {
@@ -88,12 +91,14 @@ export default function Header({ user, pageTitle, onToggleSidebar, onLogout, onU
                 >
                   <span>🏠</span> ড্যাশবোর্ড
                 </a>
-                <button
-                  onClick={() => { setDropdownOpen(false); setProfileOpen(true); }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-100 hover:text-indigo-600 transition-colors w-full text-left"
-                >
-                  <span>⚙️</span> অ্যাকাউন্ট সেটিংস
-                </button>
+                {user.role !== 'superadmin' && (
+                  <button
+                    onClick={() => { setDropdownOpen(false); setProfileOpen(true); }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-100 hover:text-indigo-600 transition-colors w-full text-left"
+                  >
+                    <span>⚙️</span> অ্যাকাউন্ট সেটিংস
+                  </button>
+                )}
                 <div className="my-2 h-px bg-slate-100" />
                 <button
                   onClick={() => { if (confirm('লগআউট করতে চান?')) onLogout(); }}

@@ -11,6 +11,10 @@ interface Props {
 }
 
 const pageTitles: Record<string, string> = {
+  '/superadmin': 'ড্যাশবোর্ড',
+  '/superadmin/tenants': 'Tenant ব্যবস্থাপনা',
+  '/superadmin/billing': 'বিলিং',
+  '/superadmin/settings': 'সেটিংস',
   '/admin': 'ড্যাশবোর্ড',
   '/admin/vehicles': 'গাড়ি ব্যবস্থাপনা',
   '/admin/vehicles/add': 'নতুন গাড়ি যোগ',

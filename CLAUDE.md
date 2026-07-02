@@ -59,7 +59,9 @@ frontend/src/
 ├── api/
 │   └── client.ts                  — api.get/post/put/delete wrapper
 ├── types/
-│   └── index.ts                   — User, Vehicle, Rental, ApiResponse<T>
+│   └── index.ts                   — User, Vehicle, Rental, ApiResponse<T>, Tenant, SubscriptionInvoice, SaasSettings, SuperAdminStats
+├── lib/
+│   └── roleHome.ts                — role → home route ম্যাপিং; App.tsx ও Login.tsx দুটোতেই ব্যবহৃত (redirect logic এক জায়গায়)
 ├── hooks/
 │   └── useAuth.ts                 — (সংরক্ষিত, App.tsx এ inline ব্যবহার হচ্ছে)
 ├── layouts/
@@ -70,6 +72,11 @@ frontend/src/
 │       └── Sidebar.tsx            — dark sidebar, role-based nav
 └── pages/
     ├── Login.tsx                  — login form, POST /api/auth/login.php
+    ├── superadmin/
+    │   ├── Dashboard.tsx          — stat cards (tenant count/status), ৬ মাসের আয় ট্রেন্ড bar chart, সাম্প্রতিক invoice তালিকা
+    │   ├── Tenants.tsx            — tenant CRUD: তালিকা, নতুন tenant তৈরি (+প্রথম admin একসাথে), edit, status পরিবর্তন
+    │   ├── Billing.tsx            — সব tenant-এর invoice তালিকা (filter), manual mark-paid (bKash TrxID field)
+    │   └── Settings.tsx           — saas_settings ফর্ম (price_per_vehicle/trial_days/invoice_due_days)
     ├── admin/
     │   ├── Dashboard.tsx          — চলমান+আপকামিং ট্রিপ হাইলাইট কার্ড (লাইভ টাইমার/কাউন্টডাউন), ৬ stats কার্ড (বকেয়া, আজকের ট্রিপ সহ), quick links
     │   ├── Vehicles.tsx           — CRUD: list, add modal, edit modal, delete confirm
@@ -119,7 +126,11 @@ api/
 │   ├── login.php   POST           — session তৈরি করে
 │   ├── logout.php  POST           — session destroy করে JSON রিটার্ন
 │   ├── me.php      GET            — current user info
-│   └── update_profile.php POST    — নিজের প্রোফাইল আপডেট
+│   └── update_profile.php POST    — নিজের প্রোফাইল আপডেট (superadmin-এর জন্য block করা — নিচে "Multi-Tenancy" সেকশনে কারণ)
+├── superadmin/                     — সব endpoint require_superadmin() দিয়ে গার্ড
+│   ├── tenants/                    — index (GET list+POST create tenant+প্রথম admin একসাথে), update (PUT তথ্য), status (PUT trial/active/suspended/cancelled, subscriptions.status sync করে)
+│   ├── billing/                    — invoices.php (GET তালিকা+filter, POST mark-paid — suspended tenant হলে auto-reactivate করে), stats.php (GET revenue dashboard + ৬ মাসের ট্রেন্ড)
+│   └── settings/                   — index.php GET/PUT saas_settings (price_per_vehicle/trial_days/invoice_due_days)
 ├── admin/
 │   ├── stats.php   GET            — dashboard stats (admin only): counts, monthly_revenue (agreed_amount-ভিত্তিক), total_dues, today_trips + active_trips/upcoming_trips তালিকা
 │   ├── rentals/                   — index (GET/POST), show (expenses এ location_name/lat/lng সহ), update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST: location_name/lat/lng সহ), expenses_destroy
@@ -187,7 +198,8 @@ includes/                          — ভবিষ্যতের API-তে �
 - **`$in` (manager_vehicle_in_clause) সতর্কতা:** কোনো একটি SQL-এ `$in` একাধিকবার ব্যবহার করলে (যেমন SELECT-এর subquery + WHERE-এ) প্রতিটি ব্যবহারের জন্য `$vids` আলাদাভাবে params array-তে **SQL টেক্সটে placeholder-এর ক্রম অনুযায়ী** যোগ করতে হবে — নাহলে `bind_param()` ArgumentCountError দিয়ে fatal করবে (`api/manager/drivers/index.php`, `api/manager/customers/index.php`-এ এই বাগ পাওয়া গিয়েছিল, ঠিক করা হয়েছে)।
 - **DB migration ফাইল:** `db/migrations/001_multi_tenancy.sql`, `002_subscription_billing.sql` (backup রাখা হয় `db/backups/`-এ, mysqldump দিয়ে, যেকোনো schema change-এর আগে)
 - **প্রথম SuperAdmin:** `super_admins` টেবিলে manual insert, email `rzzisan@gmail.com`
-- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1+2 সম্পন্ন 2026-07-02; Phase 3+ = SuperAdmin panel, registration, payment gateway, Android)
+- **⚠️ superadmin session-এর `$_SESSION['user_id']` আসলে `super_admins.id`, `users.id` নয়** — যেকোনো নতুন endpoint লেখার সময় এই দুটো গুলিয়ে ফেলা যাবে না (একবার `api/auth/update_profile.php`-এ এই বাগ হয়েছিল — superadmin profile আপডেট করতে গেলে ভুলবশত একই numeric id-ওয়ালা কোনো tenant admin-এর ডেটা বদলে যেতে পারত; এখন block করা আছে)।
+- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1+2+3 সম্পন্ন 2026-07-02; Phase 4+ = tenant self-registration, payment gateway, Android)
 
 ### Billing (Phase 2)
 - **`saas_settings`**: key-value config (`price_per_vehicle`, `trial_days`, `invoice_due_days`) — SuperAdmin panel তৈরি হলে (Phase 3) সেখান থেকে পরিবর্তনযোগ্য হবে

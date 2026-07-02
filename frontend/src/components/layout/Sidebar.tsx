@@ -9,6 +9,13 @@ interface NavItem {
   children?: { label: string; href: string }[];
 }
 
+const superadminNav: NavItem[] = [
+  { label: 'ড্যাশবোর্ড', icon: '🏠', href: '/superadmin' },
+  { label: 'Tenant ব্যবস্থাপনা', icon: '🏢', href: '/superadmin/tenants' },
+  { label: 'বিলিং', icon: '💳', href: '/superadmin/billing' },
+  { label: 'সেটিংস', icon: '⚙️', href: '/superadmin/settings' },
+];
+
 const adminNav: NavItem[] = [
   { label: 'ড্যাশবোর্ড', icon: '🏠', href: '/admin' },
   { label: 'গাড়ি ব্যবস্থাপনা', icon: '🚗', href: '/admin/vehicles' },
@@ -56,6 +63,7 @@ const managerNav: NavItem[] = [
 ];
 
 const navByRole: Record<Role, NavItem[]> = {
+  superadmin: superadminNav,
   admin: adminNav,
   manager: managerNav,
   employee: employeeNav,
@@ -113,7 +121,7 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
         <nav className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-slate-700">
           <ul className="list-none p-0 m-0">
             {navItems.map(item => {
-              const rootPaths = ['/admin', '/manager', '/employee', '/customer', '/driver'];
+              const rootPaths = ['/superadmin', '/admin', '/manager', '/employee', '/customer', '/driver'];
               const isActive = location.pathname === item.href ||
                 (!rootPaths.includes(item.href) && location.pathname.startsWith(item.href));
 
@@ -187,7 +195,7 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
             <div className={`flex-1 min-w-0 ${!isOpen ? 'lg:hidden' : ''}`}>
               <div className="text-xs font-semibold text-slate-300 truncate">{username}</div>
               <div className="text-[10px] text-slate-500">
-                {role === 'admin' ? 'এডমিন' : role === 'manager' ? 'ম্যানেজার' : role === 'employee' ? 'কর্মচারী' : role === 'driver' ? 'চালক' : 'গ্রাহক'}
+                {role === 'superadmin' ? 'সুপার অ্যাডমিন' : role === 'admin' ? 'এডমিন' : role === 'manager' ? 'ম্যানেজার' : role === 'employee' ? 'কর্মচারী' : role === 'driver' ? 'চালক' : 'গ্রাহক'}
               </div>
             </div>
           </div>

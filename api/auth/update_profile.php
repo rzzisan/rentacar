@@ -6,6 +6,12 @@ require_once '../_helpers.php';
 only_method('PUT');
 require_auth();
 
+// super_admins টেবিল আলাদা — এই endpoint শুধু `users` টেবিলের রো (admin/employee/customer) আপডেট করে।
+// superadmin session-এর user_id আসলে super_admins.id, users.id নয় — এখানে চললে ভুল ইউজারের ডেটা বদলে যেতে পারে।
+if (($_SESSION['role'] ?? '') === 'superadmin') {
+    json_response(['success' => false, 'message' => 'এই কাজের অনুমতি নেই'], 403);
+}
+
 $body         = input();
 $new_email    = trim($body['email'] ?? '');
 $current_pass = $body['current_password'] ?? '';
