@@ -497,20 +497,26 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 
 **এই phase শুরু করার আগে দরকার:** SSLCommerz merchant account।
 
+**সিদ্ধান্ত (2026-07-02):** ব্যবহারকারী ইচ্ছাকৃতভাবে Phase 5 আপাতত বাদ দিয়ে সরাসরি Phase 6-এ চলে গেছেন — ম্যানুয়াল payment (SuperAdmin billing panel-এ mark-paid) আপাতত যথেষ্ট। merchant account নেওয়ার পর ভবিষ্যতে ফিরে আসা যাবে।
+
 ---
 
 ### Phase 6: Android App Tenant Support
-**Status: ⬜ বাকি**
+**Status: ✅ সম্পন্ন (2026-07-02)**
 
 **লক্ষ্য:** Android driver app-এ multi-tenant support
 
 **কাজের তালিকা:**
-- [ ] Login response-এ tenant_id Android-এ store করা
-- [ ] API calls-এ tenant context — server session থেকে automatic (extra params লাগবে না)
-- [ ] Suspended tenant login করলে error screen দেখানো
-- [ ] Build + deploy নতুন APK
+- [x] Login response-এ tenant_id Android-এ store করা (`AuthStorage`-এ `SharedPreferences`, `-1` sentinel দিয়ে nullable Int)
+- [x] API calls-এ tenant context — server session থেকে automatic (extra params লাগেনি — Phase 1/2-এই হয়ে গিয়েছিল, নিচে দেখুন)
+- [x] Suspended tenant login করলে error screen দেখানো — **একটা real bug ধরা পড়ে ঠিক হয়েছে** (নিচে দেখুন)
+- [x] Build + deploy নতুন APK
 
-**নোট:** Android app driver/manager হিসেবে login করে। tenant_id server session-এ থাকে, তাই API calls-এ extra change লাগবে না। শুধু error handling করতে হবে।
+**আবিষ্কার — backend-এর কাজ Phase 1/2-এই হয়ে গিয়েছিল:** mobile bearer-token flow (`_generate_api_token()`/`_validate_bearer_token()`, `api/_helpers.php`) ইতিমধ্যে token-এ `tenant_id` সংরক্ষণ করে এবং প্রতি রিকোয়েস্টে session-এ restore করে; `require_active_tenant()` (Phase 2-এর mid-session enforcement, `require_auth()`-এর ভেতরে) token-ভিত্তিক সেশনেও কাজ করে। তাই "API calls-এ tenant context" আসলে Android-সাইডে কোনো নতুন কোড ছাড়াই ইতিমধ্যে কাজ করছিল — মূল doc-এর নোট সঠিক ছিল।
+
+**আবিষ্কৃত ও ঠিক করা বাগ:** `LoginScreen.kt`-এ `HttpException` (403/401 ইত্যাদি non-2xx status) catch হলে backend-এর প্রকৃত error message (যেমন suspended-tenant-এর বিলের বার্তা) **শুধু `BuildConfig.DEBUG` build-এ** দেখানো হতো — production/release APK-তে সবসময় generic "লগইন ব্যর্থ হয়েছে" দেখাত। মানে suspended tenant-এর driver/manager আসল কারণ (বকেয়া বিল) কখনো জানতেই পারত না release APK দিয়ে। এখন error body-র JSON parse করে `message` ফিল্ড **DEBUG/release নির্বিশেষে সবসময়** দেখানো হয় (parse ব্যর্থ হলে generic ফলব্যাক)। curl দিয়ে verify করা হয়েছে: suspended tenant-এর driver login করলে backend ঠিক এই JSON shape রিটার্ন করে যেটা নতুন কোড parse করে।
+
+**স্কোপ নোট:** mid-session suspension (login-পরবর্তী কোনো API call 403 দিলে) প্রতিটি স্ক্রিনে এখনো `catch (_: Exception) {}` দিয়ে নিরবে গেলা হয় (pre-existing pattern, শুধু login স্ক্রিনে না) — এটা এই phase-এর checklist-এ ছিল না (checklist শুধু login-সময়ের কথা বলে), তাই ইচ্ছাকৃতভাবে বাদ রাখা হয়েছে। ভবিষ্যতে দরকার হলে আলাদা কাজ।
 
 ---
 
@@ -585,7 +591,7 @@ Invoice তৈরির সময় সেই মুহূর্তের `pric
 | 3 | SuperAdmin Panel | ✅ সম্পন্ন | 2026-07-02 |
 | 4 | Tenant Onboarding | ✅ সম্পন্ন | 2026-07-02 |
 | 5 | Payment Gateway | ⬜ বাকি | — |
-| 6 | Android Support | ⬜ বাকি | — |
+| 6 | Android Support | ✅ সম্পন্ন | 2026-07-02 |
 
 ---
 
@@ -629,4 +635,4 @@ frontend/src/pages/
 
 *এই ডকুমেন্ট সর্বশেষ আপডেট: 2026-07-02*
 *সিদ্ধান্ত লগ: মূল্য ও trial period SuperAdmin-configurable; payment আপাতত manual (bKash), gateway Phase 5-এ।*
-*পরবর্তী কাজ: Phase 1 implementation শুরু।*
+*বর্তমান অবস্থা: Phase 1, 2, 3, 4, 6 সম্পন্ন। Phase 5 (payment gateway) ইচ্ছাকৃতভাবে স্থগিত — merchant account নেওয়ার পর করা হবে।*

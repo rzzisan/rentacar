@@ -13,7 +13,8 @@ data class LoginData(
     val username: String,
     val email: String,
     val role: String,
-    val token: String? = null
+    val token: String? = null,
+    @Json(name = "tenant_id") val tenantId: Int? = null
 )
 
 data class LoginRequest(

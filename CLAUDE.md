@@ -205,7 +205,7 @@ includes/                          — ভবিষ্যতের API-তে �
 - **DB migration ফাইল:** `db/migrations/001_multi_tenancy.sql`, `002_subscription_billing.sql`, `003_mobile_login.sql` (backup রাখা হয় `db/backups/`-এ, mysqldump দিয়ে, যেকোনো schema change-এর আগে)
 - **প্রথম SuperAdmin:** `super_admins` টেবিলে manual insert, email `rzzisan@gmail.com`
 - **⚠️ superadmin session-এর `$_SESSION['user_id']` আসলে `super_admins.id`, `users.id` নয়** — যেকোনো নতুন endpoint লেখার সময় এই দুটো গুলিয়ে ফেলা যাবে না (একবার `api/auth/update_profile.php`-এ এই বাগ হয়েছিল — superadmin profile আপডেট করতে গেলে ভুলবশত একই numeric id-ওয়ালা কোনো tenant admin-এর ডেটা বদলে যেতে পারত; এখন block করা আছে)।
-- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1+2+3+4 সম্পন্ন 2026-07-02; Phase 5+ = payment gateway, Android tenant support)
+- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1+2+3+4 সম্পন্ন 2026-07-02; Phase 5+ = payment gateway, Android tenant support)। **⚠️ Phase 5 (payment gateway) ব্যবহারকারীর সিদ্ধান্তে ইচ্ছাকৃতভাবে স্থগিত** — Phase 6 (Android tenant support) Phase 5-এর আগেই সম্পন্ন হয়েছে (ম্যানুয়াল payment-ই আপাতত যথেষ্ট)
 
 ### Billing (Phase 2)
 - **`saas_settings`**: key-value config (`price_per_vehicle`, `trial_days`, `invoice_due_days`) — SuperAdmin panel তৈরি হলে (Phase 3) সেখান থেকে পরিবর্তনযোগ্য হবে
@@ -293,6 +293,8 @@ npm run build    # → public/app/ (production)
 ## Android Driver App
 
 - **অবস্থান:** `android/` — Jetpack Compose, Kotlin, Moshi, Retrofit
+- **Multi-tenant (Phase 6, 2026-07-02):** `LoginData.tenantId` (`data/network/Models.kt`) → `AuthTokenStore.saveUserInfo(..., tenantId=...)` (`data/auth/AuthStorage.kt`, `SharedPreferences`-এ `-1` sentinel দিয়ে nullable Int)। tenant context বাকি সব API call-এ **automatic** — Bearer token নিজেই tenant_id বহন করে (`api_tokens.tenant_id`), সার্ভার-সাইডে `require_active_tenant()` (`api/_helpers.php`) প্রতিটি রিকোয়েস্টে চেক করে, Android-এ আলাদা কোনো param/হেডার লাগে না
+- **⚠️ `LoginScreen.kt`-এ `HttpException` catch করার সময় সবসময় response body থেকে JSON parse করে `message` দেখাতে হবে** (শুধু `BuildConfig.DEBUG`-এ না) — নাহলে suspended-tenant-এর মতো গুরুত্বপূর্ণ backend error message release build-এ কখনো দেখা যাবে না (এই বাগ Phase 6-এ পাওয়া গিয়েছিল, ঠিক করা হয়েছে)
 - **APK serve directory:** `/var/www/car-apk/`
 - **APK index script:** `/var/www/car-apk/gen-index.sh` — চালালে `/apk/` page + `latest.apk` symlink আপডেট হয়
 - **Download page:** `https://car.zisan.me/apk/`

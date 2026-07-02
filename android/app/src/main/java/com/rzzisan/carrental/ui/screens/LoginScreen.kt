@@ -145,7 +145,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                     AuthTokenStore.saveUserInfo(
                                         id = res.data.id,
                                         username = res.data.username,
-                                        role = res.data.role
+                                        role = res.data.role,
+                                        tenantId = res.data.tenantId
                                     )
                                     onLoginSuccess()
                                 } else {
@@ -154,9 +155,16 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                             } catch (e: HttpException) {
                                 Log.e("LoginScreen", "HTTP ${e.code()} error", e)
                                 val body = e.response()?.errorBody()?.string()
-                                errorMsg = if (!body.isNullOrBlank() && BuildConfig.DEBUG)
-                                    "HTTP ${e.code()}: $body"
-                                else s.loginFailed
+                                // suspended tenant (403), invalid credentials ইত্যাদির প্রকৃত বার্তা
+                                // এখানেই আসে (json_response 4xx status-এ পাঠায়) — DEBUG/release নির্বিশেষে দেখাতে হবে,
+                                // নাহলে suspended tenant-এর ইউজার আসল কারণ জানতেই পারবে না production build-এ
+                                val serverMsg = body?.let {
+                                    try { org.json.JSONObject(it).optString("message").ifBlank { null } }
+                                    catch (_: Exception) { null }
+                                }
+                                errorMsg = serverMsg
+                                    ?: if (!body.isNullOrBlank() && BuildConfig.DEBUG) "HTTP ${e.code()}: $body"
+                                       else s.loginFailed
                             } catch (e: Exception) {
                                 Log.e("LoginScreen", "Login error", e)
                                 errorMsg = if (BuildConfig.DEBUG)
