@@ -13,7 +13,7 @@ if (!$id) {
 }
 
 $b = input();
-$allowed = ['brand', 'model', 'year', 'vehicle_type', 'color', 'fuel_type',
+$allowed = ['registration_number', 'brand', 'model', 'year', 'vehicle_type', 'color', 'fuel_type',
             'seating_capacity', 'mileage', 'daily_rent_price', 'status'];
 
 $sets   = [];
@@ -23,7 +23,7 @@ $types  = '';
 foreach ($allowed as $field) {
     if (!array_key_exists($field, $b)) continue;
     $sets[]   = "$field = ?";
-    $params[] = $b[$field];
+    $params[] = is_string($b[$field]) ? trim($b[$field]) : $b[$field];
     $types   .= in_array($field, ['year', 'seating_capacity', 'mileage']) ? 'i'
               : (in_array($field, ['daily_rent_price']) ? 'd' : 's');
 }
@@ -45,6 +45,21 @@ if ($chk->get_result()->num_rows === 0) {
     json_response(['success' => false, 'message' => 'গাড়ি পাওয়া যায়নি'], 404);
 }
 $chk->close();
+
+// registration_number গ্লোবাল UNIQUE — অন্য কোনো গাড়ির সাথে সংঘর্ষ হলে স্পষ্ট error
+if (array_key_exists('registration_number', $b)) {
+    $reg_val = trim($b['registration_number']);
+    if ($reg_val === '') {
+        json_response(['success' => false, 'message' => 'রেজিস্ট্রেশন নম্বর খালি রাখা যাবে না'], 400);
+    }
+    $dupChk = $conn->prepare('SELECT id FROM vehicles WHERE registration_number = ? AND id != ?');
+    $dupChk->bind_param('si', $reg_val, $id);
+    $dupChk->execute();
+    if ($dupChk->get_result()->num_rows > 0) {
+        json_response(['success' => false, 'message' => 'এই রেজিস্ট্রেশন নম্বর ইতিমধ্যে অন্য গাড়িতে ব্যবহৃত হচ্ছে'], 409);
+    }
+    $dupChk->close();
+}
 
 $stmt = $conn->prepare('UPDATE vehicles SET ' . implode(', ', $sets) . ' WHERE id = ? AND tenant_id = ?');
 $stmt->bind_param($types, ...$params);
