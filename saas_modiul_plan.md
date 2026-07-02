@@ -387,14 +387,16 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 **লক্ষ্য:** billing schema তৈরি এবং manual invoice management
 
 **কাজের তালিকা:**
-- [ ] `subscription_plans` টেবিল তৈরি + প্রথম plan insert
+- [ ] `saas_settings` টেবিল তৈরি + default values insert (price_per_vehicle, trial_days, invoice_due_days)
 - [ ] `subscriptions` টেবিল তৈরি
 - [ ] `subscription_invoices` টেবিল তৈরি
-- [ ] `api/cron/generate-invoices.php` — monthly invoice generator
+- [ ] `api/cron/generate-invoices.php` — monthly invoice generator (saas_settings থেকে price পড়বে)
 - [ ] `api/cron/check-overdue.php` — overdue check + tenant suspend
 - [ ] Server-এ cron job সেট: `0 6 1 * * php /var/www/html/car.zisan.me/api/cron/generate-invoices.php`
 - [ ] Server-এ cron job সেট: `0 8 * * * php /var/www/html/car.zisan.me/api/cron/check-overdue.php`
 - [ ] Suspended tenant login block (`require_active_tenant()`)
+
+**নোট:** `subscription_plans` টেবিল বাদ দেওয়া হয়েছে। একটিমাত্র global `price_per_vehicle` থাকবে `saas_settings`-এ — SuperAdmin যেকোনো সময় পরিবর্তন করতে পারবে। Multi-plan support ভবিষ্যতে দরকার হলে যোগ করা যাবে।
 
 **এই phase সম্পন্ন হলে:** মাসে মাসে invoice তৈরি হবে, overdue-তে tenant suspend হবে।
 
@@ -407,11 +409,13 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 
 **কাজের তালিকা:**
 - [ ] `api/superadmin/tenants/` — CRUD endpoints
-- [ ] `api/superadmin/billing/invoices.php` — invoice তালিকা + mark-paid
+- [ ] `api/superadmin/billing/invoices.php` — invoice তালিকা + mark-paid (manual)
 - [ ] `api/superadmin/billing/stats.php` — revenue stats
+- [ ] `api/superadmin/settings/index.php` — GET/PUT saas_settings (price, trial_days, due_days)
 - [ ] Frontend: `SuperAdminDashboard.tsx`
 - [ ] Frontend: `SuperAdminTenants.tsx` — tenant list, edit, suspend/activate
-- [ ] Frontend: `SuperAdminBilling.tsx` — invoice list, manual mark-paid
+- [ ] Frontend: `SuperAdminBilling.tsx` — invoice list, manual mark-paid (bKash ref লেখার field)
+- [ ] Frontend: `SuperAdminSettings.tsx` — price/trial/due_days পরিবর্তন
 - [ ] App.tsx-এ superadmin routes
 - [ ] Login redirect: superadmin → `/superadmin/dashboard`
 
@@ -438,21 +442,21 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 ### Phase 5: Payment Gateway Integration
 **Status: ⬜ বাকি (Phase 3/4 সম্পন্নের পরে)**
 
-**লক্ষ্য:** automatic payment collection
+**সিদ্ধান্ত (2026-07-02):** আপাতত Manual payment। Phase 3-এ SuperAdmin billing panel থেকে invoice manually "Paid" mark করবে। bKash-এ payment নিয়ে TrxID invoice-এ লেখা হবে। Gateway পরবর্তীতে যোগ হবে।
+
+**লক্ষ্য:** automatic payment collection (gateway integration)
 
 **প্রস্তাবিত gateway:** SSLCommerz (বাংলাদেশে bKash/Nagad/card সব সাপোর্ট করে)
 
 **কাজের তালিকা:**
 - [ ] SSLCommerz merchant account নেওয়া
-- [ ] `api/payment/initiate.php` — payment শুরু
-- [ ] `api/payment/success.php` — payment callback, invoice mark-paid
+- [ ] `api/payment/initiate.php` — payment শুরু করা
+- [ ] `api/payment/success.php` — SSLCommerz callback, invoice auto mark-paid
 - [ ] `api/payment/fail.php` — failure handle
-- [ ] Frontend: invoice page-এ "পেমেন্ট করুন" button
-- [ ] Payment confirmation-এ tenant status re-activate
+- [ ] Frontend: tenant-এর invoice page-এ "পেমেন্ট করুন" button
+- [ ] Payment confirmation-এ tenant status re-activate (suspended → active)
 
-**বিকল্প — Manual Payment (আপাতত):**
-SuperAdmin billing panel থেকে invoice manually "Paid" mark করা।
-Payment নেওয়া হবে bKash-এ, reference number invoice-এ লেখা হবে।
+**এই phase শুরু করার আগে দরকার:** SSLCommerz merchant account।
 
 ---
 
@@ -490,26 +494,46 @@ Subdomain (`rahimcars.car.zisan.me`) না করে single domain রাখা
 
 ---
 
-## Billing মূল্য নির্ধারণ (প্রস্তাবিত)
+## Billing মূল্য ও Trial নির্ধারণ
 
-| Plan | গাড়ি প্রতি মাসিক মূল্য | সর্বোচ্চ গাড়ি | সর্বোচ্চ ড্রাইভার |
-|---|---|---|---|
-| Basic | ৳XXX | ৫ | ১০ |
-| Standard | ৳XXX | ২০ | ৪০ |
-| Enterprise | ৳XXX | Unlimited | Unlimited |
+**সিদ্ধান্ত (2026-07-02):** মূল্য এবং trial period hardcode করা হবে না। SuperAdmin যেকোনো সময় পরিবর্তন করতে পারবে।
 
-*মূল্য নির্ধারণ pending — ব্যবসার মালিক (rzzisan) সিদ্ধান্ত নেবেন।*
+### `saas_settings` টেবিল (নতুন — Phase 2-এ তৈরি হবে)
+```sql
+CREATE TABLE saas_settings (
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    key_name    VARCHAR(100) UNIQUE NOT NULL,
+    value       VARCHAR(500) NOT NULL,
+    description TEXT,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Default values (SuperAdmin পরিবর্তন করবে)
+INSERT INTO saas_settings (key_name, value, description) VALUES
+('price_per_vehicle',  '500',  'প্রতি গাড়ি মাসিক মূল্য (টাকা)'),
+('trial_days',         '30',   'নতুন tenant-এর trial period (দিন)'),
+('invoice_due_days',   '7',    'Invoice তৈরির পর payment-এর deadline (দিন)');
+```
+
+### SuperAdmin Settings Panel (Phase 3-এ যোগ হবে)
+SuperAdmin panel থেকে `saas_settings` এর মান পরিবর্তন করা যাবে:
+- প্রতি গাড়ি মাসিক মূল্য (টাকা)
+- Trial period (দিন)
+- Invoice due date (দিন)
+
+নতুন tenant তৈরির সময় সেই মুহূর্তের `trial_days` ব্যবহার হবে।
+Invoice তৈরির সময় সেই মুহূর্তের `price_per_vehicle` ব্যবহার হবে।
 
 ---
 
 ## Implementation শুরু করার আগে চেকলিস্ট
 
-- [ ] প্রতি গাড়ি মাসিক মূল্য নির্ধারণ করা হয়েছে?
-- [ ] Trial period কত দিন সিদ্ধান্ত হয়েছে? (default: ৩০ দিন)
-- [ ] Payment method: Manual first? নাকি gateway থেকেই শুরু?
-- [ ] SSLCommerz/bKash merchant account আছে? (Phase 5-এর জন্য)
-- [ ] Server-এ cron job চালানো যাবে?
-- [ ] বিদ্যমান একটি tenant-এর data migration করার পরিকল্পনা আছে?
+- [x] প্রতি গাড়ি মাসিক মূল্য → SuperAdmin settings থেকে configurable (default: ৳৫০০)
+- [x] Trial period → SuperAdmin settings থেকে configurable (default: ৩০ দিন)
+- [x] Payment method → আপাতত Manual; পরবর্তীতে SSLCommerz gateway যোগ হবে
+- [ ] SSLCommerz/bKash merchant account → Phase 5-এর সময় নেওয়া হবে
+- [ ] Server-এ cron job চালানো যাবে কিনা verify করা
+- [ ] বিদ্যমান data-এর migration script test করা
 
 ---
 
@@ -539,9 +563,11 @@ api/
 │   │   ├── index.php      ← GET list / POST create
 │   │   ├── update.php     ← PUT
 │   │   └── status.php     ← PUT: active/suspended toggle
-│   └── billing/
-│       ├── invoices.php   ← GET list, POST mark-paid
-│       └── stats.php      ← GET revenue dashboard
+│   ├── billing/
+│   │   ├── invoices.php   ← GET list, POST mark-paid (manual, bKash ref সহ)
+│   │   └── stats.php      ← GET revenue dashboard
+│   └── settings/
+│       └── index.php      ← GET/PUT: price_per_vehicle, trial_days, invoice_due_days
 ├── cron/                  ← নতুন directory
 │   ├── generate-invoices.php
 │   └── check-overdue.php
@@ -554,7 +580,8 @@ frontend/src/pages/
 ├── superadmin/            ← নতুন directory
 │   ├── Dashboard.tsx
 │   ├── Tenants.tsx
-│   └── Billing.tsx
+│   ├── Billing.tsx        ← manual mark-paid, bKash TrxID field
+│   └── Settings.tsx       ← price/trial/due_days configurable
 ├── Register.tsx           ← নতুন
 └── (বিদ্যমান pages অপরিবর্তিত থাকবে)
 ```
@@ -562,4 +589,5 @@ frontend/src/pages/
 ---
 
 *এই ডকুমেন্ট সর্বশেষ আপডেট: 2026-07-02*
-*পরবর্তী কাজ: Phase 1 শুরু করার আগে "Implementation শুরু করার আগে চেকলিস্ট" সম্পন্ন করুন।*
+*সিদ্ধান্ত লগ: মূল্য ও trial period SuperAdmin-configurable; payment আপাতত manual (bKash), gateway Phase 5-এ।*
+*পরবর্তী কাজ: Phase 1 implementation শুরু।*
