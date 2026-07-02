@@ -153,10 +153,21 @@
       "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/regcookies.txt https://car.zisan.me/api/vehicles/index.php)",
       "Bash(curl -sk -X POST https://car.zisan.me/api/auth/register.php -H 'Content-Type: application/json' -d '{ *)",
       "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -e \"SELECT id,name,email FROM tenants;\")",
-      "Bash(node verify_phase4.js)"
+      "Bash(node verify_phase4.js)",
+      "Bash(curl -sk -c /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/mgrcookies2.txt -X POST https://car.zisan.me/api/auth/login.php -H 'Content-Type: application/json' -d '{\"identifier\":\"yeaalif@gmail.com\",\"password\":\"542211\"}')",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/mgrcookies2.txt https://car.zisan.me/api/manager/stats.php)",
+      "Bash(curl -sk https://car.zisan.me/apk/version.json)",
+      "Bash(curl -sk -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://car.zisan.me/apk/version.json)",
+      "Bash(/opt/android-sdk/build-tools/34.0.0/aapt dump *)",
+      "Bash(cp /var/www/car-apk/version.json /tmp/version.json.bak)",
+      "Bash(python3 -c ' *)",
+      "Bash(bash /var/www/car-apk/gen-index.sh \"test regression warning\")",
+      "Bash(cp /tmp/version.json.bak /var/www/car-apk/version.json)",
+      "Bash(rm -f /tmp/version.json.bak)"
     ],
     "additionalDirectories": [
-      "/tmp"
+      "/tmp",
+      "/var/www/car-apk"
     ]
   }
 }

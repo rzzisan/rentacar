@@ -299,13 +299,15 @@ npm run build    # → public/app/ (production)
 - **APK index script:** `/var/www/car-apk/gen-index.sh` — চালালে `/apk/` page + `latest.apk` symlink + `version.json` আপডেট হয়
 - **Download page:** `https://car.zisan.me/apk/`
 - **Stable latest URL:** `https://car.zisan.me/apk/latest.apk`
-- **In-app update check (Phase 7, 2026-07-02):** Play Store-এ নেই বলে নিজস্ব version-check — app চালু হলে `https://car.zisan.me/apk/version.json` (static ফাইল, `/api/` এর বাইরে, `ApiService.getAppVersion()` `@Url` দিয়ে) ফেচ করে `BuildConfig.VERSION_CODE`-এর সাথে তুলনা করে (`MainActivity.kt`-এর `UpdateCheckDialog`), নতুন থাকলে ডায়ালগ দেখায় ("ডাউনলোড করুন" → ব্রাউজারে `apk_url` খোলে, ইউজার নিজে ইনস্টল করে — silent/automatic install না)। **প্রতিটি রিলিজে `android/app/build.gradle.kts`-এ `versionCode` বাড়াতে হবে** — নাহলে update-check কাজ করবে না।
+- **In-app update check (Phase 7, 2026-07-02):** Play Store-এ নেই বলে নিজস্ব version-check — app চালু হলে `https://car.zisan.me/apk/version.json` (static ফাইল, `/api/` এর বাইরে, `ApiService.getAppVersion()` `@Url` দিয়ে) ফেচ করে `BuildConfig.VERSION_CODE`-এর সাথে তুলনা করে (`MainActivity.kt`-এর `UpdateCheckDialog`), নতুন থাকলে ডায়ালগ দেখায় ("ডাউনলোড করুন" → ব্রাউজারে `apk_url` খোলে, ইউজার নিজে ইনস্টল করে — silent/automatic install না)।
+- **⚠️ `versionCode` এখন ম্যানুয়াল না — `android/app/build.gradle.kts`-এর `gitCommitCount()` স্বয়ংক্রিয়ভাবে `git rev-list --count HEAD` থেকে বসায়।** কারণ: ম্যানুয়াল বাম্প ভুলে যাওয়ার ইতিহাস আছে (Phase 6 পর্যন্ত `versionCode` কখনো বাড়েইনি)। commit সংখ্যা কখনো কমে না, তাই monotonic guarantee automatic — **নতুন কিছু commit না করে শুধু build করলে versionCode বদলাবে না**, তাই deploy করার আগে সব পরিবর্তন commit করা আবশ্যক (build → commit ক্রম উল্টো হলে APK-এর versionCode আর `version.json`-এর সংখ্যা mismatch হতে পারে)।
 
 ### APK নামকরণ নিয়ম (বাধ্যতামূলক)
 **প্রতিটি নতুন APK-এর নামে datetime stamp থাকবে — version number নয়।**
 
 ```bash
-# Build করার পর — প্রথমে android/app/build.gradle.kts-এ versionCode/versionName বাড়াও, তারপর:
+# ক্রম গুরুত্বপূর্ণ: আগে সব কোড পরিবর্তন commit করো, তারপর build করো, তারপর deploy করো —
+# versionCode build-এর মুহূর্তে HEAD থেকে fix হয়ে যায়, commit-build উল্টো ক্রমে করলে APK আর version.json-এর সংখ্যা মিলবে না
 cp android/app/build/outputs/apk/debug/app-debug.apk \
    /var/www/car-apk/car-rental-$(date +%Y%m%d-%H%M%S).apk
 bash /var/www/car-apk/gen-index.sh "এই রিলিজের changelog লিখো এখানে" false
@@ -313,7 +315,7 @@ bash /var/www/car-apk/gen-index.sh "এই রিলিজের changelog ল�
 
 - সঠিক নাম: `car-rental-20260628-133500.apk`
 - ভুল নাম: `car-rental-v17.apk`, `app-debug.apk`, `car-rental.apk`
-- `gen-index.sh` সর্বশেষ APK (mtime অনুযায়ী) থেকে `latest.apk` symlink বানায়, এবং `build.gradle.kts` থেকে versionCode/versionName পড়ে `version.json` লেখে (২য় আর্গুমেন্ট `true` দিলে `force_update` — ডায়ালগ dismiss করা যাবে না, শুধু critical fix-এর জন্য)
+- `gen-index.sh` সর্বশেষ APK (mtime অনুযায়ী) থেকে `latest.apk` symlink বানায়, এবং **একই `git rev-list --count HEAD` কমান্ড** (build.gradle.kts যেটা ব্যবহার করে, ঠিক সেটাই) দিয়ে `version.json` লেখে — যাতে APK-তে বেক করা versionCode আর version.json-এর সংখ্যা কখনো ভিন্ন না হয়; নতুন version_code আগেরটার চেয়ে বড় না হলে script জোরালো সতর্কতা দেখায় (২য় আর্গুমেন্ট `true` দিলে `force_update` — ডায়ালগ dismiss করা যাবে না, শুধু critical fix-এর জন্য)
 
 ---
 
