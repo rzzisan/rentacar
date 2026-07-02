@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#3730a3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background: rounded square (Android adaptive-icon friendly) -->
+  <rect x="0" y="0" width="512" height="512" rx="104" fill="url(#bg)"/>
+
+  <!-- motion / speed lines trailing the Z (accent = amber, suggests movement/trip) -->
+  <g stroke="#f59e0b" stroke-linecap="round">
+    <line x1="72" y1="398" x2="152" y2="366" stroke-width="20"/>
+    <line x1="60" y1="430" x2="112" y2="410" stroke-width="16"/>
+    <line x1="54" y1="458" x2="86" y2="446" stroke-width="12"/>
+  </g>
+
+  <!-- Z monogram: three bold rounded strokes -->
+  <path d="M152,160 L360,160 L172,352 L360,352"
+        fill="none" stroke="#ffffff" stroke-width="56"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

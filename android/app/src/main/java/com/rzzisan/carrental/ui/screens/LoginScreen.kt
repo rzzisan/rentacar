@@ -1,5 +1,6 @@
 package com.rzzisan.carrental.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -17,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
 import com.rzzisan.carrental.BuildConfig
+import com.rzzisan.carrental.R
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.data.network.LoginRequest
 import com.rzzisan.carrental.data.auth.AuthTokenStore
@@ -57,12 +60,20 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Header
-                Text(
-                    "🚗  CarRental",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Primary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        "ZyroTrip",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary
+                    )
+                }
                 Text(
                     s.login,
                     fontSize = 18.sp,

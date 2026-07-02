@@ -108,11 +108,9 @@ export default function Sidebar({ role, username, isOpen, onClose }: Props) {
       >
         {/* Brand */}
         <div className={`flex items-center h-16 border-b border-slate-700 flex-shrink-0 transition-all duration-300 ${isOpen ? 'gap-3 px-5' : 'gap-3 px-5 lg:justify-center lg:px-0'}`}>
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-lg flex-shrink-0">
-            🚗
-          </div>
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ZyroTrip" className="w-9 h-9 rounded-lg flex-shrink-0" />
           <div className={`transition-all duration-200 ${isOpen ? '' : 'lg:hidden'}`}>
-            <div className="text-sm font-bold text-white leading-tight">CarRental</div>
+            <div className="text-sm font-bold text-white leading-tight">ZyroTrip</div>
             <div className="text-[10px] text-slate-500 uppercase tracking-wider">ম্যানেজমেন্ট</div>
           </div>
         </div>

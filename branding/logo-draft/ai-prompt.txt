@@ -1,0 +1,23 @@
+Minimalist modern app icon logo for "ZyroTrip", a car rental / fleet
+management SaaS mobile app used in Bangladesh by admins, managers and
+drivers. Bold geometric letter "Z" monogram made of three thick
+rounded-corner strokes forming a zigzag Z shape, solid white, centered
+on a rounded-square background with a smooth gradient from indigo
+(#4f46e5) to deep indigo/navy (#3730a3). Three short amber/orange
+(#f59e0b) diagonal speed lines trailing off the bottom-left of the Z,
+suggesting motion, speed, and travel. Clean flat vector design, no
+photorealistic elements, no gradient on the Z itself, high contrast,
+professional B2B tech branding. Must read clearly as a small mobile
+app icon (48x48px), Android adaptive-icon safe padding, no extra text,
+no other letters, square 1:1 aspect ratio, dark background, trustworthy
+and modern feel, similar polish to icons from Zapier, Notion, or Linear.
+
+Style: flat vector logo, no 3D, no photorealism, no drop shadows, no
+mockup device frame -- just the icon itself on a plain background.
+
+--- ব্যবহারের টিপস ---
+- Aspect ratio 1:1 (square) সেট করবেন
+- "no text" ঠিকমতো না মানলে জোর দিয়ে আবার লিখুন: "absolutely no
+  readable text or letters other than the Z shape"
+- ৪-৮টা variation জেনারেট করে সবচেয়ে সরল/পরিষ্কারটা বেছে নিন
+- জেনারেট করা PNG পরে ডিজাইনার দিয়ে ভেক্টরাইজ (SVG) করিয়ে নেওয়া ভালো

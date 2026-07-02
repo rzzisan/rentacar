@@ -43,9 +43,9 @@ export default function Login({ onLogin }: Props) {
         {/* Left — branding */}
         <div className="hidden md:block text-white">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">🚗</div>
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ZyroTrip" className="w-12 h-12 rounded-xl" />
             <div>
-              <h1 className="text-2xl font-bold">কার রেন্টাল</h1>
+              <h1 className="text-2xl font-bold">ZyroTrip</h1>
               <p className="text-indigo-200 text-sm">ম্যানেজমেন্ট সিস্টেম</p>
             </div>
           </div>
@@ -70,8 +70,8 @@ export default function Login({ onLogin }: Props) {
         {/* Right — login form */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="flex items-center gap-2 mb-6 md:hidden">
-            <span className="text-2xl">🚗</span>
-            <h1 className="text-xl font-bold text-slate-800">কার রেন্টাল</h1>
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ZyroTrip" className="w-8 h-8 rounded-lg" />
+            <h1 className="text-xl font-bold text-slate-800">ZyroTrip</h1>
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-1">লগইন</h2>
           <p className="text-slate-500 text-sm mb-6">আপনার অ্যাকাউন্টে প্রবেশ করুন</p>
