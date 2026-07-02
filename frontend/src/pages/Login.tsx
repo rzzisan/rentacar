@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import { roleHome } from '@/lib/roleHome';
 import type { User } from '@/types';
@@ -10,7 +10,7 @@ interface Props {
 
 export default function Login({ onLogin }: Props) {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ export default function Login({ onLogin }: Props) {
     setLoading(true);
 
     try {
-      const res = await api.post<User>('/auth/login.php', { email, password, remember_me: rememberMe });
+      const res = await api.post<User>('/auth/login.php', { identifier, password, remember_me: rememberMe });
       if (res.success && res.data) {
         onLogin(res.data);
         navigate(roleHome(res.data.role), { replace: true });
@@ -84,14 +84,14 @@ export default function Login({ onLogin }: Props) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">ইমেইল</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">ইমেইল অথবা মোবাইল নম্বর</label>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={identifier}
+                onChange={e => setIdentifier(e.target.value)}
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                placeholder="আপনার ইমেইল"
+                placeholder="ইমেইল অথবা মোবাইল নম্বর"
               />
             </div>
             <div>
@@ -126,6 +126,10 @@ export default function Login({ onLogin }: Props) {
               {loading ? 'লগইন হচ্ছে…' : 'লগইন করুন'}
             </button>
           </form>
+
+          <p className="text-center text-sm text-slate-500 mt-6">
+            নতুন ব্যবসা? <Link to="/register" className="text-indigo-600 font-medium hover:underline">এখনই নিবন্ধন করুন</Link>
+          </p>
         </div>
       </div>
     </div>

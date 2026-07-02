@@ -137,7 +137,10 @@ function require_active_tenant(): void {
     $stmt->close();
 
     if (!$row || in_array($row['status'], ['suspended', 'cancelled'], true)) {
-        json_response(['success' => false, 'message' => 'আপনার অ্যাকাউন্ট সাময়িকভাবে স্থগিত করা হয়েছে — যোগাযোগ করুন'], 403);
+        json_response([
+            'success' => false,
+            'message' => 'বকেয়া বিলের কারণে আপনার অ্যাকাউন্ট সাময়িকভাবে স্থগিত করা হয়েছে। পেমেন্ট সম্পন্ন করতে বা বিস্তারিত জানতে আমাদের সাথে যোগাযোগ করুন।',
+        ], 403);
     }
 }
 

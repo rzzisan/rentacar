@@ -450,18 +450,31 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 ---
 
 ### Phase 4: Tenant Onboarding & Registration
-**Status: ⬜ বাকি**
+**Status: ✅ সম্পন্ন (2026-07-02)**
 
 **লক্ষ্য:** নতুন ব্যবসা নিজে sign-up করতে পারবে
 
 **কাজের তালিকা:**
-- [ ] `api/auth/register.php` — tenant + admin user একসাথে তৈরি
-- [ ] Frontend: `Register.tsx` — registration form
-- [ ] Trial শেষের warning (admin dashboard-এ banner)
-- [ ] Suspended account-এ login করলে বিশেষ বার্তা + payment instruction
-- [ ] `/register` route (public)
+- [x] `api/auth/register.php` — tenant + admin user একসাথে তৈরি (transaction-এ, auto-login সহ)
+- [x] Frontend: `Register.tsx` — registration form
+- [x] Trial শেষের warning (admin dashboard-এ banner) — ≤৭ দিন বাকি থাকলে amber, মেয়াদ পার হলে red
+- [x] Suspended account-এ login করলে বিশেষ বার্তা + payment instruction (`require_active_tenant()`-এর message আপডেট)
+- [x] `/register` route (public)
 
-**এই phase সম্পন্ন হলে:** নতুন ব্যবসা স্বয়ংক্রিয়ভাবে sign-up করতে পারবে।
+**বাড়তি কাজ (ব্যবহারকারীর অনুরোধে, Phase 4-এর সাথেই):**
+- [x] **মোবাইল নম্বর দিয়ে লগইন** — admin/manager/driver তিনটাতেই ইমেইল অথবা মোবাইল দিয়ে লগইন করা যায় এখন
+  - `users.phone`, `drivers.mobile`, `managers.mobile` — গ্লোবাল UNIQUE constraint যোগ (migration `003_mobile_login.sql`)
+  - `api/auth/login.php` request body key `email` → `identifier` (backward-compat: পুরনো `email` key-ও গ্রহণ করে)
+  - `includes/User.php::login()` ও drivers/managers query — `WHERE email = ? OR phone/mobile = ?`
+  - Registration flow-এ `admin_phone` **বাধ্যতামূলক** (মোবাইল-লগইন কাজে লাগানোর জন্য); SuperAdmin-এর ম্যানুয়াল tenant-creation flow-এ ঐচ্ছিক
+
+**Implementation নোট:**
+- `api/auth/register.php` লজিক Phase 3-এর `api/superadmin/tenants/index.php` POST-এর অনুরূপ (একই প্যাটার্ন পুনর্ব্যবহার) — পার্থক্য: public (no auth), admin_phone বাধ্যতামূলক, সফল হলে session সেট করে অটো-লগইন করে দেয়
+- `api/auth/me.php` এখন admin/manager/driver response-এ `tenant_status` ও `trial_ends_at` রিটার্ন করে (trial banner-এর ডেটা সোর্স); superadmin-এর জন্য দুটোই `null`
+- DB migration আগে duplicate phone/mobile চেক করে নিশ্চিত হওয়া হয়েছে যে বিদ্যমান ডেটায় কোনো conflict নেই, তারপর UNIQUE যোগ হয়েছে
+- Verification: curl দিয়ে email+phone উভয় লগইন (admin/manager/driver), register→auto-login→isolation→duplicate-reject সব টেস্ট, তারপর Playwright দিয়ে ব্রাউজারে পূর্ণ flow (register ফর্ম পূরণ → dashboard → DB-তে trial_ends_at কাছাকাছি সেট করে banner visually confirm → logout → মোবাইল নম্বর দিয়ে লগইন) — সব টেস্ট ডেটা পরিষ্কার করা হয়েছে
+
+**এই phase সম্পন্ন হলে:** নতুন ব্যবসা স্বয়ংক্রিয়ভাবে sign-up করতে পারবে, এবং সবাই ইমেইল বা মোবাইল যেকোনো একটা দিয়ে লগইন করতে পারবে।
 
 ---
 
@@ -570,7 +583,7 @@ Invoice তৈরির সময় সেই মুহূর্তের `pric
 | 1 | মাল্টি-টেনেন্সি ভিত্তি | ✅ সম্পন্ন | 2026-07-02 |
 | 2 | Subscription & Billing | ✅ সম্পন্ন | 2026-07-02 |
 | 3 | SuperAdmin Panel | ✅ সম্পন্ন | 2026-07-02 |
-| 4 | Tenant Onboarding | ⬜ বাকি | — |
+| 4 | Tenant Onboarding | ✅ সম্পন্ন | 2026-07-02 |
 | 5 | Payment Gateway | ⬜ বাকি | — |
 | 6 | Android Support | ⬜ বাকি | — |
 

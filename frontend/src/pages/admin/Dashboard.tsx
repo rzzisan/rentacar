@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
-import type { Rental } from '@/types';
+import type { Rental, User } from '@/types';
 
 interface ExpiringDoc {
   id: number;
@@ -103,7 +103,13 @@ const statCards = (s: Stats) => [
   },
 ];
 
-export default function AdminDashboard() {
+// ট্রায়াল শেষ হতে কত দিন বাকি (ঋণাত্মক হলে ইতিমধ্যে শেষ)
+function trialDaysRemaining(trialEndsAt: string): number {
+  const end = new Date(trialEndsAt + 'T23:59:59');
+  return Math.ceil((end.getTime() - Date.now()) / 86400000);
+}
+
+export default function AdminDashboard({ user }: { user: User }) {
   const [stats, setStats]         = useState<Stats | null>(null);
   const [expiringDocs, setExpiring] = useState<ExpiringDoc[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -141,6 +147,26 @@ export default function AdminDashboard() {
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-4">
           {error}
         </div>
+      )}
+
+      {/* ট্রায়াল মেয়াদ সতর্কতা — শেষ হতে ৭ দিন বা তার কম বাকি থাকলে দেখাবে */}
+      {user.tenant_status === 'trial' && user.trial_ends_at && trialDaysRemaining(user.trial_ends_at) <= 7 && (
+        (() => {
+          const days = trialDaysRemaining(user.trial_ends_at!);
+          const expired = days < 0;
+          return (
+            <div className={`mb-5 rounded-xl p-4 border ${expired ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-300'}`}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`font-bold text-sm ${expired ? 'text-red-700' : 'text-amber-700'}`}>
+                  {expired
+                    ? `⛔ আপনার ট্রায়াল মেয়াদ ${Math.abs(days)} দিন আগে শেষ হয়ে গেছে — যেকোনো সময় অ্যাকাউন্ট স্থগিত হতে পারে`
+                    : `⏰ ট্রায়াল শেষ হতে ${days} দিন বাকি`}
+                </span>
+                <span className="text-xs text-slate-500">চালিয়ে যেতে পেমেন্ট সম্পন্ন করতে আমাদের সাথে যোগাযোগ করুন।</span>
+              </div>
+            </div>
+          );
+        })()
       )}
 
       {/* ডকুমেন্ট মেয়াদ সতর্কতা */}

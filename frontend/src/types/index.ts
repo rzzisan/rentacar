@@ -18,6 +18,8 @@ export interface User {
   role: Role;
   phone?: string;
   tenant_id?: number | null;
+  tenant_status?: 'trial' | 'active' | 'suspended' | 'cancelled' | null;
+  trial_ends_at?: string | null;
 }
 
 export interface Vehicle {

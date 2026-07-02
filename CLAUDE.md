@@ -71,7 +71,8 @@ frontend/src/
 │       ├── Header.tsx             — white topbar, user dropdown, logout
 │       └── Sidebar.tsx            — dark sidebar, role-based nav
 └── pages/
-    ├── Login.tsx                  — login form, POST /api/auth/login.php
+    ├── Login.tsx                  — login form (ইমেইল/মোবাইল + পাসওয়ার্ড), POST /api/auth/login.php
+    ├── Register.tsx                — নতুন tenant self-registration (public), POST /api/auth/register.php, সফল হলে অটো-লগইন
     ├── superadmin/
     │   ├── Dashboard.tsx          — stat cards (tenant count/status), ৬ মাসের আয় ট্রেন্ড bar chart, সাম্প্রতিক invoice তালিকা
     │   ├── Tenants.tsx            — tenant CRUD: তালিকা, নতুন tenant তৈরি (+প্রথম admin একসাথে), edit, status পরিবর্তন
@@ -123,9 +124,10 @@ api/
 ├── _helpers.php                   — json_response(), require_auth(), require_role(), require_driver(), input(),
 │                                    create_settlement_for_rental() — idempotent settlement তৈরি (হিসাবের লজিক এক জায়গায়)
 ├── auth/
-│   ├── login.php   POST           — session তৈরি করে
+│   ├── login.php   POST           — session তৈরি করে; body key `identifier` (ইমেইল বা মোবাইল, পুরনো `email` key-ও চলে)
+│   ├── register.php POST          — public, auth লাগে না: নতুন tenant + প্রথম admin একসাথে তৈরি (trial শুরু), সফল হলে অটো-লগইন
 │   ├── logout.php  POST           — session destroy করে JSON রিটার্ন
-│   ├── me.php      GET            — current user info
+│   ├── me.php      GET            — current user info + tenant_status/trial_ends_at (admin/manager/driver-এর জন্য; superadmin-এর জন্য null)
 │   └── update_profile.php POST    — নিজের প্রোফাইল আপডেট (superadmin-এর জন্য block করা — নিচে "Multi-Tenancy" সেকশনে কারণ)
 ├── superadmin/                     — সব endpoint require_superadmin() দিয়ে গার্ড
 │   ├── tenants/                    — index (GET list+POST create tenant+প্রথম admin একসাথে), update (PUT তথ্য), status (PUT trial/active/suspended/cancelled, subscriptions.status sync করে)
@@ -175,16 +177,20 @@ includes/                          — ভবিষ্যতের API-তে �
 
 1. `App.tsx` mount → `GET /api/auth/me.php`
 2. 401 response → redirect to `/login`
-3. Login form → `POST /api/auth/login.php` → PHP session set (৪-স্তর fallback: `super_admins` → `users` → `drivers` → `managers`)
-4. Role অনুযায়ী redirect: admin→`/admin`, manager→`/manager`, employee→`/employee`, customer→`/customer`, driver→`/driver` (superadmin panel এখনো তৈরি হয়নি — Phase 3)
+3. Login form → `POST /api/auth/login.php` (body: `identifier` — **ইমেইল অথবা মোবাইল নম্বর**, `password`) → PHP session set (৪-স্তর fallback: `super_admins` → `users` → `drivers` → `managers`)
+4. Role অনুযায়ী redirect: `frontend/src/lib/roleHome.ts`-এর `roleHome()` ফাংশন কেন্দ্রীয়ভাবে ঠিক করে (superadmin→`/superadmin`, admin→`/admin`, manager→`/manager`, employee→`/employee`, customer→`/customer`, driver→`/driver`)
 5. Logout → `POST /api/auth/logout.php` → session destroy → redirect to `/login`
 6. `ProtectedRoute` component role-check করে, ভুল role হলে নিজের dashboard-এ redirect
+7. **নতুন tenant registration:** `/register` (public) → `POST /api/auth/register.php` → tenant + admin একসাথে তৈরি + trial শুরু + **অটো-লগইন** (আলাদা করে লগইন করতে হয় না)
+
+### ইমেইল/মোবাইল দিয়ে লগইন
+`users.phone`, `drivers.mobile`, `managers.mobile` — সব **গ্লোবাল UNIQUE** (email-এর মতোই)। Login lookup সব জায়গায় `WHERE email = ? OR phone/mobile = ?`। `super_admins`-এর মোবাইল কলাম নেই — শুধু ইমেইল দিয়ে লগইন করে।
 
 ---
 
 ## Multi-Tenancy (SaaS)
 
-- **`$_SESSION['tenant_id']`**: প্রতিটি admin/manager/driver session-এ থাকে (login-এই সেট হয়)। `superadmin`-এর tenant_id নেই (tenant-agnostic — সব tenant দেখতে পারে, কিন্তু এখনো সেই panel/endpoint তৈরি হয়নি)।
+- **`$_SESSION['tenant_id']`**: প্রতিটি admin/manager/driver session-এ থাকে (login-এই সেট হয়)। `superadmin`-এর tenant_id নেই (tenant-agnostic — সব tenant দেখতে পারে; SuperAdmin panel Phase 3-এ তৈরি হয়েছে)।
 - **`get_tenant_id()`** (`api/_helpers.php`) — session থেকে tenant_id রিটার্ন করে, না থাকলে 403। **প্রতিটি tenant-scoped endpoint-এ `require_role()`/`require_manager()`/`require_driver()`-এর ঠিক পরেই কল করতে হবে** (`$tid = get_tenant_id();`)।
 - **`require_superadmin()`**, **`require_active_tenant()`** — superadmin guard ও suspended/cancelled tenant block। `require_active_tenant()` **`require_auth()`-এর ভেতরেই কল হয়** (superadmin বাদে) — মানে প্রতিটি authenticated API রিকোয়েস্টে চেক হয়, শুধু login-এ নয়। tenant suspend হলে আগে থেকে লগইন করা session-ও সাথে সাথে block হয়ে যায় (নতুন করে লগইন করার অপেক্ষা করতে হয় না)।
 - **tenant_id column আছে:** `users`, `vehicles`, `drivers`, `managers`, `rentals`, `maintenance`, `customers` (সব NOT NULL, কোনো DEFAULT নেই — tenant_id ছাড়া INSERT করলে সশব্দে ব্যর্থ হবে, চুপচাপ ভুল tenant-এ leak হবে না)। `api_tokens`-এও আছে (nullable, mobile bearer-token flow-এর জন্য)।
@@ -196,10 +202,10 @@ includes/                          — ভবিষ্যতের API-তে �
   4. **IDOR সতর্কতা:** client-supplied ID (`$_GET['id']`, body-তে আসা vehicle_id/driver_id/rental_id ইত্যাদি) দিয়ে যেকোনো lookup/update/delete/assign-এ tenant ownership যাচাই বাধ্যতামূলক — নাহলে এক tenant-এর user অন্য tenant-এর ডেটা ID guess করে access/মুছতে/পরিবর্তন করতে পারবে
 - **Manager/Driver panel:** এরা ইতিমধ্যে `manager_id`/`driver_id` দিয়ে scoped (via `get_manager_vehicle_ids()`/`driver_vehicles`), tenant_id filter সেখানে **defense-in-depth** হিসেবে অতিরিক্ত যোগ হয়েছে।
 - **`$in` (manager_vehicle_in_clause) সতর্কতা:** কোনো একটি SQL-এ `$in` একাধিকবার ব্যবহার করলে (যেমন SELECT-এর subquery + WHERE-এ) প্রতিটি ব্যবহারের জন্য `$vids` আলাদাভাবে params array-তে **SQL টেক্সটে placeholder-এর ক্রম অনুযায়ী** যোগ করতে হবে — নাহলে `bind_param()` ArgumentCountError দিয়ে fatal করবে (`api/manager/drivers/index.php`, `api/manager/customers/index.php`-এ এই বাগ পাওয়া গিয়েছিল, ঠিক করা হয়েছে)।
-- **DB migration ফাইল:** `db/migrations/001_multi_tenancy.sql`, `002_subscription_billing.sql` (backup রাখা হয় `db/backups/`-এ, mysqldump দিয়ে, যেকোনো schema change-এর আগে)
+- **DB migration ফাইল:** `db/migrations/001_multi_tenancy.sql`, `002_subscription_billing.sql`, `003_mobile_login.sql` (backup রাখা হয় `db/backups/`-এ, mysqldump দিয়ে, যেকোনো schema change-এর আগে)
 - **প্রথম SuperAdmin:** `super_admins` টেবিলে manual insert, email `rzzisan@gmail.com`
 - **⚠️ superadmin session-এর `$_SESSION['user_id']` আসলে `super_admins.id`, `users.id` নয়** — যেকোনো নতুন endpoint লেখার সময় এই দুটো গুলিয়ে ফেলা যাবে না (একবার `api/auth/update_profile.php`-এ এই বাগ হয়েছিল — superadmin profile আপডেট করতে গেলে ভুলবশত একই numeric id-ওয়ালা কোনো tenant admin-এর ডেটা বদলে যেতে পারত; এখন block করা আছে)।
-- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1+2+3 সম্পন্ন 2026-07-02; Phase 4+ = tenant self-registration, payment gateway, Android)
+- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1+2+3+4 সম্পন্ন 2026-07-02; Phase 5+ = payment gateway, Android tenant support)
 
 ### Billing (Phase 2)
 - **`saas_settings`**: key-value config (`price_per_vehicle`, `trial_days`, `invoice_due_days`) — SuperAdmin panel তৈরি হলে (Phase 3) সেখান থেকে পরিবর্তনযোগ্য হবে

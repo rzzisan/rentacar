@@ -35,17 +35,17 @@ class User {
     }
 
     /**
-     * Login user
+     * Login user — $identifier ইমেইল অথবা মোবাইল নম্বর (phone) হতে পারে
      */
-    public function login($email, $password) {
-        $query = "SELECT id, tenant_id, username, email, password, role, status FROM {$this->table} WHERE email = ? AND status = 'active'";
+    public function login($identifier, $password) {
+        $query = "SELECT id, tenant_id, username, email, password, role, status FROM {$this->table} WHERE (email = ? OR phone = ?) AND status = 'active'";
 
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
             return ['success' => false, 'message' => 'Prepare failed: ' . $this->conn->error];
         }
 
-        $stmt->bind_param('s', $email);
+        $stmt->bind_param('ss', $identifier, $identifier);
         $stmt->execute();
         $result = $stmt->get_result();
 

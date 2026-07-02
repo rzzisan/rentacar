@@ -26,6 +26,7 @@ import SuperAdminTenants from '@/pages/superadmin/Tenants';
 import SuperAdminBilling from '@/pages/superadmin/Billing';
 import SuperAdminSettings from '@/pages/superadmin/Settings';
 import Login from '@/pages/Login';
+import Register from '@/pages/Register';
 import { api } from '@/api/client';
 import { roleHome } from '@/lib/roleHome';
 import type { User } from '@/types';
@@ -106,6 +107,16 @@ export default function App() {
           }
         />
 
+        {/* Register (public — নতুন tenant self-registration) */}
+        <Route
+          path="/register"
+          element={
+            user
+              ? <Navigate to={roleHome(user.role)} replace />
+              : <Register onLogin={handleLogin} />
+          }
+        />
+
         {/* SuperAdmin */}
         <Route
           path="/superadmin"
@@ -130,7 +141,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<AdminDashboard />} />
+          <Route index element={<AdminDashboard user={user!} />} />
           <Route path="vehicles"    element={<AdminVehicles />} />
           <Route path="rentals"     element={<AdminRentals />} />
           <Route path="settlements" element={<AdminSettlements />} />

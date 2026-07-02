@@ -68,6 +68,7 @@ if ($method === 'POST') {
     $address       = trim($b['address'] ?? '') ?: null;
     $admin_name    = trim($b['admin_name'] ?? '');
     $admin_email   = trim($b['admin_email'] ?? '');
+    $admin_phone   = trim($b['admin_phone'] ?? '') ?: null;
     $admin_password= $b['admin_password'] ?? '';
 
     if (!$name || !$email || !$admin_name || !$admin_email || !$admin_password) {
@@ -75,6 +76,9 @@ if ($method === 'POST') {
     }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
         json_response(['success' => false, 'message' => 'সঠিক ইমেইল ঠিকানা দিন'], 400);
+    }
+    if ($admin_phone && !preg_match('/^\d{10,15}$/', preg_replace('/[^\d]/', '', $admin_phone))) {
+        json_response(['success' => false, 'message' => 'সঠিক মোবাইল নম্বর দিন'], 400);
     }
     if (strlen($admin_password) < 6) {
         json_response(['success' => false, 'message' => 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে'], 400);
@@ -97,6 +101,17 @@ if ($method === 'POST') {
         json_response(['success' => false, 'message' => 'এই admin ইমেইল ইতিমধ্যে ব্যবহৃত হচ্ছে'], 409);
     }
     $chk2->close();
+
+    // Admin phone uniqueness (দেওয়া থাকলে)
+    if ($admin_phone) {
+        $chk3 = $conn->prepare('SELECT id FROM users WHERE phone = ?');
+        $chk3->bind_param('s', $admin_phone);
+        $chk3->execute();
+        if ($chk3->get_result()->num_rows > 0) {
+            json_response(['success' => false, 'message' => 'এই মোবাইল নম্বর ইতিমধ্যে ব্যবহৃত হচ্ছে'], 409);
+        }
+        $chk3->close();
+    }
 
     // username জেনারেট করা হয় ইমেইলের local-part থেকে, collision হলে সংখ্যা যোগ হয়
     $base_username = preg_replace('/[^a-zA-Z0-9_]/', '', strtolower(explode('@', $admin_email)[0])) ?: 'admin';
@@ -137,9 +152,9 @@ if ($method === 'POST') {
         $hashed = password_hash($admin_password, PASSWORD_BCRYPT);
         $arole  = 'admin';
         $astmt  = $conn->prepare(
-            'INSERT INTO users (tenant_id, username, email, password, role, status) VALUES (?, ?, ?, ?, ?, "active")'
+            'INSERT INTO users (tenant_id, username, email, phone, password, role, status) VALUES (?, ?, ?, ?, ?, ?, "active")'
         );
-        $astmt->bind_param('issss', $tenant_id, $username, $admin_email, $hashed, $arole);
+        $astmt->bind_param('isssss', $tenant_id, $username, $admin_email, $admin_phone, $hashed, $arole);
         $astmt->execute();
         $astmt->close();
 

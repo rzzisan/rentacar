@@ -41,21 +41,21 @@ function _apply_remember_me(): void {
 }
 
 $body        = input();
-$email       = trim($body['email'] ?? '');
+$identifier  = trim($body['identifier'] ?? $body['email'] ?? ''); // ইমেইল অথবা মোবাইল নম্বর
 $pass        = $body['password'] ?? '';
 $is_mobile   = ($body['source'] ?? '') === 'mobile';
 $remember_me = !empty($body['remember_me']);
 $token_days  = $remember_me ? 90 : 30;
 
-if (!$email || !$pass) {
-    json_response(['success' => false, 'message' => 'ইমেইল এবং পাসওয়ার্ড দিন']);
+if (!$identifier || !$pass) {
+    json_response(['success' => false, 'message' => 'ইমেইল/মোবাইল এবং পাসওয়ার্ড দিন']);
 }
 
 $conn = (new Database())->connect();
 
-// ── ধাপ ১: super_admins টেবিল চেক (tenant-agnostic, সবার আগে) ─────
+// ── ধাপ ১: super_admins টেবিল চেক (tenant-agnostic, সবার আগে; শুধু ইমেইল — মোবাইল কলাম নেই) ─
 $sstmt = $conn->prepare("SELECT id, name, email, password FROM super_admins WHERE email = ?");
-$sstmt->bind_param('s', $email);
+$sstmt->bind_param('s', $identifier);
 $sstmt->execute();
 $sa_result = $sstmt->get_result();
 
@@ -92,7 +92,7 @@ $sstmt->close();
 
 // ── ধাপ ২: users টেবিল (admin/employee/customer) ─────────────────
 $user = new User($conn);
-$result = $user->login($email, $pass);
+$result = $user->login($identifier, $pass);
 
 if ($result['success']) {
     // suspended/cancelled tenant হলে ব্লক
@@ -115,9 +115,9 @@ if ($result['success']) {
     json_response(['success' => true, 'message' => 'লগইন সফল হয়েছে', 'data' => $resp]);
 }
 
-// ── ধাপ ৩: drivers টেবিল ───────────────────────────────────────────
-$dstmt = $conn->prepare("SELECT id, tenant_id, name, email, password, status FROM drivers WHERE email = ?");
-$dstmt->bind_param('s', $email);
+// ── ধাপ ৩: drivers টেবিল (ইমেইল অথবা মোবাইল) ──────────────────────
+$dstmt = $conn->prepare("SELECT id, tenant_id, name, email, password, status FROM drivers WHERE email = ? OR mobile = ?");
+$dstmt->bind_param('ss', $identifier, $identifier);
 $dstmt->execute();
 $driver_result = $dstmt->get_result();
 
@@ -156,9 +156,9 @@ if ($driver_result->num_rows === 1) {
 
 $dstmt->close();
 
-// ── ধাপ ৪: managers টেবিল ──────────────────────────────────────────
-$mstmt = $conn->prepare("SELECT id, tenant_id, name, email, password, status FROM managers WHERE email = ?");
-$mstmt->bind_param('s', $email);
+// ── ধাপ ৪: managers টেবিল (ইমেইল অথবা মোবাইল) ─────────────────────
+$mstmt = $conn->prepare("SELECT id, tenant_id, name, email, password, status FROM managers WHERE email = ? OR mobile = ?");
+$mstmt->bind_param('ss', $identifier, $identifier);
 $mstmt->execute();
 $manager_result = $mstmt->get_result();
 

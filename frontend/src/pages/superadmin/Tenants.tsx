@@ -9,10 +9,11 @@ interface CreateForm {
   address: string;
   admin_name: string;
   admin_email: string;
+  admin_phone: string;
   admin_password: string;
 }
 const emptyCreateForm = (): CreateForm => ({
-  name: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_password: '',
+  name: '', email: '', phone: '', address: '', admin_name: '', admin_email: '', admin_phone: '', admin_password: '',
 });
 
 interface EditForm {
@@ -201,6 +202,11 @@ export default function SuperAdminTenants() {
                   <label className="block text-xs font-medium text-slate-600 mb-1">Admin ইমেইল *</label>
                   <input type="email" required value={createForm.admin_email} onChange={e => setCreateForm(f => ({ ...f, admin_email: e.target.value }))}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Admin মোবাইল</label>
+                  <input value={createForm.admin_phone} onChange={e => setCreateForm(f => ({ ...f, admin_phone: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="01XXXXXXXXX" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">পাসওয়ার্ড *</label>
