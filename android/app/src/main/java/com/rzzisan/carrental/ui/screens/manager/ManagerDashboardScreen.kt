@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rzzisan.carrental.data.network.AdminStats
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.data.network.DashboardTrip
+import com.rzzisan.carrental.data.network.ManagerStats
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
 fun ManagerDashboardScreen(onLogout: () -> Unit) {
     val s = LocalStrings.current
     val scope = rememberCoroutineScope()
-    var stats by remember { mutableStateOf<AdminStats?>(null) }
+    var stats by remember { mutableStateOf<ManagerStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
 

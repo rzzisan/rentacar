@@ -226,7 +226,7 @@ interface ApiService {
     // ── Manager Panel ─────────────────────────────────────────────
 
     @GET("manager/stats.php")
-    suspend fun getManagerStats(): ApiResponse<AdminStats>
+    suspend fun getManagerStats(): ApiResponse<ManagerStats>
 
     @GET("manager/vehicles.php")
     suspend fun getManagerVehicles(): ApiResponse<List<Vehicle>>

@@ -193,6 +193,20 @@ data class AdminStats(
     @Json(name = "upcoming_trips") val upcomingTrips: List<DashboardTrip>
 )
 
+// api/manager/stats.php-এর response admin stats-এর মতোই কিন্তু total_customers ছাড়া —
+// AdminStats পুনর্ব্যবহার করলে Moshi parse ব্যর্থ হয় (required field missing), তাই আলাদা class
+data class ManagerStats(
+    @Json(name = "total_vehicles") val totalVehicles: Int,
+    @Json(name = "available_vehicles") val availableVehicles: Int,
+    @Json(name = "active_rentals") val activeRentals: Int,
+    @Json(name = "pending_rentals") val pendingRentals: Int,
+    @Json(name = "monthly_revenue") val monthlyRevenue: Double,
+    @Json(name = "total_dues") val totalDues: Double,
+    @Json(name = "today_trips") val todayTrips: Int,
+    @Json(name = "active_trips") val activeTrips: List<DashboardTrip>,
+    @Json(name = "upcoming_trips") val upcomingTrips: List<DashboardTrip>
+)
+
 data class AdminSettlement(
     val id: Int,
     @Json(name = "rental_id") val rentalId: Int,
