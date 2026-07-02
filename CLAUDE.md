@@ -138,11 +138,14 @@ api/
 │   ├── profile.php GET/POST       — প্রোফাইল তথ্য + assigned vehicles + stats; POST: নাম/মোবাইল/ছবি/পাসওয়ার্ড আপডেট
 │   ├── vehicles.php GET           — নিজেকে অ্যাসাইন করা গাড়ির তালিকা
 │   └── rentals/                   — index (GET: status/search/date_from/date_to filter; POST create), show, update_status, expenses
-└── vehicles/
-    ├── index.php   GET/POST        — list (filter: status, vehicle_type, search) / create
-    ├── show.php    GET ?id=        — single vehicle
-    ├── update.php  PUT ?id=        — update fields
-    └── destroy.php DELETE ?id=    — delete (active rental থাকলে block করে)
+├── vehicles/
+│   ├── index.php   GET/POST        — list (filter: status, vehicle_type, search) / create
+│   ├── show.php    GET ?id=        — single vehicle
+│   ├── update.php  PUT ?id=        — update fields
+│   └── destroy.php DELETE ?id=    — delete (active rental থাকলে block করে)
+└── cron/                           — CLI-only (HTTP-এ 403), root crontab দিয়ে চালানো হয় (php8.3 দিয়ে, নিচে নোট দেখুন)
+    ├── generate-invoices.php       — মাসের ১ তারিখ: প্রতিটি trial/active tenant-এর মাসিক subscription invoice তৈরি করে
+    └── check-overdue.php           — প্রতিদিন: overdue invoice mark + tenant suspend
 
 config/
 ├── config.php                     — DB creds, session config, TAX_RATE=15%
@@ -172,7 +175,7 @@ includes/                          — ভবিষ্যতের API-তে �
 
 - **`$_SESSION['tenant_id']`**: প্রতিটি admin/manager/driver session-এ থাকে (login-এই সেট হয়)। `superadmin`-এর tenant_id নেই (tenant-agnostic — সব tenant দেখতে পারে, কিন্তু এখনো সেই panel/endpoint তৈরি হয়নি)।
 - **`get_tenant_id()`** (`api/_helpers.php`) — session থেকে tenant_id রিটার্ন করে, না থাকলে 403। **প্রতিটি tenant-scoped endpoint-এ `require_role()`/`require_manager()`/`require_driver()`-এর ঠিক পরেই কল করতে হবে** (`$tid = get_tenant_id();`)।
-- **`require_superadmin()`**, **`require_active_tenant()`** — superadmin guard ও suspended/cancelled tenant block (আপাতত শুধু login-এ ব্যবহৃত)।
+- **`require_superadmin()`**, **`require_active_tenant()`** — superadmin guard ও suspended/cancelled tenant block। `require_active_tenant()` **`require_auth()`-এর ভেতরেই কল হয়** (superadmin বাদে) — মানে প্রতিটি authenticated API রিকোয়েস্টে চেক হয়, শুধু login-এ নয়। tenant suspend হলে আগে থেকে লগইন করা session-ও সাথে সাথে block হয়ে যায় (নতুন করে লগইন করার অপেক্ষা করতে হয় না)।
 - **tenant_id column আছে:** `users`, `vehicles`, `drivers`, `managers`, `rentals`, `maintenance`, `customers` (সব NOT NULL, কোনো DEFAULT নেই — tenant_id ছাড়া INSERT করলে সশব্দে ব্যর্থ হবে, চুপচাপ ভুল tenant-এ leak হবে না)। `api_tokens`-এও আছে (nullable, mobile bearer-token flow-এর জন্য)।
 - **tenant_id column নেই:** `trip_expenses`, `settlements`, `driver_vehicles`, `manager_vehicles`, `vehicle_documents` — এগুলো parent (`rentals`/`vehicles`) join করে tenant verify করতে হয়।
 - **নতুন endpoint লেখার নিয়ম (বাধ্যতামূলক):**
@@ -182,9 +185,19 @@ includes/                          — ভবিষ্যতের API-তে �
   4. **IDOR সতর্কতা:** client-supplied ID (`$_GET['id']`, body-তে আসা vehicle_id/driver_id/rental_id ইত্যাদি) দিয়ে যেকোনো lookup/update/delete/assign-এ tenant ownership যাচাই বাধ্যতামূলক — নাহলে এক tenant-এর user অন্য tenant-এর ডেটা ID guess করে access/মুছতে/পরিবর্তন করতে পারবে
 - **Manager/Driver panel:** এরা ইতিমধ্যে `manager_id`/`driver_id` দিয়ে scoped (via `get_manager_vehicle_ids()`/`driver_vehicles`), tenant_id filter সেখানে **defense-in-depth** হিসেবে অতিরিক্ত যোগ হয়েছে।
 - **`$in` (manager_vehicle_in_clause) সতর্কতা:** কোনো একটি SQL-এ `$in` একাধিকবার ব্যবহার করলে (যেমন SELECT-এর subquery + WHERE-এ) প্রতিটি ব্যবহারের জন্য `$vids` আলাদাভাবে params array-তে **SQL টেক্সটে placeholder-এর ক্রম অনুযায়ী** যোগ করতে হবে — নাহলে `bind_param()` ArgumentCountError দিয়ে fatal করবে (`api/manager/drivers/index.php`, `api/manager/customers/index.php`-এ এই বাগ পাওয়া গিয়েছিল, ঠিক করা হয়েছে)।
-- **DB migration ফাইল:** `db/migrations/001_multi_tenancy.sql` (backup রাখা হয় `db/backups/`-এ, mysqldump দিয়ে, যেকোনো schema change-এর আগে)
+- **DB migration ফাইল:** `db/migrations/001_multi_tenancy.sql`, `002_subscription_billing.sql` (backup রাখা হয় `db/backups/`-এ, mysqldump দিয়ে, যেকোনো schema change-এর আগে)
 - **প্রথম SuperAdmin:** `super_admins` টেবিলে manual insert, email `rzzisan@gmail.com`
-- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1 সম্পন্ন 2026-07-02; Phase 2+ = billing, SuperAdmin panel, registration, payment gateway, Android)
+- বিস্তারিত phase-ভিত্তিক পরিকল্পনা: `saas_modiul_plan.md` (Phase 1+2 সম্পন্ন 2026-07-02; Phase 3+ = SuperAdmin panel, registration, payment gateway, Android)
+
+### Billing (Phase 2)
+- **`saas_settings`**: key-value config (`price_per_vehicle`, `trial_days`, `invoice_due_days`) — SuperAdmin panel তৈরি হলে (Phase 3) সেখান থেকে পরিবর্তনযোগ্য হবে
+- **`subscriptions`**: প্রতিটি tenant-এর billing state (trialing/active/past_due/cancelled) — `subscription_plans` টেবিল বাদ দেওয়া হয়েছে, তাই এখানে `plan_id` নেই (single global price)
+- **`subscription_invoices`**: মাসিক invoice — `invoice_number` ফরম্যাট `INV-YYYYMM-T<tenant_id>` (তাই cron দুবার চললেও duplicate হয় না)
+- **`api/cron/generate-invoices.php`** (মাসের ১ তারিখ) — trial ও active দুই ধরনের tenant-এরই invoice তৈরি করে (সিদ্ধান্ত 2026-07-02); saas_settings থেকে price/due_days পড়ে
+- **`api/cron/check-overdue.php`** (প্রতিদিন) — due_date পার হওয়া pending invoice → overdue mark + tenant suspend (idempotent, ইতিমধ্যে suspended/cancelled tenant ছোঁয় না)
+- **cron script দুটো CLI-only** (`php_sapi_name() !== 'cli'` চেক, HTTP-এ 403) — অথেন্টিকেশন ছাড়া publicly-triggerable billing endpoint রাখা হয়নি ইচ্ছাকৃতভাবে
+- **⚠️ PHP ভার্সন সতর্কতা:** সার্ভারে `/usr/bin/php` → PHP 8.5 (mysqli নেই)। Apache আসলে চালায় **PHP 8.3-fpm**। তাই cron/CLI script চালাতে **সবসময় `/usr/bin/php8.3`** ব্যবহার করবে, শুধু `php` নয়
+- crontab (root): `0 6 1 * * php8.3 .../generate-invoices.php`, `0 8 * * * php8.3 .../check-overdue.php`; log → `storage/logs/*.log` (gitignored)
 
 ## Database Schema
 

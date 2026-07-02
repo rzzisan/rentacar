@@ -389,23 +389,33 @@ UPDATE users     SET tenant_id = 1 WHERE role = 'admin';
 ---
 
 ### Phase 2: Subscription & Billing ভিত্তি
-**Status: ⬜ বাকি**
+**Status: ✅ সম্পন্ন (2026-07-02)**
 
 **লক্ষ্য:** billing schema তৈরি এবং manual invoice management
 
 **কাজের তালিকা:**
-- [ ] `saas_settings` টেবিল তৈরি + default values insert (price_per_vehicle, trial_days, invoice_due_days)
-- [ ] `subscriptions` টেবিল তৈরি
-- [ ] `subscription_invoices` টেবিল তৈরি
-- [ ] `api/cron/generate-invoices.php` — monthly invoice generator (saas_settings থেকে price পড়বে)
-- [ ] `api/cron/check-overdue.php` — overdue check + tenant suspend
-- [ ] Server-এ cron job সেট: `0 6 1 * * php /var/www/html/car.zisan.me/api/cron/generate-invoices.php`
-- [ ] Server-এ cron job সেট: `0 8 * * * php /var/www/html/car.zisan.me/api/cron/check-overdue.php`
-- [ ] Suspended tenant login block (`require_active_tenant()`)
+- [x] `saas_settings` টেবিল তৈরি + default values insert (price_per_vehicle=৳৫০০, trial_days=৩০, invoice_due_days=৭)
+- [x] `subscriptions` টেবিল তৈরি (plan_id নেই — নিচে নোট দেখুন)
+- [x] `subscription_invoices` টেবিল তৈরি
+- [x] `api/cron/generate-invoices.php` — monthly invoice generator (saas_settings থেকে price পড়ে, idempotent — একই মাসে দ্বিতীয়বার চললে duplicate invoice হয় না)
+- [x] `api/cron/check-overdue.php` — overdue check + tenant suspend
+- [x] Server-এ cron job সেট: `0 6 1 * * php8.3 .../generate-invoices.php`
+- [x] Server-এ cron job সেট: `0 8 * * * php8.3 .../check-overdue.php`
+- [x] Suspended tenant login block (`require_active_tenant()`) — **এবং mid-session enforcement**-ও যোগ হয়েছে (নিচে দেখুন)
 
-**নোট:** `subscription_plans` টেবিল বাদ দেওয়া হয়েছে। একটিমাত্র global `price_per_vehicle` থাকবে `saas_settings`-এ — SuperAdmin যেকোনো সময় পরিবর্তন করতে পারবে। Multi-plan support ভবিষ্যতে দরকার হলে যোগ করা যাবে।
+**সিদ্ধান্ত (2026-07-02, ব্যবহারকারীর সাথে confirm করা):** trial ও active — দুই ধরনের tenant-এরই মাসিক invoice তৈরি হয় (শুধু active নয়)। তাই trial চলাকালীন invoice unpaid থেকে গেলে `check-overdue.php` সেই tenant-কে suspend করে দিতে পারে — trial period শেষ হওয়ার অপেক্ষা করে না।
 
-**এই phase সম্পন্ন হলে:** মাসে মাসে invoice তৈরি হবে, overdue-তে tenant suspend হবে।
+**নোট:** `subscription_plans` টেবিল বাদ দেওয়া হয়েছে। একটিমাত্র global `price_per_vehicle` থাকবে `saas_settings`-এ — SuperAdmin যেকোনো সময় পরিবর্তন করতে পারবে। তাই `subscriptions` টেবিলে মূল doc-এর `plan_id` column নেই (deviation)। Multi-plan support ভবিষ্যতে দরকার হলে যোগ করা যাবে।
+
+**Implementation নোট:**
+- `db/migrations/002_subscription_billing.sql` — বিদ্যমান tenant(s)-এর জন্য `subscriptions` রো auto-backfill করে (tenants.status অনুযায়ী ম্যাপ করে)
+- Cron script দুটো **CLI-only** (`php_sapi_name() !== 'cli'` চেক করে 403 দেয়) — মূল doc-এ এগুলোকে HTTP `GET` endpoint হিসেবে লেখা ছিল, কিন্তু auth ছাড়া HTTP-accessible cron endpoint রাখা একটা real vulnerability (যে কেউ hit করে বিলিং সাইকেল/tenant suspend জোর করে ট্রিগার করতে পারত) — তাই deviation করে CLI-only করা হয়েছে, root crontab দিয়ে সরাসরি PHP CLI চালানো হয়
+- **গুরুত্বপূর্ণ:** সার্ভারে `/usr/bin/php` symlink PHP 8.5-এ পয়েন্ট করে যেখানে `mysqli` extension নেই — Apache আসলে **PHP 8.3-fpm** ব্যবহার করে (mysqli আছে)। তাই cron entry-তে সুনির্দিষ্টভাবে `/usr/bin/php8.3` ব্যবহার করা হয়েছে।
+- **`require_active_tenant()` mid-session enforcement:** আগে (Phase 1-এ) এই ফাংশন শুধু login-এ কল হতো — মানে suspend হওয়ার পরেও আগে থেকে লগইন করা সেশন কাজ করতে থাকত যতক্ষণ না ইউজার আবার লগইন করে। এখন `require_auth()`-এর ভেতরেই (superadmin বাদে) কল হয় — তাই প্রতিটি API রিকোয়েস্টে suspend/cancel চেক হয়, একবার cron দিয়ে suspend হলে সাথে সাথেই সব চলমান সেশন ব্লক হয়ে যায়। Live curl টেস্ট দিয়ে verify করা হয়েছে (login করার পর tenant suspend করে একই session cookie দিয়ে ফের কল করলে 403 আসে)।
+- Log ফাইল: `storage/logs/cron-invoices.log`, `storage/logs/cron-overdue.log` (gitignored)
+- প্রথম বাস্তব invoice তৈরি হয়েছে test করার সময়: `INV-202607-T1`, tenant 1 (Default Tenant, real live business), ৳১০০০ (২টি গাড়ি × ৳৫০০), due 2026-07-09 — এটা মুছে ফেলা হয়নি, প্রকৃত জুলাই ২০২৬-এর বিল হিসেবেই থাকছে
+
+**এই phase সম্পন্ন হলে:** মাসে মাসে invoice তৈরি হবে, overdue-তে tenant suspend হবে (login ও চলমান session দুটোতেই)।
 
 ---
 
@@ -549,7 +559,7 @@ Invoice তৈরির সময় সেই মুহূর্তের `pric
 | Phase | নাম | Status | সম্পন্নের তারিখ |
 |---|---|---|---|
 | 1 | মাল্টি-টেনেন্সি ভিত্তি | ✅ সম্পন্ন | 2026-07-02 |
-| 2 | Subscription & Billing | ⬜ বাকি | — |
+| 2 | Subscription & Billing | ✅ সম্পন্ন | 2026-07-02 |
 | 3 | SuperAdmin Panel | ⬜ বাকি | — |
 | 4 | Tenant Onboarding | ⬜ বাকি | — |
 | 5 | Payment Gateway | ⬜ বাকি | — |

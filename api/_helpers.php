@@ -55,6 +55,11 @@ function require_auth(): void {
     if (!isset($_SESSION['user_id']) && !isset($_SESSION['driver_id']) && !isset($_SESSION['manager_id'])) {
         json_response(['success' => false, 'message' => 'অনুমোদন নেই — আগে লগইন করুন'], 401);
     }
+    // superadmin-এর tenant_id নেই; বাকি সব role tenant-scoped — প্রতি রিকোয়েস্টে suspended/cancelled চেক হয়
+    // (শুধু login-এ চেক করলে আগে থেকে লগইন করা সেশন suspend হওয়ার পরেও চলতে থাকত)
+    if (($_SESSION['role'] ?? '') !== 'superadmin') {
+        require_active_tenant();
+    }
 }
 
 function require_role(string $role): void {

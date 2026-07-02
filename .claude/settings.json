@@ -75,7 +75,37 @@
       "Bash(curl -sk -w '\\\\nHTTP %{http_code}\\\\n' -X PUT -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/t2cookies.txt https://car.zisan.me/api/vehicles/update.php?id=1 -H 'Content-Type: application/json' -d '{\"status\":\"maintenance\"}')",
       "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -e \"SELECT id, status FROM vehicles WHERE id=1;\")",
       "Bash(php -r '$d=json_decode\\(file_get_contents\\(\"php://stdin\"\\),true\\); echo count\\($d[\"data\"]\\).\" vehicles for tenant 1 admin\\\\n\";')",
-      "Bash(rm -f /tmp/r1.json /tmp/r2.json /tmp/r3.json /tmp/r4.json /tmp/r5.json /tmp/resp.json)"
+      "Bash(rm -f /tmp/r1.json /tmp/r2.json /tmp/r3.json /tmp/r4.json /tmp/r5.json /tmp/resp.json)",
+      "Bash(php -l /var/www/html/car.zisan.me/api/cron/generate-invoices.php)",
+      "Bash(php -l /var/www/html/car.zisan.me/api/cron/check-overdue.php)",
+      "Bash(curl -sk -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://car.zisan.me/api/cron/generate-invoices.php)",
+      "Bash(curl -sk -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://car.zisan.me/api/cron/check-overdue.php)",
+      "Bash(php api/cron/generate-invoices.php)",
+      "Bash(php api/cron/check-overdue.php)",
+      "Bash(/usr/bin/php -m)",
+      "Bash(php -m)",
+      "Read(//usr/bin/**)",
+      "Bash(update-alternatives --list php)",
+      "Read(//etc/apache2/sites-enabled/**)",
+      "Read(//etc/apache2/**)",
+      "Bash(/usr/bin/php8.3 api/cron/generate-invoices.php)",
+      "Bash(/usr/bin/php8.3 api/cron/check-overdue.php)",
+      "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -e \"SELECT * FROM subscription_invoices;\")",
+      "Bash(curl -sk -X POST https://car.zisan.me/api/auth/login.php -H \"Content-Type: application/json\" -d '{\"email\":\"suspendedadmin@example.com\",\"password\":\"testpass123\"}')",
+      "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -sN -e \"SELECT id FROM tenants WHERE email='midsession@example.com';\")",
+      "Bash(php -r \"echo password_hash\\('midpass123', PASSWORD_BCRYPT\\);\")",
+      "Bash(curl -sk -c /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/midcookies.txt -X POST https://car.zisan.me/api/auth/login.php -H 'Content-Type: application/json' -d '{\"email\":\"midsessionadmin@example.com\",\"password\":\"midpass123\"}')",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/midcookies.txt https://car.zisan.me/api/vehicles/index.php)",
+      "Bash(crontab -l)",
+      "Bash(crontab /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/crontab_new.txt)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(cp /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/crontab_new.txt /tmp/newcron.txt)",
+      "Bash(crontab /tmp/newcron.txt)",
+      "Bash(git restore *)",
+      "Bash(grep -i \"config.php$\")"
+    ],
+    "additionalDirectories": [
+      "/tmp"
     ]
   }
 }
