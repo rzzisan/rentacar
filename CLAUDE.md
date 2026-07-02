@@ -1,7 +1,7 @@
 # car.zisan.me — Rent-A-Car Management System
 
 ## প্রজেক্ট পরিচিতি
-বাংলাদেশ-ভিত্তিক কার রেন্টাল ম্যানেজমেন্ট সিস্টেম। UI সম্পূর্ণ বাংলায়। Role: `superadmin` (SaaS-ব্যাপী, tenant-agnostic), `admin`, `manager`, `employee`, `customer`, `driver` (সব tenant-scoped)।
+বাংলাদেশ-ভিত্তিক কার রেন্টাল ম্যানেজমেন্ট সিস্টেম। প্রোডাক্ট ব্র্যান্ড নাম **ZyroTrip** (Zyro Tech, zyrotechbd.com) — 2026-07-03 থেকে "CarRental" নাম থেকে রিব্র্যান্ড করা হয়েছে (app label, launcher icon, ওয়েব favicon/title/লগইন-সাইডবার লোগো)। **শুধু display-level রিব্র্যান্ড** — Android `applicationId` (`com.rzzisan.carrental`) ও internal Kotlin প্যাকেজ স্ট্রাকচার ইচ্ছাকৃতভাবে অপরিবর্তিত রাখা হয়েছে যাতে বর্তমান ইনস্টল করা অ্যাপগুলো স্বাভাবিকভাবে in-app আপডেট পেতে থাকে (পুরো applicationId রিব্র্যান্ড করলে সব ইউজারকে uninstall+reinstall করতে হতো)। সোর্স লোগো (সব ফরম্যাট) `branding/` ফোল্ডারে। UI সম্পূর্ণ বাংলায়। Role: `superadmin` (SaaS-ব্যাপী, tenant-agnostic), `admin`, `manager`, `employee`, `customer`, `driver` (সব tenant-scoped)।
 
 **মাল্টি-টেনেন্ট SaaS (2026-07-02 থেকে):** সিস্টেমটি একাধিক আলাদা রেন্ট-এ-কার ব্যবসা (tenant) হোস্ট করে — প্রতিটির ডেটা সম্পূর্ণ isolated। বিস্তারিত পরিকল্পনা ও phase tracking: `saas_modiul_plan.md`। এই ফাইলে multi-tenancy-সংক্রান্ত conventions নিচে "Multi-Tenancy" সেকশনে।
 
