@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
+import com.rzzisan.carrental.util.errorMessageOf
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
@@ -39,7 +40,7 @@ fun ManagerDriversScreen() {
             try {
                 val res = ApiClient.service.getManagerDrivers()
                 if (res.success) drivers = res.data ?: emptyList() else error = res.message ?: s.error
-            } catch (e: Exception) { error = "${e.javaClass.simpleName}: ${e.message}" }
+            } catch (e: Exception) { error = errorMessageOf(e, s.serverError) }
             finally { loading = false }
         }
     }

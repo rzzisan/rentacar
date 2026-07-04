@@ -17,6 +17,7 @@ import com.rzzisan.carrental.data.network.LedgerData
 import com.rzzisan.carrental.data.network.Rental
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
+import com.rzzisan.carrental.util.errorMessageOf
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -70,7 +71,7 @@ fun LedgerScreen() {
         try {
             val res = ApiClient.service.getLedger()
             if (res.success) ledger = res.data else error = res.message ?: s.error
-        } catch (_: Exception) { error = s.serverError }
+        } catch (e: Exception) { error = errorMessageOf(e, s.serverError) }
         finally { loading = false }
     }
 

@@ -22,6 +22,7 @@ import com.rzzisan.carrental.data.network.*
 import com.rzzisan.carrental.ui.LocalAdminDrawerState
 import com.rzzisan.carrental.ui.strings.AppStrings
 import com.rzzisan.carrental.ui.strings.LocalStrings
+import com.rzzisan.carrental.util.errorMessageOf
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -59,7 +60,7 @@ fun AdminCustomersScreen(isAdmin: Boolean = true) {
                     ApiClient.service.getManagerCustomers(search.ifBlank { null }, filterStatus.ifBlank { null })
                 if (res.success) customers = res.data ?: emptyList()
                 else error = res.message ?: s.error
-            } catch (e: Exception) { error = e.message ?: s.error }
+            } catch (e: Exception) { error = errorMessageOf(e, s.error) }
             finally { loading = false }
         }
     }
@@ -90,7 +91,7 @@ fun AdminCustomersScreen(isAdmin: Boolean = true) {
                     if (next == "active") s.customerActivated else s.customerDeactivated
                 } else res.message ?: s.error
                 snackState.showSnackbar(msg)
-            } catch (e: Exception) { snackState.showSnackbar(e.message ?: s.error) }
+            } catch (e: Exception) { snackState.showSnackbar(errorMessageOf(e, s.error)) }
         }
     }
 

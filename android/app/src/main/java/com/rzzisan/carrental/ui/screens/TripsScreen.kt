@@ -46,6 +46,7 @@ import com.rzzisan.carrental.service.LocationTrackingService
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.rzzisan.carrental.util.errorMessageOf
 import com.rzzisan.carrental.util.reverseGeocode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -156,7 +157,7 @@ fun TripsScreen(
                 val res = ApiClient.service.getRentals(status = statusFilter)
                 if (res.success) rentals = res.data ?: emptyList()
                 else error = res.message ?: s.error
-            } catch (_: Exception) { error = s.serverError }
+            } catch (e: Exception) { error = errorMessageOf(e, s.serverError) }
             finally { loading = false }
         }
     }

@@ -60,7 +60,16 @@ fun AppRoot(onLangToggle: () -> Unit) {
     } else when (role) {
         "admin"   -> AdminAppShell(onLogout = { isLoggedIn = false })
         "manager" -> ManagerAppShell(onLogout = { isLoggedIn = false })
-        else      -> MainAppShell(onLogout = { isLoggedIn = false })
+        "driver"  -> MainAppShell(onLogout = { isLoggedIn = false })
+        else -> {
+            // অজানা/অসমর্থিত role (superadmin/customer/employee/টাইপো) — এই অ্যাপ শুধু
+            // admin/manager/driver-এর জন্য; আগে এখানে সাইলেন্টলি driver shell দেখানো হতো,
+            // এখন explicit allow-list — ম্যাচ না হলে logout করে লগইন স্ক্রিনে ফেরত পাঠানো হয়
+            LaunchedEffect(role) {
+                AuthTokenStore.clear()
+                isLoggedIn = false
+            }
+        }
     }
 }
 

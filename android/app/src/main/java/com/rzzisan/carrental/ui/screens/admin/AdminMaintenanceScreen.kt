@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
 import com.rzzisan.carrental.ui.LocalAdminDrawerState
+import com.rzzisan.carrental.util.errorMessageOf
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
@@ -96,7 +97,7 @@ private fun ServiceRecordsTab(
                 val vRes = ApiClient.service.getAdminVehicles()
                 if (mRes.success) records = mRes.data ?: emptyList() else error = mRes.message ?: s.error
                 if (vRes.success) vehicles = vRes.data ?: emptyList()
-            } catch (e: Exception) { error = "${e.javaClass.simpleName}: ${e.message}" }
+            } catch (e: Exception) { error = errorMessageOf(e, s.serverError) }
             finally { loading = false }
         }
     }
@@ -271,7 +272,7 @@ private fun DocumentsTab(
                 val vRes = ApiClient.service.getAdminVehicles()
                 if (dRes.success) docs = dRes.data ?: emptyList() else error = dRes.message ?: s.error
                 if (vRes.success) vehicles = vRes.data ?: emptyList()
-            } catch (e: Exception) { error = "${e.javaClass.simpleName}: ${e.message}" }
+            } catch (e: Exception) { error = errorMessageOf(e, s.serverError) }
             finally { loading = false }
         }
     }

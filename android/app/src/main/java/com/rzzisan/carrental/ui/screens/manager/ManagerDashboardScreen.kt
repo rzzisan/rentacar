@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.data.network.DashboardTrip
 import com.rzzisan.carrental.data.network.ManagerStats
+import com.rzzisan.carrental.util.errorMessageOf
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
@@ -38,7 +39,7 @@ fun ManagerDashboardScreen(onLogout: () -> Unit) {
             try {
                 val res = ApiClient.service.getManagerStats()
                 if (res.success) stats = res.data else error = res.message ?: s.error
-            } catch (e: Exception) { error = "${e.javaClass.simpleName}: ${e.message}" }
+            } catch (e: Exception) { error = errorMessageOf(e, s.serverError) }
             finally { loading = false }
         }
     }

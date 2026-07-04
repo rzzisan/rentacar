@@ -78,18 +78,17 @@ if ($method === 'POST') {
         json_response(['success' => false, 'message' => 'রেন্টাল আইডি প্রয়োজন'], 400);
     }
 
-    // Verify rental belongs to manager's vehicles
-    if ($vids) {
-        $vchk = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND vehicle_id IN $in AND tenant_id = ?");
-        $p = array_merge([$rental_id], $vids, [$tid]);
-        $tp = 'i' . $t . 'i';
-        $vchk->bind_param($tp, ...$p);
-        $vchk->execute();
-        if ($vchk->get_result()->num_rows === 0) {
-            json_response(['success' => false, 'message' => 'রেন্টাল পাওয়া যায়নি'], 404);
-        }
-        $vchk->close();
+    // Verify rental belongs to manager's vehicles ও tenant — manager_vehicle_in_clause([])
+    // '(0)' রিটার্ন করে, তাই $vids খালি হলেও এই চেক নিরাপদে 0 rows ম্যাচ করবে (কখনো স্কিপ করা যাবে না)
+    $vchk = $conn->prepare("SELECT id FROM rentals WHERE id = ? AND vehicle_id IN $in AND tenant_id = ?");
+    $p = array_merge([$rental_id], $vids, [$tid]);
+    $tp = 'i' . $t . 'i';
+    $vchk->bind_param($tp, ...$p);
+    $vchk->execute();
+    if ($vchk->get_result()->num_rows === 0) {
+        json_response(['success' => false, 'message' => 'রেন্টাল পাওয়া যায়নি'], 404);
     }
+    $vchk->close();
 
     $settlement = create_settlement_for_rental($conn, $rental_id);
     if ($settlement === null) {
