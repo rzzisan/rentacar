@@ -30,15 +30,16 @@ import kotlinx.coroutines.launch
 val LocalAdminDrawerState = staticCompositionLocalOf<DrawerState?> { null }
 
 sealed class AdminScreen(val route: String) {
-    object Dashboard    : AdminScreen("admin_dashboard")
-    object Vehicles     : AdminScreen("admin_vehicles")
-    object Rentals      : AdminScreen("admin_rentals")
-    object Settlements  : AdminScreen("admin_settlements")
-    object Drivers      : AdminScreen("admin_drivers")
-    object Managers     : AdminScreen("admin_managers")
-    object Customers    : AdminScreen("admin_customers")
-    object Reports      : AdminScreen("admin_reports")
-    object Maintenance  : AdminScreen("admin_maintenance")
+    object Dashboard         : AdminScreen("admin_dashboard")
+    object Vehicles          : AdminScreen("admin_vehicles")
+    object Rentals           : AdminScreen("admin_rentals")
+    object Settlements       : AdminScreen("admin_settlements")
+    object DriverCollections : AdminScreen("admin_driver_collections")
+    object Drivers           : AdminScreen("admin_drivers")
+    object Managers          : AdminScreen("admin_managers")
+    object Customers         : AdminScreen("admin_customers")
+    object Reports           : AdminScreen("admin_reports")
+    object Maintenance       : AdminScreen("admin_maintenance")
 }
 
 private data class NavItem(
@@ -69,6 +70,7 @@ fun AdminAppShell(onLogout: () -> Unit) {
         NavItem(AdminScreen.Vehicles,    Icons.Filled.DirectionsCar,     s.navVehicles,          0),
         NavItem(AdminScreen.Rentals,     Icons.Filled.Assignment,        s.navRentals,           0),
         NavItem(AdminScreen.Settlements, Icons.Filled.AccountBalance,    s.navSettlements,       0),
+        NavItem(AdminScreen.DriverCollections, Icons.Filled.Payments,    s.navDriverCollections, 0),
         NavItem(AdminScreen.Drivers,     Icons.Filled.People,            s.navDrivers,           0),
         NavItem(AdminScreen.Managers,    Icons.Filled.SupervisorAccount, s.navManagers,          0),
         NavItem(AdminScreen.Customers,   Icons.Filled.Group,             s.navCustomers,         0),
@@ -182,6 +184,7 @@ fun AdminAppShell(onLogout: () -> Unit) {
                 composable(AdminScreen.Vehicles.route)     { AdminVehiclesScreen() }
                 composable(AdminScreen.Rentals.route)      { AdminRentalsScreen() }
                 composable(AdminScreen.Settlements.route)  { AdminSettlementsScreen() }
+                composable(AdminScreen.DriverCollections.route) { DriverCollectionsScreen(isAdmin = true) }
                 composable(AdminScreen.Drivers.route)      { AdminDriversScreen() }
                 composable(AdminScreen.Managers.route)     { AdminManagersScreen() }
                 composable(AdminScreen.Customers.route)    { AdminCustomersScreen(isAdmin = true) }

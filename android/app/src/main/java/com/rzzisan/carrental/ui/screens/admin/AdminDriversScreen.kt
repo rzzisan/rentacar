@@ -39,7 +39,6 @@ fun AdminDriversScreen() {
     var showForm by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<AdminDriver?>(null) }
     var deleteTarget by remember { mutableStateOf<AdminDriver?>(null) }
-    var collectTarget by remember { mutableStateOf<AdminDriver?>(null) }
     val snackState = remember { SnackbarHostState() }
 
     fun load() {
@@ -90,8 +89,7 @@ fun AdminDriversScreen() {
                 items(drivers) { driver ->
                     DriverCard(driver, s,
                         onEdit = { editTarget = driver; showForm = true },
-                        onDelete = { deleteTarget = driver },
-                        onCollect = { collectTarget = driver })
+                        onDelete = { deleteTarget = driver })
                 }
                 item { Spacer(Modifier.height(72.dp)) }
             }
@@ -132,27 +130,6 @@ fun AdminDriversScreen() {
             },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(s.cancel) } }
         )
-    }
-
-    // Collect dues sheet
-    collectTarget?.let { driver ->
-        CollectDuesSheet(driver = driver, s = s, onDismiss = { collectTarget = null },
-            onCollect = { amount, method, notes ->
-                scope.launch {
-                    try {
-                        val res = ApiClient.service.collectDriverDues(driver.id,
-                            DriverCollectRequest(amount, method, notes.ifBlank { null }))
-                        val msg = if (res.success) s.paymentCollected else s.error
-                        collectTarget = null
-                        if (res.success) load()
-                        snackState.showSnackbar(msg)
-                    } catch (e: HttpException) {
-                        snackState.showSnackbar("HTTP ${e.code()}: ${e.response()?.errorBody()?.string() ?: s.error}")
-                    } catch (e: Exception) {
-                        snackState.showSnackbar("${e.javaClass.simpleName}: ${e.message}")
-                    }
-                }
-            })
     }
 }
 
@@ -306,8 +283,7 @@ private fun DriverCard(
     driver: AdminDriver,
     s: com.rzzisan.carrental.ui.strings.AppStrings,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onCollect: () -> Unit
+    onDelete: () -> Unit
 ) {
     val isActive = driver.status == "active"
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
@@ -366,63 +342,7 @@ private fun DriverCard(
                     Spacer(Modifier.width(4.dp))
                     Text(s.deleteDriver.take(4), fontSize = 11.sp, color = Color(0xFFEF4444))
                 }
-                if (isActive) {
-                    Button(onClick = onCollect, modifier = Modifier.weight(1f).height(32.dp),
-                        contentPadding = PaddingValues(0.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)) {
-                        Text(s.collectDues, fontSize = 11.sp)
-                    }
-                }
             }
-        }
-    }
-}
-
-// ── Collect Dues Sheet ─────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CollectDuesSheet(
-    driver: AdminDriver,
-    s: com.rzzisan.carrental.ui.strings.AppStrings,
-    onDismiss: () -> Unit,
-    onCollect: (Double, String, String) -> Unit
-) {
-    var amountText by remember { mutableStateOf("") }
-    var selectedMethod by remember { mutableStateOf("cash") }
-    var notes by remember { mutableStateOf("") }
-    var submitting by remember { mutableStateOf(false) }
-    val methods = listOf("cash" to s.cash, "bank_transfer" to s.bankTransfer, "mobile_banking" to s.mobileBanking)
-
-    ModalBottomSheet(onDismissRequest = { if (!submitting) onDismiss() }) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(s.collectDues, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text(driver.name, color = InkMuted, fontSize = 13.sp)
-            OutlinedTextField(amountText, { amountText = it }, label = { Text(s.amount) },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true, shape = RoundedCornerShape(10.dp))
-            Text(s.paymentMethod, fontSize = 13.sp, color = InkMuted)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                methods.forEach { (key, label) ->
-                    FilterChip(selectedMethod == key, { selectedMethod = key }, label = { Text(label, fontSize = 12.sp) },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Primary, selectedLabelColor = Color.White))
-                }
-            }
-            OutlinedTextField(notes, { notes = it }, label = { Text(s.paymentNotes) },
-                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), maxLines = 2)
-            Button(
-                onClick = {
-                    val amt = amountText.toDoubleOrNull() ?: return@Button
-                    submitting = true
-                    onCollect(amt, selectedMethod, notes)
-                },
-                enabled = !submitting && amountText.toDoubleOrNull() != null,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
-            ) { Text(if (submitting) s.loading else s.collectDues, fontWeight = FontWeight.SemiBold) }
         }
     }
 }

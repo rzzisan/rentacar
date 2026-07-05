@@ -136,6 +136,12 @@ interface ApiService {
         @Body request: DriverCollectRequest
     ): ApiResponse<DriverCollectResult>
 
+    @GET("admin/drivers/dues.php")
+    suspend fun getAdminDriverDues(): ApiResponse<AdminDriverDuesData>
+
+    @GET("admin/drivers/dues.php")
+    suspend fun getAdminDriverDuesDetail(@Query("id") id: Int): ApiResponse<DriverDuesDetail>
+
     // ── Vehicle CRUD ──────────────────────────────────────────────
 
     @POST("vehicles/index.php")
@@ -285,6 +291,9 @@ interface ApiService {
 
     @GET("manager/drivers/dues.php")
     suspend fun getManagerDriverDues(): ApiResponse<ManagerDriverDuesData>
+
+    @GET("manager/drivers/dues.php")
+    suspend fun getManagerDriverDuesDetail(@Query("id") id: Int): ApiResponse<DriverDuesDetail>
 
     @POST("manager/drivers/collect.php")
     suspend fun collectManagerDriverDues(

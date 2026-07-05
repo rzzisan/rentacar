@@ -263,7 +263,96 @@ data class DriverCollectRequest(
 data class DriverCollectResult(
     @Json(name = "collected_amount") val collectedAmount: Double? = null,
     @Json(name = "remaining_due") val remainingDue: Double? = null,
-    @Json(name = "driver_name") val driverName: String? = null
+    @Json(name = "driver_name") val driverName: String? = null,
+    val allocations: List<CollectionAllocation> = emptyList()
+)
+
+data class CollectionAllocation(
+    @Json(name = "settlement_id") val settlementId: Int,
+    @Json(name = "payment_id") val paymentId: Int,
+    val allocated: Double,
+    @Json(name = "new_paid_amount") val newPaidAmount: Double,
+    @Json(name = "new_remaining_amount") val newRemainingAmount: Double,
+    @Json(name = "payment_status") val paymentStatus: String
+)
+
+// ── Driver Collections: overview list (admin) + shared detail (admin & manager) ────
+
+data class AdminDriverDue(
+    val id: Int,
+    val name: String,
+    val mobile: String? = null,
+    val status: String,
+    @Json(name = "commission_rate") val commissionRate: Double = 0.0,
+    @Json(name = "settlement_count") val settlementCount: Int = 0,
+    @Json(name = "due_settlement_count") val dueSettlementCount: Int = 0,
+    @Json(name = "total_to_collect") val totalToCollect: Double = 0.0,
+    @Json(name = "total_paid") val totalPaid: Double = 0.0,
+    @Json(name = "total_due") val totalDue: Double = 0.0,
+    @Json(name = "last_payment_date") val lastPaymentDate: String? = null
+)
+
+data class AdminDriverDuesSummaryStats(
+    @Json(name = "grand_total_due") val grandTotalDue: Double,
+    @Json(name = "grand_total_paid") val grandTotalPaid: Double,
+    @Json(name = "drivers_with_due") val driversWithDue: Int
+)
+
+data class AdminDriverDuesData(
+    val drivers: List<AdminDriverDue>,
+    val summary: AdminDriverDuesSummaryStats
+)
+
+data class DriverDuesDriverInfo(
+    val id: Int,
+    val name: String,
+    val mobile: String? = null,
+    val status: String,
+    @Json(name = "commission_rate") val commissionRate: Double = 0.0
+)
+
+data class DueSettlementItem(
+    val id: Int,
+    @Json(name = "rental_id") val rentalId: Int,
+    @Json(name = "agreed_amount") val agreedAmount: Double,
+    @Json(name = "total_expenses") val totalExpenses: Double,
+    @Json(name = "net_amount") val netAmount: Double,
+    @Json(name = "driver_commission") val driverCommission: Double,
+    @Json(name = "amount_to_collect") val amountToCollect: Double,
+    @Json(name = "paid_amount") val paidAmount: Double,
+    @Json(name = "remaining_amount") val remainingAmount: Double,
+    @Json(name = "payment_status") val paymentStatus: String,
+    @Json(name = "rental_start_date") val rentalStartDate: String? = null,
+    @Json(name = "pickup_location") val pickupLocation: String? = null,
+    @Json(name = "dropoff_location") val dropoffLocation: String? = null,
+    @Json(name = "customer_first_name") val customerFirstName: String? = null,
+    @Json(name = "customer_last_name") val customerLastName: String? = null,
+    @Json(name = "vehicle_brand") val vehicleBrand: String? = null,
+    @Json(name = "vehicle_model") val vehicleModel: String? = null,
+    @Json(name = "vehicle_registration_number") val vehicleRegistrationNumber: String? = null
+)
+
+data class DriverCollectionHistoryItem(
+    val id: Int,
+    @Json(name = "settlement_id") val settlementId: Int,
+    val amount: Double,
+    @Json(name = "payment_method") val paymentMethod: String? = null,
+    @Json(name = "payment_notes") val paymentNotes: String? = null,
+    @Json(name = "payment_date") val paymentDate: String? = null,
+    @Json(name = "recorded_by_name") val recordedByName: String? = null,
+    @Json(name = "rental_start_date") val rentalStartDate: String? = null,
+    @Json(name = "customer_first_name") val customerFirstName: String? = null,
+    @Json(name = "customer_last_name") val customerLastName: String? = null,
+    @Json(name = "vehicle_brand") val vehicleBrand: String? = null,
+    @Json(name = "vehicle_model") val vehicleModel: String? = null
+)
+
+data class DriverDuesDetail(
+    val driver: DriverDuesDriverInfo,
+    @Json(name = "total_due") val totalDue: Double,
+    @Json(name = "due_settlements") val dueSettlements: List<DueSettlementItem> = emptyList(),
+    @Json(name = "total_collected") val totalCollected: Double,
+    val collections: List<DriverCollectionHistoryItem> = emptyList()
 )
 
 // ── Vehicle CRUD ──────────────────────────────────────────────────

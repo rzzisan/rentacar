@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rzzisan.carrental.data.network.*
@@ -21,7 +19,6 @@ import com.rzzisan.carrental.util.errorMessageOf
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.*
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +28,6 @@ fun ManagerDriversScreen() {
     var drivers by remember { mutableStateOf<List<ManagerDriver>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
-    var collectTarget by remember { mutableStateOf<ManagerDriver?>(null) }
     val snackState = remember { SnackbarHostState() }
 
     fun load() {
@@ -70,83 +66,10 @@ fun ManagerDriversScreen() {
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(drivers) { d ->
-                    MgrDriverCard(d, s, onCollect = { collectTarget = d })
+                    MgrDriverCard(d, s)
                 }
                 item { Spacer(Modifier.height(24.dp)) }
             }
-        }
-    }
-
-    collectTarget?.let { d ->
-        MgrCollectDuesSheet(driver = d, s = s, onDismiss = { collectTarget = null },
-            onCollected = { msg ->
-                collectTarget = null; load()
-                scope.launch { snackState.showSnackbar(msg) }
-            })
-    }
-}
-
-// ── Collect Dues Sheet ─────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MgrCollectDuesSheet(
-    driver: ManagerDriver,
-    s: com.rzzisan.carrental.ui.strings.AppStrings,
-    onDismiss: () -> Unit,
-    onCollected: (String) -> Unit
-) {
-    val scope = rememberCoroutineScope()
-    var amount by remember { mutableStateOf("") }
-    var method by remember { mutableStateOf("cash") }
-    var notes by remember { mutableStateOf("") }
-    var submitting by remember { mutableStateOf(false) }
-    var formError by remember { mutableStateOf("") }
-
-    ModalBottomSheet(onDismissRequest = { if (!submitting) onDismiss() }) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(s.collectDues, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            Text(driver.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-            Text("${s.totalDueLabel}: ${s.taka}${String.format("%.0f", driver.totalDue)}",
-                fontSize = 13.sp, color = StatusDue, fontWeight = FontWeight.Medium)
-            if (formError.isNotEmpty()) Text(formError, color = Color(0xFFDC2626), fontSize = 13.sp)
-            OutlinedTextField(amount, { amount = it }, label = { Text(s.dueAmount) },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                shape = RoundedCornerShape(10.dp))
-            Text(s.paymentMethod, fontSize = 13.sp, color = InkMuted)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("cash" to s.cash, "bank_transfer" to s.bankTransfer, "mobile_banking" to s.mobileBanking)
-                    .forEach { (k, lbl) ->
-                        FilterChip(method == k, { method = k }, label = { Text(lbl, fontSize = 12.sp) },
-                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Primary, selectedLabelColor = Color.White))
-                    }
-            }
-            OutlinedTextField(notes, { notes = it }, label = { Text(s.paymentNotes) },
-                modifier = Modifier.fillMaxWidth(), maxLines = 2, shape = RoundedCornerShape(10.dp))
-            Button(
-                onClick = {
-                    val amt = amount.toDoubleOrNull()
-                    if (amt == null || amt <= 0) { formError = "${s.amount} সঠিক হতে হবে"; return@Button }
-                    submitting = true; formError = ""
-                    scope.launch {
-                        try {
-                            val res = ApiClient.service.collectManagerDriverDues(
-                                driver.id, DriverCollectRequest(amt, method, notes.ifBlank { null })
-                            )
-                            onCollected(if (res.success) res.data?.let { "৳${String.format("%.0f", it.collectedAmount)} জমা হয়েছে" } ?: s.success else res.message ?: s.error)
-                        } catch (e: HttpException) {
-                            formError = "HTTP ${e.code()}: ${e.response()?.errorBody()?.string() ?: s.error}"
-                        } catch (e: Exception) {
-                            formError = "${e.javaClass.simpleName}: ${e.message}"
-                        } finally { submitting = false }
-                    }
-                },
-                enabled = !submitting,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
-            ) { Text(if (submitting) s.loading else s.collectDues, fontWeight = FontWeight.SemiBold) }
         }
     }
 }
@@ -156,8 +79,7 @@ private fun MgrCollectDuesSheet(
 @Composable
 private fun MgrDriverCard(
     d: ManagerDriver,
-    s: com.rzzisan.carrental.ui.strings.AppStrings,
-    onCollect: () -> Unit
+    s: com.rzzisan.carrental.ui.strings.AppStrings
 ) {
     val isActive = d.status == "active"
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
@@ -204,19 +126,6 @@ private fun MgrDriverCard(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
-                }
-            }
-            if (d.totalDue > 0) {
-                Button(
-                    onClick = onCollect,
-                    modifier = Modifier.fillMaxWidth().height(36.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusDue)
-                ) {
-                    Icon(Icons.Filled.Payments, null, modifier = Modifier.size(16.dp), tint = Color.White)
-                    Spacer(Modifier.width(6.dp))
-                    Text(s.collectDues, fontSize = 13.sp, color = Color.White, fontWeight = FontWeight.Medium)
                 }
             }
         }

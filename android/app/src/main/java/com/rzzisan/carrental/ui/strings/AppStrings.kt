@@ -188,6 +188,18 @@ abstract class AppStrings {
     abstract val dueAmount: String
     abstract val driverStatus: String
 
+    // Driver Collections (overview + detail, shared admin/manager)
+    abstract val navDriverCollections: String
+    abstract val grandTotalDueLabel: String
+    abstract val driversWithDueLabel: String
+    abstract val searchDriverPlaceholder: String
+    abstract val fullDueQuickFill: String
+    abstract val dueSettlementsLabel: String
+    abstract val allDuesCollectedMsg: String
+    abstract val lastPaymentLabel: String
+    abstract val dueTripsCountLabel: String
+    abstract val amountExceedsTotalDue: String
+
     // Vehicle CRUD
     abstract val addVehicle: String
     abstract val editVehicle: String
@@ -556,6 +568,16 @@ object BanglaStrings : AppStrings() {
     override val collectDues          = "বকেয়া জমা"
     override val dueAmount            = "বকেয়া পরিমাণ"
     override val driverStatus         = "স্ট্যাটাস"
+    override val navDriverCollections   = "ড্রাইভার বকেয়া জমা"
+    override val grandTotalDueLabel      = "মোট বকেয়া (ড্রাইভারদের কাছে)"
+    override val driversWithDueLabel     = "বকেয়া আছে এমন ড্রাইভার"
+    override val searchDriverPlaceholder = "নাম বা মোবাইল খুঁজুন"
+    override val fullDueQuickFill        = "পুরো বকেয়া"
+    override val dueSettlementsLabel     = "বকেয়া সেটেলমেন্ট"
+    override val allDuesCollectedMsg     = "কোনো বকেয়া নেই"
+    override val lastPaymentLabel        = "শেষ জমা"
+    override val dueTripsCountLabel      = "বকেয়া ট্রিপ"
+    override val amountExceedsTotalDue   = "মোট বকেয়ার চেয়ে বেশি জমা নেওয়া যাবে না"
     override val addVehicle           = "গাড়ি যোগ করুন"
     override val editVehicle          = "গাড়ি সম্পাদনা"
     override val deleteVehicle        = "গাড়ি মুছুন"
@@ -910,6 +932,16 @@ object EnglishStrings : AppStrings() {
     override val collectDues          = "Collect Dues"
     override val dueAmount            = "Due Amount"
     override val driverStatus         = "Status"
+    override val navDriverCollections   = "Driver Collections"
+    override val grandTotalDueLabel      = "Total Due (from Drivers)"
+    override val driversWithDueLabel     = "Drivers with Dues"
+    override val searchDriverPlaceholder = "Search name or mobile"
+    override val fullDueQuickFill        = "Full Due"
+    override val dueSettlementsLabel     = "Due Settlements"
+    override val allDuesCollectedMsg     = "No dues remaining"
+    override val lastPaymentLabel        = "Last Payment"
+    override val dueTripsCountLabel      = "Due Trips"
+    override val amountExceedsTotalDue   = "Cannot exceed total due"
     override val addVehicle           = "Add Vehicle"
     override val editVehicle          = "Edit Vehicle"
     override val deleteVehicle        = "Delete Vehicle"

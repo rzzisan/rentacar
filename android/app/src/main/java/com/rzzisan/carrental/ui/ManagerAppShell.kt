@@ -15,19 +15,21 @@ import androidx.navigation.compose.rememberNavController
 import com.rzzisan.carrental.data.auth.AuthTokenStore
 import com.rzzisan.carrental.data.network.ApiClient
 import com.rzzisan.carrental.ui.screens.admin.AdminCustomersScreen
+import com.rzzisan.carrental.ui.screens.admin.DriverCollectionsScreen
 import com.rzzisan.carrental.ui.screens.manager.*
 import com.rzzisan.carrental.ui.strings.LocalStrings
 import com.rzzisan.carrental.ui.theme.Primary
 import kotlinx.coroutines.launch
 
 sealed class ManagerScreen(val route: String) {
-    object Dashboard   : ManagerScreen("mgr_dashboard")
-    object Vehicles    : ManagerScreen("mgr_vehicles")
-    object Rentals     : ManagerScreen("mgr_rentals")
-    object Settlements : ManagerScreen("mgr_settlements")
-    object Drivers     : ManagerScreen("mgr_drivers")
-    object Reports     : ManagerScreen("mgr_reports")
-    object Customers   : ManagerScreen("mgr_customers")
+    object Dashboard         : ManagerScreen("mgr_dashboard")
+    object Vehicles          : ManagerScreen("mgr_vehicles")
+    object Rentals           : ManagerScreen("mgr_rentals")
+    object Settlements       : ManagerScreen("mgr_settlements")
+    object DriverCollections : ManagerScreen("mgr_driver_collections")
+    object Drivers           : ManagerScreen("mgr_drivers")
+    object Reports           : ManagerScreen("mgr_reports")
+    object Customers         : ManagerScreen("mgr_customers")
 }
 
 @Composable
@@ -41,6 +43,7 @@ fun ManagerAppShell(onLogout: () -> Unit) {
         Triple(ManagerScreen.Vehicles,    Icons.Filled.DirectionsCar,     s.navMgrVehicles),
         Triple(ManagerScreen.Rentals,     Icons.Filled.Assignment,        s.navRentals),
         Triple(ManagerScreen.Settlements, Icons.Filled.AccountBalance,    s.navSettlements),
+        Triple(ManagerScreen.DriverCollections, Icons.Filled.Payments,    s.navDriverCollections),
         Triple(ManagerScreen.Drivers,     Icons.Filled.People,            s.navMgrDrivers),
         Triple(ManagerScreen.Customers,   Icons.Filled.Group,             s.navCustomers),
         Triple(ManagerScreen.Reports,     Icons.Filled.BarChart,          s.navReports),
@@ -86,6 +89,7 @@ fun ManagerAppShell(onLogout: () -> Unit) {
             composable(ManagerScreen.Vehicles.route)    { ManagerVehiclesScreen() }
             composable(ManagerScreen.Rentals.route)     { ManagerRentalsScreen() }
             composable(ManagerScreen.Settlements.route) { ManagerSettlementsScreen() }
+            composable(ManagerScreen.DriverCollections.route) { DriverCollectionsScreen(isAdmin = false) }
             composable(ManagerScreen.Drivers.route)     { ManagerDriversScreen() }
             composable(ManagerScreen.Customers.route)   { AdminCustomersScreen(isAdmin = false) }
             composable(ManagerScreen.Reports.route)     { ManagerReportsScreen() }
