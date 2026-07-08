@@ -81,7 +81,7 @@ frontend/src/
     ├── admin/
     │   ├── Dashboard.tsx          — চলমান+আপকামিং ট্রিপ হাইলাইট কার্ড (লাইভ টাইমার/কাউন্টডাউন), ৬ stats কার্ড (বকেয়া, আজকের ট্রিপ সহ), quick links
     │   ├── Vehicles.tsx           — CRUD: list, add modal, edit modal, delete confirm
-    │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট: তালিকা, তৈরি, স্ট্যাটাস, খরচ, লাইভ টাইমার; ?open=<id> এলে ডিটেইল মডাল অটো-খোলে
+    │   ├── Rentals.tsx            — ট্রিপ ম্যানেজমেন্ট: তালিকা, তৈরি, স্ট্যাটাস, খরচ, লাইভ টাইমার, ট্রিপ ডিলিট (যেকোনো status, cascade delete); ?open=<id> এলে ডিটেইল মডাল অটো-খোলে
     │   ├── Settlements.tsx        — ট্রিপ সেটেলমেন্ট: কমিশন হিসাব, পেমেন্ট সংগ্রহ ও ইতিহাস
     │   ├── Drivers.tsx            — ড্রাইভার CRUD + গাড়ি অ্যাসাইনমেন্ট (driver_vehicles)
     │   ├── DriverCollections.tsx  — ড্রাইভার বকেয়া জমা (FIFO bulk collection)
@@ -135,7 +135,7 @@ api/
 │   └── settings/                   — index.php GET/PUT saas_settings (price_per_vehicle/trial_days/invoice_due_days)
 ├── admin/
 │   ├── stats.php   GET            — dashboard stats (admin only): counts, monthly_revenue (agreed_amount-ভিত্তিক), total_dues, today_trips + active_trips/upcoming_trips তালিকা
-│   ├── rentals/                   — index (GET/POST), show (expenses এ location_name/lat/lng সহ), update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST: location_name/lat/lng সহ), expenses_destroy
+│   ├── rentals/                   — index (GET/POST), show (expenses এ location_name/lat/lng সহ), update, update_status (completed হলে settlement অটো-তৈরি), expenses (POST: location_name/lat/lng সহ), expenses_destroy, destroy (DELETE, যেকোনো status — active সহ; trip_expenses/settlements/settlement_payments/trip_locations সব DB-level FK CASCADE-এ মোছে, শুধু receipt image ফাইল ম্যানুয়ালি unlink করতে হয়)
 │   ├── settlements/               — index (GET; POST এখন পুরনো ট্রিপের fallback), show, update, collect-payment, payment-history
 │   ├── drivers/                   — index (GET/POST), update, destroy, dues (বকেয়া overview), collect (FIFO bulk)
 │   └── managers/                  — index (GET/POST), update, destroy — ম্যানেজার CRUD + vehicle assignment
