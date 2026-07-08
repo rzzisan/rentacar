@@ -101,6 +101,8 @@ export default function DriverRentals() {
   const [expenseLocation, setExpenseLocation] = useState('');
   const [expenseLatLng, setExpenseLatLng] = useState<{ lat: number; lng: number } | null>(null);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [deleteTripConfirm, setDeleteTripConfirm] = useState(false);
+  const [deletingTrip, setDeletingTrip] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -299,6 +301,26 @@ export default function DriverRentals() {
       showToast('ত্রুটি: ' + (error instanceof Error ? error.message : 'Unknown'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteRental = async () => {
+    if (!selectedRental) return;
+    setDeletingTrip(true);
+    try {
+      const response = await api.delete(`/driver/rentals/destroy.php?id=${selectedRental.id}`);
+      if (response.success) {
+        showToast(response.message || 'ট্রিপ মুছে ফেলা হয়েছে');
+        setDeleteTripConfirm(false);
+        setDetailOpen(false);
+        loadRentals();
+      } else {
+        showToast(response.message || 'মুছতে ব্যর্থ');
+      }
+    } catch (error) {
+      showToast('ত্রুটি: ' + (error instanceof Error ? error.message : 'Unknown'));
+    } finally {
+      setDeletingTrip(false);
     }
   };
 
@@ -853,12 +875,47 @@ export default function DriverRentals() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 border-t flex justify-end">
+            <div className="p-4 sm:p-6 border-t flex justify-between">
+              {selectedRental.rental_status === 'pending' && (
+                <button
+                  onClick={() => setDeleteTripConfirm(true)}
+                  className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium"
+                >
+                  ট্রিপ মুছুন
+                </button>
+              )}
               <button
                 onClick={() => { setDetailOpen(false); setExpenseLocation(''); setExpenseLatLng(null); }}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 ml-auto"
               >
                 বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Trip Confirm */}
+      {deleteTripConfirm && selectedRental && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-2">ট্রিপ মুছবেন?</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              এই ট্রিপ (#{selectedRental.id}) মুছে ফেলা হলে এর সাথে সম্পর্কিত সকল তথ্য <b>স্থায়ীভাবে</b> মুছে যাবে। এই কাজ আর ফেরানো যাবে না।
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteTripConfirm(false)}
+                className="flex-1 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition"
+              >
+                বাতিল
+              </button>
+              <button
+                onClick={handleDeleteRental}
+                disabled={deletingTrip}
+                className="flex-1 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition"
+              >
+                {deletingTrip ? 'মুছছে…' : 'হ্যাঁ, মুছুন'}
               </button>
             </div>
           </div>
