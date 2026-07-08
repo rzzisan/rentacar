@@ -163,7 +163,19 @@
       "Bash(python3 -c ' *)",
       "Bash(bash /var/www/car-apk/gen-index.sh \"test regression warning\")",
       "Bash(cp /tmp/version.json.bak /var/www/car-apk/version.json)",
-      "Bash(rm -f /tmp/version.json.bak)"
+      "Bash(rm -f /tmp/version.json.bak)",
+      "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -e \"SHOW CREATE TABLE settlement_payments\\\\G\")",
+      "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -e \"SHOW COLUMNS FROM damage_reports;\")",
+      "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -e \"SHOW COLUMNS FROM rentals;\")",
+      "Bash(php -l /var/www/html/car.zisan.me/api/admin/rentals/destroy.php)",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/del_admin.txt -X POST https://car.zisan.me/api/admin/rentals/index.php -H 'Content-Type: application/json' -d '{\"passenger_name\":\"Del Test Passenger\",\"passenger_mobile\":\"01711118888\",\"vehicle_id\":20,\"driver_id\":10,\"pickup_location\":\"Dhaka\",\"dropoff_location\":\"Ctg\",\"trip_type\":\"one_way\",\"start_datetime\":\"2026-07-05 10:00:00\",\"agreed_amount\":5000,\"notes\":\"del test\"}')",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/del_admin.txt -X POST https://car.zisan.me/api/admin/rentals/update_status.php?id=41 -H 'Content-Type: application/json' -d '{\"status\":\"active\"}')",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/del_admin.txt -X POST https://car.zisan.me/api/admin/rentals/expenses.php?rental_id=41 -H 'Content-Type: application/json' -d '{\"expense_type\":\"fuel\",\"amount\":500,\"description\":\"test fuel\"}')",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/del_admin.txt -X POST https://car.zisan.me/api/admin/rentals/update_status.php?id=41 -H 'Content-Type: application/json' -d '{\"status\":\"completed\"}')",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/del_admin.txt -X POST https://car.zisan.me/api/admin/drivers/collect.php?id=10 -H 'Content-Type: application/json' -d '{\"amount\":1000,\"payment_method\":\"cash\",\"notes\":\"partial for delete test\"}')",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/del_admin.txt -X DELETE https://car.zisan.me/api/admin/rentals/destroy.php?id=41)",
+      "Bash(curl -sk -b /tmp/claude-0/-var-www-html-car-zisan-me/c467ffd4-383b-410f-b266-e4b78ec0f013/scratchpad/del_b.txt -X DELETE https://car.zisan.me/api/admin/rentals/destroy.php?id=43)",
+      "Bash(mysql -u carapp -p'CarApp@2026Secure123!' car_rental_db -e \"SELECT id, tenant_id FROM rentals WHERE id=43;\")"
     ],
     "additionalDirectories": [
       "/tmp",
